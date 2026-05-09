@@ -1382,7 +1382,27 @@ function showPage(pageId, el) {
   if (pageId === 'transfer') { renderTransferSelects(); renderTransfers(); }
   if (pageId === 'inventory') { renderWarehouseSelects(); renderInventory(); }
   if (pageId === 'report') { renderWarehouseSelects(); renderReport(); }
-  if (pageId === 'contacts') renderContacts();
+  if (pageId === 'contacts') {
+    // 重置為「客戶」分頁並完整初始化（含分類膠囊）
+    currentContactType = 'customer';
+    const catCard = document.getElementById('category-card');
+    if (catCard) catCard.style.display = '';
+    const catGroup = document.getElementById('c-category-group');
+    if (catGroup) catGroup.style.display = '';
+    const extraRow = document.getElementById('c-extra-row');
+    if (extraRow) extraRow.style.display = '';
+    const filterRow = document.getElementById('contact-filter-row');
+    if (filterRow) filterRow.style.display = '';
+    document.querySelectorAll('#page-contacts .sub-tab').forEach(t => t.classList.remove('active'));
+    const firstTab = document.querySelector('#page-contacts .sub-tab');
+    if (firstTab) firstTab.classList.add('active');
+    const ftTitle = document.getElementById('contact-form-title');
+    if (ftTitle) ftTitle.textContent = '新增客戶';
+    const lTitle = document.getElementById('contact-list-title');
+    if (lTitle) lTitle.textContent = '客戶列表';
+    renderCategories();
+    renderContacts();
+  }
   if (pageId === 'settings') {
     renderWarehouses();
     // 帶入身分姓名
