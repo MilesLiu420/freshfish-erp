@@ -1,0 +1,3560 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0a4d68">
+<title>漁健客 進銷存系統</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, "Microsoft JhengHei", sans-serif; }
+  body { background: #f0f4f8; color: #1a2a3a; }
+
+  /* 整體版面 */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 220px; background: linear-gradient(180deg, #0a4d68 0%, #088395 100%);
+    color: white; padding: 24px 0; position: fixed; height: 100vh; overflow-y: auto;
+  }
+  .sidebar h1 { font-size: 20px; padding: 0 24px 24px; border-bottom: 1px solid rgba(255,255,255,0.2); text-align: center; }
+  .sidebar h1 .sub { font-size: 12px; opacity: 0.7; display: block; margin-top: 4px; }
+  .sidebar h1 .brand-logo {
+    display: block; width: 90px; height: 90px; margin: 0 auto 8px;
+    background: white; border-radius: 50%; padding: 6px;
+    object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  /* 倉庫 logo */
+  .warehouse-logo {
+    display: inline-block; width: 18px; height: 18px; vertical-align: middle;
+    object-fit: contain; margin-right: 4px; border-radius: 3px;
+    background: white; padding: 1px;
+  }
+  .warehouse-logo-large {
+    width: 28px; height: 28px; padding: 2px;
+  }
+  .badge-warehouse {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 12px;
+    font-size: 11px; font-weight: 600;
+  }
+  .nav-item {
+    padding: 14px 24px; cursor: pointer; transition: 0.2s;
+    display: flex; align-items: center; gap: 12px; font-size: 15px;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.1); }
+  .nav-item.active { background: rgba(255,255,255,0.2); border-left: 4px solid #fff; }
+  .nav-item .icon { font-size: 20px; }
+
+  /* 主內容區 */
+  .main { margin-left: 220px; flex: 1; padding: 32px; }
+  .page-title { font-size: 28px; margin-bottom: 24px; color: #0a4d68; }
+
+  /* 卡片 */
+  .card {
+    background: white; border-radius: 12px; padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px;
+  }
+  .card-title { font-size: 18px; margin-bottom: 16px; color: #0a4d68; font-weight: 600; }
+
+  /* 儀表板 */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: white; border-radius: 12px; padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid #088395;
+  }
+  .stat-card.green { border-left-color: #22c55e; }
+  .stat-card.orange { border-left-color: #f59e0b; }
+  .stat-card.red { border-left-color: #ef4444; }
+  .stat-card .label { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; color: #0a4d68; }
+  .stat-card.green .value { color: #16a34a; }
+  .stat-card.orange .value { color: #d97706; }
+  .stat-card.red .value { color: #dc2626; }
+
+  /* 表單 */
+  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .form-group { display: flex; flex-direction: column; }
+  .form-group label { font-size: 13px; color: #475569; margin-bottom: 6px; font-weight: 500; }
+  .form-group input, .form-group select {
+    padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px;
+    transition: 0.2s; background: white;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none; border-color: #088395; box-shadow: 0 0 0 3px rgba(8,131,149,0.1);
+  }
+
+  /* 按鈕 */
+  .btn {
+    padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px;
+    cursor: pointer; transition: 0.2s; font-weight: 600;
+  }
+  .btn-primary { background: #088395; color: white; }
+  .btn-primary:hover { background: #0a4d68; }
+  .btn-success { background: #22c55e; color: white; }
+  .btn-success:hover { background: #16a34a; }
+  .btn-danger { background: #ef4444; color: white; padding: 6px 12px; font-size: 12px; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-secondary { background: #e2e8f0; color: #475569; }
+  .btn-secondary:hover { background: #cbd5e1; }
+
+  /* 表格 */
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #f1f5f9; padding: 12px; text-align: left; font-size: 13px; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+  td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+  tr:hover { background: #f8fafc; }
+
+  /* 警示標籤 */
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-warning { background: #fef3c7; color: #d97706; }
+  .badge-danger { background: #fee2e2; color: #dc2626; }
+  .badge-success { background: #d1fae5; color: #16a34a; }
+  .badge-info { background: #dbeafe; color: #2563eb; }
+
+  /* 頁面切換 */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* 子標籤 */
+  .sub-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
+  .sub-tab { padding: 10px 16px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; font-weight: 500; }
+  .sub-tab.active { color: #088395; border-bottom-color: #088395; }
+
+  /* ============ 響應式設計 ============ */
+
+  /* 手機選單觸發按鈕（預設隱藏，手機才顯示）*/
+  .mobile-menu-btn {
+    display: none; position: fixed; top: 12px; left: 12px; z-index: 1001;
+    width: 44px; height: 44px; background: #088395; color: white;
+    border: none; border-radius: 8px; font-size: 22px; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    align-items: center; justify-content: center;
+  }
+  .mobile-menu-overlay {
+    display: none; position: fixed; top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.5); z-index: 999;
+  }
+  .mobile-menu-overlay.show { display: block; }
+
+  /* ===== 平板 (769-1024px) ===== */
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .sidebar { width: 180px; }
+    .main { margin-left: 180px; padding: 20px; }
+    .sidebar h1 { font-size: 16px; padding: 0 16px 16px; }
+    .sidebar h1 .brand-logo { width: 60px; height: 60px; }
+    .nav-item { padding: 12px 16px; font-size: 14px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ===== 手機 (≤ 768px) — 全面放大字體，避免使用者要縮放 ===== */
+  @media (max-width: 768px) {
+    /* 全域基底字體 */
+    body { font-size: 17px; }
+
+    /* 顯示漢堡選單按鈕 */
+    .mobile-menu-btn { display: flex; }
+
+    /* 側邊欄抽屜 */
+    .sidebar {
+      width: 280px; transform: translateX(-100%); transition: transform 0.3s;
+      z-index: 1000;
+    }
+    .sidebar.show { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.3); }
+    .sidebar h1 { font-size: 22px; padding: 24px 24px 20px; }
+    .sidebar h1 .brand-logo { width: 80px; height: 80px; }
+    .sidebar h1 .sub { font-size: 14px; }
+    .nav-item { padding: 16px 24px; font-size: 17px; }
+    .nav-item .icon { font-size: 22px; }
+
+    /* 主內容區 — 漢堡按鈕單獨佔一列，標題不會被擠 */
+    .main { margin-left: 0; padding: 70px 14px 20px; }
+    .page-title { font-size: 26px; margin-bottom: 20px; padding-left: 0; padding-top: 8px; font-weight: 700; }
+
+    /* 卡片 */
+    .card { padding: 16px; border-radius: 12px; margin-bottom: 14px; }
+    .card-title { font-size: 19px; margin-bottom: 14px; font-weight: 700; }
+
+    /* 表單欄位垂直排列、字大 */
+    .form-row { grid-template-columns: 1fr !important; gap: 14px; margin-bottom: 14px; }
+    .form-group label { font-size: 16px; margin-bottom: 8px; font-weight: 600; }
+    .form-group input, .form-group select {
+      padding: 14px 14px; font-size: 17px;  /* 17px 防 iOS 自動放大畫面 */
+      border-radius: 10px;
+    }
+
+    /* 按鈕加大 */
+    .btn { padding: 14px 24px; font-size: 17px; min-height: 50px; border-radius: 10px; }
+    .btn-danger { padding: 10px 16px; font-size: 14px; min-height: auto; }
+    .btn-secondary { padding: 12px 18px; }
+
+    /* 統計卡 */
+    .stats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .stat-card { padding: 16px; }
+    .stat-card .value { font-size: 24px; }
+    .stat-card .label { font-size: 13px; margin-bottom: 8px; }
+
+    /* KPI 三維度卡片 */
+    .kpi-row { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .kpi-cell { padding: 14px 8px; }
+    .kpi-cell .kpi-label { font-size: 12px; margin-bottom: 6px; }
+    .kpi-cell .kpi-value { font-size: 18px; }
+    .kpi-group { padding: 16px; margin-bottom: 14px; }
+    .kpi-group-title { font-size: 16px; margin-bottom: 14px; font-weight: 700; }
+
+    /* 表格 — 改成「卡片式」呈現，不擠在一行 */
+    .card table { width: 100%; }
+    .card table thead { display: none; }  /* 隱藏表頭 */
+    .card table tr {
+      display: block; padding: 14px; margin-bottom: 12px;
+      background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;
+    }
+    .card table tr:hover { background: #f8fafc; }
+    .card table td {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid #e2e8f0;
+      font-size: 16px; gap: 10px; flex-wrap: wrap;
+    }
+    .card table td:last-child { border-bottom: none; }
+    /* 用 data-label 顯示欄位名稱 */
+    .card table td::before {
+      content: attr(data-label); font-weight: 600; color: #64748b; font-size: 14px;
+      flex-shrink: 0;
+    }
+    /* 操作欄按鈕往右靠 */
+    .card table td .btn { margin-left: auto; }
+
+    /* 分類膠囊放大 */
+    .cat-pill { padding: 6px 12px; font-size: 14px; margin: 4px 6px 4px 0; }
+
+    /* 紀錄者徽章放大 */
+    .recorder-badge { padding: 4px 10px; font-size: 13px; }
+    .badge { padding: 4px 10px; font-size: 13px; }
+    .badge-warehouse { padding: 4px 10px; font-size: 13px; }
+
+    /* 圖表容器 */
+    .chart-container { height: 280px; }
+    .grid-2 { grid-template-columns: 1fr; gap: 14px; }
+
+    /* 多品項明細 */
+    .line-item { padding: 14px; }
+    .line-item .line-num { width: 28px; height: 28px; line-height: 28px; font-size: 13px; }
+    .line-item .line-header strong { font-size: 17px; }
+    .calc-display { font-size: 15px; padding: 12px 14px; line-height: 1.7; }
+    .add-line-btn { padding: 16px; font-size: 16px; }
+    .total-bar { padding: 16px 20px; flex-direction: column; gap: 12px; align-items: stretch; text-align: center; }
+    .total-bar .total-label { font-size: 14px; }
+    .total-bar .total-value { font-size: 26px; }
+
+    /* 客戶/商品選擇器 */
+    .customer-picker input { padding: 14px; font-size: 17px; }
+    .picker-selected { font-size: 16px; padding: 12px 16px; }
+    .picker-list { max-height: 320px; }
+    .picker-section-title { padding: 10px 14px; font-size: 13px; }
+    .picker-item { padding: 14px 16px; }
+    .picker-item .name { font-size: 17px; }
+    .picker-item .meta { font-size: 14px; margin-top: 4px; }
+
+    .product-picker-trigger { padding: 14px; font-size: 16px; min-height: 50px; }
+    .product-picker-panel { max-height: 380px; }
+    .product-picker-panel .panel-header { padding: 10px 14px; }
+    .product-picker-panel .panel-header > div { flex-direction: column !important; gap: 8px !important; }
+    .product-picker-panel .panel-header input,
+    .product-picker-panel .panel-header select { width: 100%; padding: 10px; font-size: 15px; }
+    .product-picker-panel .product-item { padding: 14px 16px; }
+    .product-picker-panel .product-item .name { font-size: 16px; }
+    .product-picker-panel .product-item .meta { font-size: 13px; }
+
+    /* 常訂商品快選按鈕 */
+    .fav-product-btn { padding: 10px 16px; font-size: 14px; margin: 6px; }
+
+    /* 子分頁 */
+    .sub-tab { padding: 12px 16px; font-size: 16px; }
+
+    /* Modal */
+    .modal { padding: 20px; max-height: 88vh; }
+    .modal h3 { font-size: 20px; }
+    .modal .modal-close { font-size: 28px; }
+
+    /* 拖拉手柄在手機隱藏 */
+    body.admin-mode .drag-handle { display: none; }
+    body.admin-mode .draggable-card .card-title,
+    body.admin-mode .draggable-card .kpi-group-title { padding-left: 0; }
+
+    /* 身分切換器 */
+    .user-switcher { margin: 20px 16px 28px; padding: 16px 18px; }
+    .user-switcher .label { font-size: 12px; }
+    .user-switcher .name { font-size: 17px; }
+
+    /* 漢堡按鈕做大 */
+    .mobile-menu-btn { width: 48px; height: 48px; font-size: 24px; top: 14px; left: 14px; }
+
+    /* 庫存頁的分倉資訊放大 */
+    .inv-warehouse-row { font-size: 15px !important; margin-top: 6px !important; }
+  }
+
+  /* 超小手機 ≤ 380px — 微調 */
+  @media (max-width: 380px) {
+    .stats { grid-template-columns: 1fr; }
+    .kpi-row { grid-template-columns: 1fr; gap: 10px; }
+    .kpi-cell { padding: 14px; }
+    .kpi-cell .kpi-value { font-size: 22px; }
+    .kpi-cell .kpi-label { font-size: 14px; }
+    .page-title { font-size: 22px; }
+  }
+
+  /* 圖表容器 */
+  .chart-container { position: relative; height: 300px; }
+
+  /* 空狀態 */
+  .empty { text-align: center; padding: 40px; color: #94a3b8; }
+  .empty .icon { font-size: 48px; margin-bottom: 8px; }
+
+  /* 客戶選擇器 */
+  .customer-picker { position: relative; }
+  .customer-picker input { width: 100%; padding: 12px 14px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 15px; }
+  .customer-picker input:focus { outline: none; border-color: #088395; }
+  .picker-selected {
+    margin-top: 8px; padding: 10px 14px; background: linear-gradient(90deg, #d1fae5, #ecfdf5);
+    border-left: 4px solid #16a34a; border-radius: 6px; font-weight: 600; color: #064e3b;
+  }
+  .picker-selected .clear-btn {
+    float: right; background: none; border: none; color: #64748b; cursor: pointer; font-size: 18px;
+  }
+  .picker-list {
+    margin-top: 8px; max-height: 360px; overflow-y: auto;
+    border: 1px solid #e2e8f0; border-radius: 8px; background: white;
+  }
+  .picker-section-title {
+    padding: 8px 14px; background: #f1f5f9; font-size: 12px; color: #475569;
+    font-weight: 600; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0;
+  }
+  .picker-item {
+    padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9;
+    display: flex; justify-content: space-between; align-items: center; transition: 0.15s;
+  }
+  .picker-item:hover { background: #ecfdf5; }
+  .picker-item .name { font-weight: 600; color: #0f172a; }
+  .picker-item .meta { font-size: 12px; color: #64748b; margin-top: 2px; }
+  .picker-item .star { color: #f59e0b; margin-right: 6px; }
+  .picker-item.empty-state { padding: 20px; color: #94a3b8; text-align: center; cursor: default; }
+
+  /* 分類標籤膠囊 */
+  .cat-pill {
+    display: inline-block; padding: 4px 10px; background: #e0e7ff; color: #4338ca;
+    border-radius: 12px; font-size: 12px; margin: 4px 4px 4px 0;
+  }
+  .cat-pill.removable { padding-right: 6px; }
+  .cat-pill .x {
+    margin-left: 6px; cursor: pointer; color: #6366f1; font-weight: 700;
+  }
+
+  /* 常訂商品快選按鈕 */
+  .fav-product-btn {
+    display: inline-block; padding: 8px 14px; margin: 4px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 2px solid #f59e0b; border-radius: 20px; cursor: pointer;
+    font-size: 13px; font-weight: 600; color: #78350f; transition: 0.2s;
+  }
+  .fav-product-btn:hover { background: #fbbf24; transform: translateY(-1px); }
+
+  /* 身分切換器（側邊欄底部） */
+  .user-switcher {
+    margin: auto 16px 16px; padding: 14px 16px;
+    background: rgba(255,255,255,0.1); border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    cursor: pointer; transition: 0.2s;
+  }
+  .user-switcher:hover { background: rgba(255,255,255,0.18); }
+  .user-switcher .label { font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
+  .user-switcher .name { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .user-switcher .role-tag {
+    display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: #f59e0b; color: white; margin-left: 6px;
+  }
+  .user-switcher .role-tag.partner { background: #6366f1; }
+  .sidebar { display: flex; flex-direction: column; }
+
+  /* 拖拉排版 */
+  .draggable-card { position: relative; }
+  .drag-handle {
+    position: absolute; top: 12px; left: 12px;
+    width: 24px; height: 24px; border-radius: 4px;
+    background: rgba(8,131,149,0.1); color: #088395;
+    display: none; align-items: center; justify-content: center;
+    cursor: grab; font-size: 14px; user-select: none;
+    z-index: 5;
+  }
+  .drag-handle:active { cursor: grabbing; background: #088395; color: white; }
+  body.admin-mode .drag-handle { display: flex; }
+  body.admin-mode .draggable-card { padding-top: 4px; }
+  body.admin-mode .draggable-card .card-title,
+  body.admin-mode .draggable-card .kpi-group-title { padding-left: 32px; }
+  .draggable-card.dragging { opacity: 0.5; transform: scale(0.97); }
+  .draggable-card.drag-over { border: 2px dashed #088395; }
+
+  /* 紀錄者徽章 */
+  .recorder-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600; background: #f1f5f9; color: #475569;
+  }
+  .recorder-badge.admin { background: #fef3c7; color: #92400e; }
+  .recorder-badge.partner { background: #e0e7ff; color: #4338ca; }
+
+  /* 三維度快錢卡片組 */
+  .kpi-group {
+    background: white; border-radius: 12px; padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px;
+  }
+  .kpi-group-title {
+    font-size: 14px; color: #64748b; margin-bottom: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .kpi-cell {
+    padding: 14px; background: #f8fafc; border-radius: 8px; text-align: center;
+  }
+  .kpi-cell .kpi-label { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+  .kpi-cell .kpi-value { font-size: 22px; font-weight: 700; color: #0a4d68; }
+  .kpi-cell.green .kpi-value { color: #16a34a; }
+  .kpi-cell.orange .kpi-value { color: #d97706; }
+
+  /* 環比指標 */
+  .delta { font-size: 13px; font-weight: 600; margin-left: 6px; }
+  .delta-up { color: #16a34a; }
+  .delta-down { color: #dc2626; }
+  .delta-flat { color: #64748b; }
+
+  /* 兩欄報表卡 */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* 滯銷品警示 */
+  .stale-item {
+    padding: 8px 12px; background: #fef3c7; border-left: 4px solid #f59e0b;
+    border-radius: 6px; margin-bottom: 6px; font-size: 13px;
+  }
+
+  /* 商品搜尋選擇器 */
+  .product-picker { position: relative; }
+  .product-picker-trigger {
+    width: 100%; padding: 12px 14px; border: 1.5px solid #cbd5e1; border-radius: 8px;
+    background: white; cursor: pointer; text-align: left; font-size: 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .product-picker-trigger:hover { border-color: #088395; }
+  .product-picker-trigger.has-value {
+    background: linear-gradient(90deg, #d1fae5, #ecfdf5); border-color: #16a34a; font-weight: 600;
+  }
+  .product-picker-panel {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+    background: white; border: 1.5px solid #088395; border-radius: 8px;
+    margin-top: 4px; max-height: 400px; overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none;
+  }
+  .product-picker-panel.show { display: block; }
+  .product-picker-panel .panel-header {
+    padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 1;
+  }
+  .product-picker-panel .panel-header input,
+  .product-picker-panel .panel-header select {
+    padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;
+  }
+  .product-picker-panel .product-item {
+    padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .product-picker-panel .product-item:hover { background: #ecfdf5; }
+  .product-picker-panel .product-item .name { font-weight: 600; color: #0f172a; }
+  .product-picker-panel .product-item .meta { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+  /* 多品項明細列 */
+  .line-item {
+    background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px;
+    padding: 16px; margin-bottom: 12px; position: relative;
+  }
+  .line-item .line-num {
+    display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center;
+    background: #088395; color: white; border-radius: 50%; font-size: 13px; font-weight: 700;
+    margin-right: 8px;
+  }
+  .line-item .line-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+  }
+  .line-item .calc-display {
+    background: linear-gradient(90deg, #ecfdf5, #d1fae5);
+    border-left: 4px solid #16a34a; padding: 8px 14px; border-radius: 6px;
+    margin-top: 8px; font-size: 14px; color: #064e3b; font-weight: 600;
+  }
+  .line-item .calc-display .calc-label { color: #475569; font-weight: normal; font-size: 12px; }
+  .add-line-btn {
+    width: 100%; padding: 14px; border: 2px dashed #088395;
+    background: #f0f9ff; color: #088395; border-radius: 10px;
+    cursor: pointer; font-size: 15px; font-weight: 600; transition: 0.2s;
+  }
+  .add-line-btn:hover { background: #e0f2fe; border-style: solid; }
+  .total-bar {
+    background: linear-gradient(135deg, #0a4d68, #088395); color: white;
+    padding: 16px 24px; border-radius: 10px; margin-top: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .total-bar .total-label { font-size: 14px; opacity: 0.9; }
+  .total-bar .total-value { font-size: 28px; font-weight: 700; }
+
+  /* 詳情頁/Modal */
+  .modal-overlay {
+    position: fixed; top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.5); display: none; z-index: 1000;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white; border-radius: 12px; padding: 24px;
+    max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 { color: #0a4d68; margin-bottom: 16px; }
+  .modal-close {
+    float: right; background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;
+  }
+</style>
+</head>
+<body>
+<!-- 手機漢堡選單按鈕 -->
+<button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobile-menu-btn">☰</button>
+<div class="mobile-menu-overlay" id="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
+
+<div class="app">
+  <!-- 側邊選單 -->
+  <nav class="sidebar" id="sidebar">
+    <h1><img src="logo-yujianke.png" alt="漁健客" class="brand-logo" onerror="this.style.display='none'">漁健客<span class="sub">進銷存系統</span></h1>
+    <div class="nav-item active" onclick="showPage('dashboard', this)"><span class="icon">🏠</span><span>首頁儀表板</span></div>
+    <div class="nav-item" onclick="showPage('products', this)"><span class="icon">📦</span><span>商品管理</span></div>
+    <div class="nav-item" onclick="showPage('purchase', this)"><span class="icon">🚚</span><span>進貨登記</span></div>
+    <div class="nav-item" onclick="showPage('sale', this)"><span class="icon">💰</span><span>銷貨登記</span></div>
+    <div class="nav-item" onclick="showPage('transfer', this)"><span class="icon">🔄</span><span>倉庫轉移</span></div>
+    <div class="nav-item" onclick="showPage('inventory', this)"><span class="icon">📊</span><span>庫存查詢</span></div>
+    <div class="nav-item" onclick="showPage('report', this)"><span class="icon">📈</span><span>月報表</span></div>
+    <div class="nav-item" onclick="showPage('contacts', this)"><span class="icon">👥</span><span>客戶供應商</span></div>
+    <div class="nav-item" onclick="showPage('settings', this)"><span class="icon">⚙️</span><span>備份設定</span></div>
+
+    <div class="user-switcher" onclick="toggleUserRole()" title="點擊切換身分">
+      <div class="label">👤 目前操作身分</div>
+      <div class="name" id="current-user-display">韋成 <span class="role-tag">管理員</span></div>
+      <div style="font-size:11px; opacity:0.7; margin-top:4px">點此切換 →</div>
+    </div>
+  </nav>
+
+  <!-- 主內容 -->
+  <main class="main">
+    <!-- 首頁儀表板 -->
+    <div id="page-dashboard" class="page active">
+      <h2 class="page-title">📊 經營儀表板</h2>
+      <div class="card" style="padding:16px 24px">
+        <div class="form-row" style="margin-bottom:0">
+          <div class="form-group"><label>📦 倉庫</label>
+            <select id="dash-warehouse" onchange="renderDashboard()">
+              <option value="all">全部倉庫</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="dashboard-cards-container">
+        <!-- 三維度快錢 -->
+        <div class="kpi-group draggable-card" data-card-id="today" draggable="false">
+          <div class="drag-handle" title="拖拉移動位置">⠿</div>
+          <div class="kpi-group-title">🌅 今日</div>
+          <div class="kpi-row">
+            <div class="kpi-cell green"><div class="kpi-label">銷貨額</div><div class="kpi-value" id="today-sale">$0</div></div>
+            <div class="kpi-cell orange"><div class="kpi-label">毛利</div><div class="kpi-value" id="today-profit">$0</div></div>
+            <div class="kpi-cell"><div class="kpi-label">訂單數</div><div class="kpi-value" id="today-orders">0</div></div>
+          </div>
+        </div>
+        <div class="kpi-group draggable-card" data-card-id="week" draggable="false">
+          <div class="drag-handle" title="拖拉移動位置">⠿</div>
+          <div class="kpi-group-title">📅 本週</div>
+          <div class="kpi-row">
+            <div class="kpi-cell green"><div class="kpi-label">銷貨額</div><div class="kpi-value" id="week-sale">$0</div></div>
+            <div class="kpi-cell orange"><div class="kpi-label">毛利</div><div class="kpi-value" id="week-profit">$0</div></div>
+            <div class="kpi-cell"><div class="kpi-label">訂單數</div><div class="kpi-value" id="week-orders">0</div></div>
+          </div>
+        </div>
+        <div class="kpi-group draggable-card" data-card-id="month" draggable="false">
+          <div class="drag-handle" title="拖拉移動位置">⠿</div>
+          <div class="kpi-group-title">🗓️ 本月</div>
+          <div class="kpi-row">
+            <div class="kpi-cell green"><div class="kpi-label">銷貨額</div><div class="kpi-value" id="month-sale">$0</div></div>
+            <div class="kpi-cell orange"><div class="kpi-label">毛利</div><div class="kpi-value" id="month-profit">$0</div></div>
+            <div class="kpi-cell"><div class="kpi-label">訂單數</div><div class="kpi-value" id="month-orders">0</div></div>
+          </div>
+        </div>
+
+        <div class="kpi-group draggable-card" data-card-id="extras" draggable="false">
+          <div class="drag-handle" title="拖拉移動位置">⠿</div>
+          <div class="kpi-group-title">📦 庫存與進貨總覽</div>
+          <div class="stats" style="margin-top:0">
+            <div class="stat-card"><div class="label">本月進貨總額</div><div class="value" id="stat-purchase">$0</div></div>
+            <div class="stat-card red"><div class="label">低庫存品項</div><div class="value" id="stat-lowstock">0</div></div>
+            <div class="stat-card orange"><div class="label">即將到期(30天內)</div><div class="value" id="stat-expiring">0</div></div>
+          </div>
+        </div>
+
+        <div class="card draggable-card" data-card-id="expiring" draggable="false">
+          <div class="drag-handle" title="拖拉移動位置">⠿</div>
+          <div class="card-title">⚠️ 即將到期商品（30 天內）</div>
+          <div id="expiring-list"></div>
+        </div>
+
+        <div class="card draggable-card" data-card-id="lowstock" draggable="false">
+          <div class="drag-handle" title="拖拉移動位置">⠿</div>
+          <div class="card-title">📉 庫存不足提醒</div>
+          <div id="lowstock-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 商品管理 -->
+    <div id="page-products" class="page">
+      <h2 class="page-title">📦 商品管理</h2>
+
+      <!-- 商品分類管理 -->
+      <div class="card">
+        <div class="card-title">🏷️ 商品分類管理</div>
+        <div class="form-row">
+          <div class="form-group"><label>新增分類名稱</label><input id="pcat-name" placeholder="例如：魚類、蝦類、蟹類、頭足類、貝類"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addProductCategory()">新增分類</button>
+        <div id="pcats-display" style="margin-top:16px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">新增商品</div>
+        <div class="form-row">
+          <div class="form-group"><label>商品名稱 *</label><input id="p-name" placeholder="例如：白蝦 16/20"></div>
+          <div class="form-group"><label>規格</label><input id="p-spec" placeholder="例如：1kg/盒"></div>
+          <div class="form-group"><label>單位</label><input id="p-unit" placeholder="例如：盒/kg"></div>
+          <div class="form-group"><label>分類</label>
+            <select id="p-category"><option value="">未分類</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>零售價 *</label><input id="p-retail" type="number" placeholder="0"></div>
+          <div class="form-group"><label>批發價 *</label><input id="p-wholesale" type="number" placeholder="0"></div>
+          <div class="form-group"><label>安全庫存</label><input id="p-safestock" type="number" placeholder="0" value="10"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addProduct()">新增商品</button>
+      </div>
+      <div class="card">
+        <div class="card-title">商品列表</div>
+        <div class="form-row">
+          <div class="form-group"><label>🔍 搜尋</label><input id="product-search" placeholder="輸入商品名稱、規格" oninput="renderProducts()"></div>
+          <div class="form-group"><label>分類篩選</label>
+            <select id="product-filter-cat" onchange="renderProducts()">
+              <option value="">全部分類</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>名稱</th><th>分類</th><th>規格</th><th>單位</th><th>零售價</th><th>批發價</th><th>安全庫存</th><th>操作</th></tr></thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 進貨登記 -->
+    <div id="page-purchase" class="page">
+      <h2 class="page-title">🚚 進貨登記</h2>
+      <div class="card">
+        <div class="card-title">登記新進貨單</div>
+        <div class="form-row">
+          <div class="form-group"><label>進貨日期</label><input id="pu-date" type="date"></div>
+          <div class="form-group"><label>📦 入庫倉庫 *</label><select id="pu-warehouse"></select></div>
+          <div class="form-group"><label>供應商</label><select id="pu-supplier"></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="grid-column: 1 / -1;"><label>整單備註</label><input id="pu-note" placeholder="可選"></div>
+        </div>
+
+        <div style="margin: 20px 0 12px; font-weight: 600; color: #0a4d68; font-size: 16px;">📋 進貨明細</div>
+        <div id="pu-lines"></div>
+        <button type="button" class="add-line-btn" onclick="addPurchaseLine()">+ 加入下一個品項</button>
+
+        <div class="total-bar">
+          <div>
+            <div class="total-label">本單總包數</div>
+            <div style="font-size:20px; font-weight:700;" id="pu-total-qty">0 包</div>
+          </div>
+          <div style="text-align:right">
+            <div class="total-label">本單總金額</div>
+            <div class="total-value" id="pu-total-amount">$0</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="submitPurchase()" style="margin-top:16px; padding:14px 32px; font-size:16px">💾 全部送出</button>
+      </div>
+      <div class="card">
+        <div class="card-title">最近進貨紀錄</div>
+        <table>
+          <thead><tr><th>日期</th><th>倉庫</th><th>供應商</th><th>商品</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>批號</th><th>到期日</th><th>記錄者</th><th></th></tr></thead>
+          <tbody id="purchase-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 銷貨登記 -->
+    <div id="page-sale" class="page">
+      <h2 class="page-title">💰 銷貨登記</h2>
+      <div class="card">
+        <div class="card-title">登記新銷貨單</div>
+        <div class="form-row">
+          <div class="form-group"><label>銷貨日期</label><input id="sa-date" type="date"></div>
+          <div class="form-group"><label>📦 出貨倉庫 *</label><select id="sa-warehouse"></select></div>
+        </div>
+
+        <!-- 客戶選擇器 -->
+        <div class="form-row">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label>👤 選擇客戶 *</label>
+            <div class="customer-picker">
+              <input id="sa-customer-search" placeholder="🔍 輸入名稱/電話搜尋，或從下方點選" oninput="renderCustomerPicker()" autocomplete="off">
+              <input type="hidden" id="sa-customer">
+              <div id="sa-customer-selected" class="picker-selected" style="display:none"></div>
+              <div id="sa-customer-list" class="picker-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 常訂商品快選 -->
+        <div id="sa-favorites-row" style="display:none; margin-bottom:16px">
+          <label style="font-size:13px; color:#475569; margin-bottom:8px; display:block">⚡ 此客戶常訂商品（點擊快速加入到明細）</label>
+          <div id="sa-favorite-products"></div>
+        </div>
+
+        <div style="margin: 20px 0 12px; font-weight: 600; color: #0a4d68; font-size: 16px;">📋 銷貨明細</div>
+        <div id="sa-lines"></div>
+        <button type="button" class="add-line-btn" onclick="addSaleLine()">+ 加入下一個品項</button>
+
+        <div class="form-row" style="margin-top:16px">
+          <div class="form-group" style="grid-column: 1 / -1;"><label>整單備註</label><input id="sa-note" placeholder="可選"></div>
+        </div>
+
+        <div class="total-bar">
+          <div>
+            <div class="total-label">本單品項數</div>
+            <div style="font-size:20px; font-weight:700;" id="sa-total-count">0 項</div>
+          </div>
+          <div style="text-align:right">
+            <div class="total-label">💰 本單總金額</div>
+            <div class="total-value" id="sa-total-amount">$0</div>
+          </div>
+        </div>
+
+        <button class="btn btn-success" onclick="submitSale()" style="margin-top:16px; padding:14px 32px; font-size:16px">💾 全部送出</button>
+      </div>
+      <div class="card">
+        <div class="card-title">最近銷貨紀錄</div>
+        <table>
+          <thead><tr><th>日期</th><th>倉庫</th><th>客戶</th><th>類型</th><th>商品</th><th>數量</th><th>單價</th><th>金額</th><th>記錄者</th><th></th></tr></thead>
+          <tbody id="sale-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 倉庫轉移 -->
+    <div id="page-transfer" class="page">
+      <h2 class="page-title">🔄 倉庫轉移</h2>
+      <div class="card">
+        <div class="card-title">登記新轉倉單</div>
+        <div class="form-row">
+          <div class="form-group"><label>轉倉日期</label><input id="tr-date" type="date"></div>
+          <div class="form-group"><label>📤 來源倉庫 *</label><select id="tr-from" onchange="renderTransferLines()"></select></div>
+          <div class="form-group"><label>📥 目的倉庫 *</label><select id="tr-to"></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="grid-column: 1 / -1;"><label>整單備註</label><input id="tr-note" placeholder="例如：因應週末訂單需求調撥"></div>
+        </div>
+
+        <div style="margin: 20px 0 12px; font-weight: 600; color: #0a4d68; font-size: 16px;">📋 轉倉明細</div>
+        <div id="tr-lines"></div>
+        <button type="button" class="add-line-btn" onclick="addTransferLine()">+ 加入下一個品項</button>
+
+        <div class="total-bar">
+          <div>
+            <div class="total-label">本單品項數</div>
+            <div style="font-size:20px; font-weight:700;" id="tr-total-count">0 項</div>
+          </div>
+          <div style="text-align:right">
+            <div class="total-label">📦 本單總包數</div>
+            <div class="total-value" id="tr-total-qty">0 包</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="submitTransfer()" style="margin-top:16px; padding:14px 32px; font-size:16px">💾 全部送出（立即轉倉）</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 最近轉倉紀錄</div>
+        <table>
+          <thead><tr><th>日期</th><th>來源</th><th>→</th><th>目的</th><th>商品</th><th>數量</th><th>備註</th><th>記錄者</th><th></th></tr></thead>
+          <tbody id="transfer-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 庫存查詢 -->
+    <div id="page-inventory" class="page">
+      <h2 class="page-title">📊 即時庫存</h2>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group"><label>📦 選擇倉庫</label>
+            <select id="inv-warehouse" onchange="renderInventory()">
+              <option value="all">全部倉庫</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>商品</th><th>分類</th><th>規格</th><th id="inv-stock-header">目前庫存</th><th>安全庫存</th><th>狀態</th><th>批號明細</th><th>操作</th></tr></thead>
+          <tbody id="inventory-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 最近盤點調整紀錄</div>
+        <table>
+          <thead><tr><th>日期</th><th>倉庫</th><th>商品</th><th>調整前</th><th>調整後</th><th>差額</th><th>原因</th><th>備註</th><th>記錄者</th><th></th></tr></thead>
+          <tbody id="adjustments-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 月報表 -->
+    <div id="page-report" class="page">
+      <h2 class="page-title">📈 月報表 — 經營分析</h2>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group"><label>選擇月份</label><input id="report-month" type="month" onchange="renderReport()"></div>
+          <div class="form-group"><label>📦 倉庫</label>
+            <select id="report-warehouse" onchange="renderReport()">
+              <option value="all">全部倉庫</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第一層：核心經營指標 -->
+      <div class="card">
+        <div class="card-title">🏆 核心經營指標（含與上月比較）</div>
+        <div class="stats">
+          <div class="stat-card"><div class="label">當月進貨</div><div class="value" id="r-purchase">$0</div><div id="r-purchase-delta"></div></div>
+          <div class="stat-card green"><div class="label">當月銷貨</div><div class="value" id="r-sale">$0</div><div id="r-sale-delta"></div></div>
+          <div class="stat-card orange"><div class="label">當月毛利</div><div class="value" id="r-profit">$0</div><div id="r-profit-delta"></div></div>
+          <div class="stat-card"><div class="label">毛利率</div><div class="value" id="r-margin">0%</div><div id="r-margin-delta"></div></div>
+        </div>
+        <div class="stats" style="margin-top:8px">
+          <div class="stat-card"><div class="label">訂單數</div><div class="value" id="r-orders">0</div><div id="r-orders-delta"></div></div>
+          <div class="stat-card"><div class="label">客戶數</div><div class="value" id="r-customers">0</div><div id="r-customers-delta"></div></div>
+          <div class="stat-card"><div class="label">平均客單價</div><div class="value" id="r-avg">$0</div><div id="r-avg-delta"></div></div>
+          <div class="stat-card red"><div class="label">盤損總額</div><div class="value" id="r-loss">$0</div></div>
+        </div>
+      </div>
+
+      <!-- 業績結構 -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🥧 零售 vs 批發 業績佔比</div>
+          <div class="chart-container"><canvas id="retailWholesaleChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🆕 新客 vs 老客 業績佔比</div>
+          <div class="chart-container"><canvas id="newOldCustomerChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 銷售排行與每日趨勢 -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">📊 銷售額排行 TOP 10</div>
+          <div class="chart-container"><canvas id="topProductsChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">💎 商品毛利排行 TOP 10</div>
+          <div class="chart-container"><canvas id="topProfitChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📈 每日進銷貨趨勢</div>
+        <div class="chart-container"><canvas id="dailyTrendChart"></canvas></div>
+      </div>
+
+      <!-- 12 個月趨勢 -->
+      <div class="card">
+        <div class="card-title">📅 過去 12 個月趨勢</div>
+        <div class="chart-container"><canvas id="yearTrendChart"></canvas></div>
+      </div>
+
+      <!-- 客戶業績 -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🏅 客戶業績排行 TOP 10</div>
+          <table>
+            <thead><tr><th>客戶</th><th>金額</th><th>單數</th></tr></thead>
+            <tbody id="topCustomersTbody"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">📞 客戶下單頻率</div>
+          <table>
+            <thead><tr><th>客戶</th><th>本月單數</th><th>上次下單</th></tr></thead>
+            <tbody id="customerFreqTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 滯銷品 + 進貨成本變化 -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🐌 滯銷商品（30 天沒賣）</div>
+          <div id="staleProductsList"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">💰 進貨成本變化趨勢（最近 6 次）</div>
+          <table>
+            <thead><tr><th>商品</th><th>近期均價</th><th>變化</th></tr></thead>
+            <tbody id="costChangeTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 客戶供應商 -->
+    <div id="page-contacts" class="page">
+      <h2 class="page-title">👥 客戶與供應商</h2>
+      <div class="sub-tabs">
+        <div class="sub-tab active" onclick="showContactTab('customer', this)">客戶</div>
+        <div class="sub-tab" onclick="showContactTab('supplier', this)">供應商</div>
+      </div>
+
+      <!-- 分類管理（只有客戶顯示）-->
+      <div class="card" id="category-card">
+        <div class="card-title">🏷️ 客戶分類管理</div>
+        <div class="form-row">
+          <div class="form-group"><label>新增分類名稱</label><input id="cat-name" placeholder="例如：餐廳、批發商、散客、便當店"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addCategory()">新增分類</button>
+        <div id="categories-display" style="margin-top:16px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" id="contact-form-title">新增客戶</div>
+        <div class="form-row">
+          <div class="form-group"><label>名稱 *</label><input id="c-name" placeholder="例如：海鮮王餐廳"></div>
+          <div class="form-group"><label>聯絡人</label><input id="c-contact" placeholder="例如：陳老闆"></div>
+          <div class="form-group"><label>電話</label><input id="c-phone" placeholder="例如：0912-345-678"></div>
+          <div class="form-group" id="c-category-group"><label>分類</label>
+            <select id="c-category"><option value="">未分類</option></select>
+          </div>
+        </div>
+        <div class="form-row" id="c-extra-row">
+          <div class="form-group"><label>Email</label><input id="c-email" placeholder="可選"></div>
+          <div class="form-group"><label>付款方式</label>
+            <select id="c-payment">
+              <option value="">未指定</option>
+              <option value="現金">現金</option>
+              <option value="月結">月結</option>
+              <option value="週結">週結</option>
+              <option value="貨到付款">貨到付款</option>
+              <option value="預付">預付</option>
+            </select>
+          </div>
+          <div class="form-group"><label>⭐ 最愛客戶</label>
+            <select id="c-favorite">
+              <option value="0">否</option>
+              <option value="1">是（置頂顯示）</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="grid-column: 1 / -1;"><label>地址/備註</label><input id="c-note" placeholder="可選"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addContact()">新增</button>
+      </div>
+      <div class="card">
+        <div class="card-title" id="contact-list-title">客戶列表</div>
+        <div class="form-row" id="contact-filter-row">
+          <div class="form-group"><label>🔍 搜尋</label><input id="contact-search" placeholder="輸入名稱、聯絡人、電話" oninput="renderContacts()"></div>
+          <div class="form-group"><label>分類篩選</label>
+            <select id="contact-filter-cat" onchange="renderContacts()">
+              <option value="">全部分類</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>⭐</th><th>名稱</th><th>分類</th><th>聯絡人</th><th>電話</th><th>付款</th><th>備註</th><th>操作</th></tr></thead>
+          <tbody id="contacts-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 設定 -->
+    <div id="page-settings" class="page">
+      <h2 class="page-title">⚙️ 備份與設定</h2>
+
+      <div class="card">
+        <div class="card-title">👥 使用者身分設定</div>
+        <p style="color:#475569; font-size:13px; margin-bottom:12px">
+          系統會記錄每筆進銷貨/轉倉/盤點是哪個身分輸入的。<br>
+          <strong>管理員</strong>：可拖拉重排首頁卡片、所有功能；<strong>合夥人</strong>：所有資料都看得到，但不能改首頁排版。
+        </p>
+        <div class="form-row">
+          <div class="form-group"><label>管理員姓名</label><input id="setting-admin-name" placeholder="例如：韋成"></div>
+          <div class="form-group"><label>合夥人姓名</label><input id="setting-partner-name" placeholder="例如：阿明"></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveUserNames()">💾 儲存姓名設定</button>
+        <div style="margin-top:12px; padding:10px 14px; background:#f0f9ff; border-radius:6px; font-size:13px; color:#475569">
+          💡 <strong>小提醒</strong>：本機版的身分切換只是「記錄誰做的」，不是真正的安全機制（員工只要會操作，就能切換到管理員身分）。等升級到雲端版會有真正的帳號密碼登入。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📦 倉庫管理</div>
+        <div class="form-row">
+          <div class="form-group"><label>新增倉庫名稱</label><input id="w-name" placeholder="例如：第三倉庫"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addWarehouse()">新增倉庫</button>
+        <table style="margin-top:16px">
+          <thead><tr><th>倉庫名稱</th><th>操作</th></tr></thead>
+          <tbody id="warehouses-tbody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">資料備份</div>
+        <p style="margin-bottom:16px; color:#475569;">為了避免資料遺失，建議定期備份。點擊下方按鈕將所有資料存成檔案。</p>
+        <button class="btn btn-primary" onclick="exportData()">📥 匯出全部資料（備份）</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">📤 匯入備份檔</button>
+        <input id="import-file" type="file" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
+      <div class="card">
+        <div class="card-title">⚠️ 危險操作</div>
+        <button class="btn btn-danger" onclick="if(confirm('確定要清除所有資料嗎？此動作無法復原！')){clearAll()}">🗑️ 清除所有資料</button>
+      </div>
+      <div class="card">
+        <div class="card-title">關於本系統</div>
+        <p style="color:#475569; line-height:1.8;">
+          本系統為漁健客冷凍海鮮專用的進銷存原型，所有資料儲存在你的瀏覽器內（localStorage）。<br>
+          <strong style="color:#dc2626;">重要：</strong>請定期匯出備份，避免清除瀏覽器資料時資料遺失。<br>
+          下一階段將升級為雲端版本，支援多人登入、自動備份。
+        </p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 盤點調整 Modal -->
+<div class="modal-overlay" id="adjust-modal">
+  <div class="modal" style="max-width:560px">
+    <button class="modal-close" onclick="closeAdjustModal()">×</button>
+    <h3 id="adj-title">🔄 盤點調整</h3>
+
+    <div style="background:#f0f9ff; padding:16px; border-radius:8px; margin-bottom:16px; border-left:4px solid #088395">
+      <div style="color:#475569; font-size:13px">系統目前庫存</div>
+      <div style="font-size:32px; font-weight:700; color:#0a4d68" id="adj-current">0</div>
+      <div style="color:#64748b; font-size:13px" id="adj-product-info"></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group" style="grid-column: 1 / -1;">
+        <label>📋 實際盤點數量 *</label>
+        <input id="adj-actual" type="number" step="0.01" placeholder="輸入實際盤點到的數量" oninput="updateAdjDiff()">
+      </div>
+    </div>
+
+    <div id="adj-diff-display" style="display:none; background:#fef3c7; padding:12px 16px; border-radius:8px; margin-bottom:16px; border-left:4px solid #f59e0b">
+      <div style="font-size:13px; color:#92400e">差額</div>
+      <div style="font-size:24px; font-weight:700;" id="adj-diff-value"></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group" style="grid-column: 1 / -1;">
+        <label>調整原因 *</label>
+        <select id="adj-reason">
+          <option value="盤點差異">盤點差異（庫存不符）</option>
+          <option value="損耗報廢">損耗報廢</option>
+          <option value="過期銷毀">過期銷毀</option>
+          <option value="內部使用">內部使用/試吃</option>
+          <option value="贈送">贈送/樣品</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group" style="grid-column: 1 / -1;">
+        <label>備註（選填）</label>
+        <input id="adj-note" placeholder="例如：颱風天冰庫斷電，魚體變質">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:8px">
+      <button class="btn btn-success" onclick="confirmAdjust()" style="flex:1; padding:12px">💾 確認調整</button>
+      <button class="btn btn-secondary" onclick="closeAdjustModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 客戶詳情編輯 Modal -->
+<div class="modal-overlay" id="customer-detail-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeCustomerDetail()">×</button>
+    <h3 id="cd-title">客戶詳情</h3>
+
+    <div class="card" style="background:#f8fafc; box-shadow:none">
+      <div class="card-title">⭐ 常訂商品（銷貨時可一鍵加入）</div>
+      <div class="form-row">
+        <div class="form-group"><label>新增常訂商品</label>
+          <select id="cd-fav-product"></select>
+        </div>
+        <div class="form-group" style="display:flex; align-items:flex-end">
+          <button class="btn btn-primary" onclick="addFavoriteProduct()">加入常訂</button>
+        </div>
+      </div>
+      <div id="cd-fav-list" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card" style="background:#f8fafc; box-shadow:none">
+      <div class="card-title">💰 專屬價格（此客戶的專屬銷售價）</div>
+      <div class="form-row">
+        <div class="form-group"><label>商品</label><select id="cd-price-product"></select></div>
+        <div class="form-group"><label>專屬價</label><input id="cd-price-value" type="number" placeholder="0"></div>
+        <div class="form-group" style="display:flex; align-items:flex-end">
+          <button class="btn btn-primary" onclick="addCustomPrice()">設定</button>
+        </div>
+      </div>
+      <div id="cd-price-list" style="margin-top:12px"></div>
+    </div>
+
+    <button class="btn btn-secondary" onclick="closeCustomerDetail()" style="margin-top:8px">關閉</button>
+  </div>
+</div>
+
+<script>
+// ============ 資料儲存 ============
+const DB = {
+  load(key, def = []) {
+    try {
+      const v = JSON.parse(localStorage.getItem('yujianke_' + key));
+      return v !== null && v !== undefined ? v : def;
+    } catch(e) { return def; }
+  },
+  save(key, data) { localStorage.setItem('yujianke_' + key, JSON.stringify(data)); }
+};
+
+let products = DB.load('products');
+let customers = DB.load('customers');
+let suppliers = DB.load('suppliers');
+let purchases = DB.load('purchases');
+let sales = DB.load('sales');
+let warehouses = DB.load('warehouses');
+let categories = DB.load('categories'); // 客戶分類
+let productCategories = DB.load('productCategories'); // 商品分類
+let adjustments = DB.load('adjustments'); // 盤點調整紀錄
+let transfers = DB.load('transfers'); // 倉庫轉移紀錄
+let recentCustomers = DB.load('recentCustomers');
+let recentProducts = DB.load('recentProducts');
+
+// 身分系統
+let userSettings = DB.load('userSettings', { adminName: '韋成', partnerName: '合夥人' });
+if (!Array.isArray(userSettings)) {
+  // 確保有預設值
+  if (!userSettings.adminName) userSettings.adminName = '韋成';
+  if (!userSettings.partnerName) userSettings.partnerName = '合夥人';
+}
+let currentRole = localStorage.getItem('yujianke_currentRole') || 'admin'; // 'admin' or 'partner'
+
+// 儀表板卡片排序（陣列：放卡片的識別 ID）
+let dashboardOrder = DB.load('dashboardOrder');
+
+let currentContactType = 'customer';
+let topProductsChart = null;
+let dailyTrendChart = null;
+let topProfitChart = null;
+let retailWholesaleChart = null;
+let newOldCustomerChart = null;
+let yearTrendChart = null;
+let editingProductId = null;
+let editingCustomerId = null;
+// 多品項暫存（在送出之前的當前單據）
+let currentPurchaseLines = []; // [{lineId, productId, boxes, packsPerBox, costPerBox, batch, expiry}]
+let currentSaleLines = [];     // [{lineId, productId, type, qty, price}]
+let currentTransferLines = []; // [{lineId, productId, qty}]
+let lineIdCounter = 1;
+
+// ============ 頁面切換 ============
+// ============ 手機選單 ============
+function toggleMobileMenu() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('mobile-menu-overlay');
+  sidebar.classList.toggle('show');
+  overlay.classList.toggle('show');
+}
+
+function closeMobileMenu() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('mobile-menu-overlay');
+  sidebar.classList.remove('show');
+  overlay.classList.remove('show');
+}
+
+function showPage(pageId, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  el.classList.add('active');
+  // 手機點完選單自動關閉抽屜
+  if (window.innerWidth <= 768) closeMobileMenu();
+  // 切頁面後捲到頂部
+  window.scrollTo(0, 0);
+
+  if (pageId === 'dashboard') { renderWarehouseSelects(); renderDashboard(); }
+  if (pageId === 'products') { renderProductCategories(); renderProducts(); }
+  if (pageId === 'purchase') { renderPurchaseSelects(); renderPurchases(); }
+  if (pageId === 'sale') { renderSaleSelects(); renderSales(); }
+  if (pageId === 'transfer') { renderTransferSelects(); renderTransfers(); }
+  if (pageId === 'inventory') { renderWarehouseSelects(); renderInventory(); }
+  if (pageId === 'report') { renderWarehouseSelects(); renderReport(); }
+  if (pageId === 'contacts') renderContacts();
+  if (pageId === 'settings') {
+    renderWarehouses();
+    // 帶入身分姓名
+    const adminInput = document.getElementById('setting-admin-name');
+    const partnerInput = document.getElementById('setting-partner-name');
+    if (adminInput) adminInput.value = userSettings.adminName;
+    if (partnerInput) partnerInput.value = userSettings.partnerName;
+  }
+}
+
+// ============ 倉庫管理 ============
+// 倉庫名稱對應的 logo 檔案
+function getWarehouseLogo(warehouseId) {
+  const w = warehouses.find(x => x.id === warehouseId);
+  if (!w) return null;
+  if (w.logo) return w.logo;
+  // 自動依名稱判斷
+  if (w.name === '漁健客') return 'logo-yujianke.png';
+  if (w.name === '華德') return 'logo-huade.png';
+  if (w.name === '華漢') return 'logo-huahan.png';
+  return null;
+}
+
+function warehouseLogoHTML(warehouseId, size = 'small') {
+  const logo = getWarehouseLogo(warehouseId);
+  if (!logo) return '📦 ';
+  const cls = size === 'large' ? 'warehouse-logo warehouse-logo-large' : 'warehouse-logo';
+  return `<img src="${logo}" alt="" class="${cls}" onerror="this.style.display='none'">`;
+}
+
+function warehouseBadgeHTML(warehouseId) {
+  const w = warehouses.find(x => x.id === warehouseId);
+  if (!w) return '<span class="badge badge-warning">📦 未指定</span>';
+  return `<span class="badge-warehouse">${warehouseLogoHTML(warehouseId)}${w.name}</span>`;
+}
+
+function renderWarehouseSelects() {
+  // 把所有倉庫下拉選單一次更新
+  const targets = ['pu-warehouse', 'sa-warehouse', 'inv-warehouse', 'dash-warehouse', 'report-warehouse'];
+  targets.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const currentVal = el.value;
+    const includeAll = ['inv-warehouse', 'dash-warehouse', 'report-warehouse'].includes(id);
+    let html = includeAll ? '<option value="all">全部倉庫</option>' : '<option value="">請選擇</option>';
+    html += warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+    el.innerHTML = html;
+    if (currentVal) el.value = currentVal;
+  });
+}
+
+function addWarehouse() {
+  const name = document.getElementById('w-name').value.trim();
+  if (!name) { alert('請填寫倉庫名稱'); return; }
+  if (warehouses.some(w => w.name === name)) { alert('倉庫名稱已存在'); return; }
+  warehouses.push({ id: Date.now(), name });
+  DB.save('warehouses', warehouses);
+  document.getElementById('w-name').value = '';
+  renderWarehouses();
+}
+
+function deleteWarehouse(id) {
+  // 檢查是否被使用
+  const used = purchases.some(p => p.warehouseId === id) || sales.some(s => s.warehouseId === id);
+  if (used) { alert('此倉庫已有進銷貨紀錄，無法刪除'); return; }
+  if (warehouses.length <= 1) { alert('至少要保留一個倉庫'); return; }
+  if (!confirm('確定要刪除此倉庫？')) return;
+  warehouses = warehouses.filter(w => w.id !== id);
+  DB.save('warehouses', warehouses);
+  renderWarehouses();
+}
+
+function renderWarehouses() {
+  const tbody = document.getElementById('warehouses-tbody');
+  if (!tbody) return;
+  if (warehouses.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" class="empty">還沒有倉庫</td></tr>';
+    return;
+  }
+  tbody.innerHTML = warehouses.map(w => `
+    <tr>
+      <td style="display:flex; align-items:center; gap:8px"><img src="${getWarehouseLogo(w.id) || ''}" alt="" class="warehouse-logo warehouse-logo-large" onerror="this.style.display='none'"><strong>${w.name}</strong></td>
+      <td><button class="btn btn-danger" onclick="deleteWarehouse(${w.id})">刪除</button></td>
+    </tr>
+  `).join('');
+}
+
+// ============ 商品管理 ============
+// ---- 商品分類管理 ----
+function addProductCategory() {
+  const name = document.getElementById('pcat-name').value.trim();
+  if (!name) { alert('請輸入分類名稱'); return; }
+  if (productCategories.some(c => c.name === name)) { alert('此分類已存在'); return; }
+  productCategories.push({ id: Date.now(), name });
+  DB.save('productCategories', productCategories);
+  document.getElementById('pcat-name').value = '';
+  renderProductCategories();
+}
+
+function deleteProductCategory(id) {
+  const using = products.filter(p => p.categoryId === id);
+  if (using.length > 0) {
+    if (!confirm(`有 ${using.length} 個商品屬於此分類，刪除後他們會變成「未分類」，確定？`)) return;
+    using.forEach(p => p.categoryId = null);
+    DB.save('products', products);
+  }
+  productCategories = productCategories.filter(c => c.id !== id);
+  DB.save('productCategories', productCategories);
+  renderProductCategories();
+  renderProducts();
+}
+
+function renderProductCategories() {
+  // 1. 分類管理區塊顯示
+  const display = document.getElementById('pcats-display');
+  if (display) {
+    if (productCategories.length === 0) {
+      display.innerHTML = '<p style="color:#94a3b8">還沒有分類，建議新增「魚類、蝦類、蟹類、頭足類、貝類」等</p>';
+    } else {
+      display.innerHTML = productCategories.map(c => {
+        const count = products.filter(p => p.categoryId === c.id).length;
+        return `<span class="cat-pill removable">🏷️ ${c.name} (${count}) <span class="x" onclick="deleteProductCategory(${c.id})" title="刪除分類">×</span></span>`;
+      }).join('');
+    }
+  }
+  // 2. 新增商品的分類下拉
+  const sel = document.getElementById('p-category');
+  if (sel) {
+    sel.innerHTML = '<option value="">未分類</option>' + productCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+  // 3. 列表篩選下拉
+  const filterSel = document.getElementById('product-filter-cat');
+  if (filterSel) {
+    const cur = filterSel.value;
+    filterSel.innerHTML = '<option value="">全部分類</option><option value="none">未分類</option>' +
+      productCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    filterSel.value = cur;
+  }
+}
+
+function addProduct() {
+  const name = document.getElementById('p-name').value.trim();
+  const retail = parseFloat(document.getElementById('p-retail').value);
+  const wholesale = parseFloat(document.getElementById('p-wholesale').value);
+  if (!name || !retail || !wholesale) { alert('請填寫商品名稱、零售價、批發價'); return; }
+
+  products.push({
+    id: Date.now(),
+    name,
+    spec: document.getElementById('p-spec').value,
+    unit: document.getElementById('p-unit').value || '個',
+    categoryId: parseInt(document.getElementById('p-category').value) || null,
+    retail,
+    wholesale,
+    safestock: parseFloat(document.getElementById('p-safestock').value) || 10
+  });
+  DB.save('products', products);
+  ['p-name','p-spec','p-unit','p-retail','p-wholesale'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('p-safestock').value = 10;
+  document.getElementById('p-category').selectedIndex = 0;
+  renderProductCategories();
+  renderProducts();
+}
+
+function deleteProduct(id) {
+  if (!confirm('確定要刪除此商品？')) return;
+  products = products.filter(p => p.id !== id);
+  DB.save('products', products);
+  renderProductCategories();
+  renderProducts();
+}
+
+function renderProducts() {
+  const tbody = document.getElementById('products-tbody');
+  if (products.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty"><div class="icon">📦</div>還沒有商品，請先新增</td></tr>';
+    return;
+  }
+
+  // 套用搜尋與分類篩選
+  const search = (document.getElementById('product-search')?.value || '').toLowerCase().trim();
+  const filterCat = document.getElementById('product-filter-cat')?.value || '';
+  let list = products.filter(p => {
+    if (search && !((p.name + (p.spec||'')).toLowerCase().includes(search))) return false;
+    if (filterCat === 'none') return !p.categoryId;
+    if (filterCat) return p.categoryId === parseInt(filterCat);
+    return true;
+  });
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">沒有符合的商品</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(p => {
+    const cat = productCategories.find(c => c.id === p.categoryId);
+    if (editingProductId === p.id) {
+      // 編輯模式：欄位變成輸入框
+      const catOptions = '<option value="">未分類</option>' + productCategories.map(c => `<option value="${c.id}" ${p.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+      return `<tr style="background:#fef9c3">
+        <td><input id="edit-name-${p.id}" value="${p.name}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td><select id="edit-category-${p.id}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${catOptions}</select></td>
+        <td><input id="edit-spec-${p.id}" value="${p.spec || ''}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td><input id="edit-unit-${p.id}" value="${p.unit}" style="width:80px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td><input id="edit-retail-${p.id}" type="number" value="${p.retail}" style="width:90px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td><input id="edit-wholesale-${p.id}" type="number" value="${p.wholesale}" style="width:90px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td><input id="edit-safestock-${p.id}" type="number" value="${p.safestock}" style="width:70px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td>
+          <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="saveProductEdit(${p.id})">💾 儲存</button>
+          <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:4px" onclick="cancelProductEdit()">取消</button>
+        </td>
+      </tr>`;
+    }
+    // 顯示模式
+    return `<tr>
+      <td><strong>${p.name}</strong></td>
+      <td>${cat ? '<span class="cat-pill">'+cat.name+'</span>' : '-'}</td>
+      <td>${p.spec || '-'}</td>
+      <td>${p.unit}</td>
+      <td>$${p.retail.toLocaleString()}</td>
+      <td>$${p.wholesale.toLocaleString()}</td>
+      <td>${p.safestock}</td>
+      <td>
+        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startProductEdit(${p.id})">✏️ 編輯</button>
+        <button class="btn btn-danger" style="margin-left:4px" onclick="deleteProduct(${p.id})">刪除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function startProductEdit(id) {
+  editingProductId = id;
+  renderProducts();
+}
+
+function cancelProductEdit() {
+  editingProductId = null;
+  renderProducts();
+}
+
+function saveProductEdit(id) {
+  const name = document.getElementById('edit-name-' + id).value.trim();
+  const spec = document.getElementById('edit-spec-' + id).value.trim();
+  const unit = document.getElementById('edit-unit-' + id).value.trim();
+  const categoryId = parseInt(document.getElementById('edit-category-' + id).value) || null;
+  const retail = parseFloat(document.getElementById('edit-retail-' + id).value);
+  const wholesale = parseFloat(document.getElementById('edit-wholesale-' + id).value);
+  const safestock = parseFloat(document.getElementById('edit-safestock-' + id).value);
+
+  if (!name || !retail || !wholesale) { alert('名稱、零售價、批發價不能空白'); return; }
+
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  p.name = name; p.spec = spec; p.unit = unit || '個';
+  p.categoryId = categoryId;
+  p.retail = retail; p.wholesale = wholesale;
+  p.safestock = isNaN(safestock) ? 10 : safestock;
+
+  DB.save('products', products);
+  editingProductId = null;
+  renderProductCategories();
+  renderProducts();
+}
+
+// ============ 倉庫轉移 ============
+function renderTransferSelects() {
+  const fromSel = document.getElementById('tr-from');
+  const toSel = document.getElementById('tr-to');
+  const opts = '<option value="">請選擇</option>' + warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+  fromSel.innerHTML = opts;
+  toSel.innerHTML = opts;
+  if (!document.getElementById('tr-date').value) document.getElementById('tr-date').value = new Date().toISOString().split('T')[0];
+  if (warehouses.length >= 2) {
+    if (!fromSel.value) fromSel.value = warehouses[0].id;
+    if (!toSel.value) toSel.value = warehouses[1].id;
+  }
+  if (currentTransferLines.length === 0) addTransferLine();
+  else renderTransferLines();
+}
+
+function addTransferLine() {
+  currentTransferLines.push({
+    lineId: lineIdCounter++,
+    productId: '',
+    qty: 1
+  });
+  renderTransferLines();
+}
+
+function removeTransferLine(lineId) {
+  currentTransferLines = currentTransferLines.filter(l => l.lineId !== lineId);
+  if (currentTransferLines.length === 0) addTransferLine();
+  else renderTransferLines();
+}
+
+function updateTransferLine(lineId, field, value) {
+  const line = currentTransferLines.find(l => l.lineId === lineId);
+  if (!line) return;
+  if (field === 'productId') {
+    line.productId = parseInt(value) || '';
+    renderTransferLines();
+    return;
+  }
+  if (field === 'qty') line.qty = parseFloat(value) || 0;
+  updateTransferLineCalc(lineId);
+  updateTransferTotals();
+}
+
+function updateTransferLineCalc(lineId) {
+  const line = currentTransferLines.find(l => l.lineId === lineId);
+  if (!line) return;
+  const fromId = parseInt(document.getElementById('tr-from').value);
+  const calcEl = document.getElementById('tr-calc-' + lineId);
+  if (!calcEl) return;
+  if (!line.productId || !fromId) {
+    calcEl.innerHTML = '<span class="calc-label">請先選擇來源倉庫和商品</span>';
+    return;
+  }
+  const stock = calcStock(line.productId, fromId);
+  const fromName = (warehouses.find(w => w.id === fromId) || {}).name || '';
+  let warning = '';
+  if (line.qty > stock) {
+    warning = ` ｜ <strong style="color:#dc2626">⚠️ 庫存不足！</strong>`;
+  }
+  calcEl.innerHTML = `<span class="calc-label">「${fromName}」目前庫存：</span><strong>${stock} 包</strong> ｜ <span class="calc-label">轉移後將剩：</span><strong style="color:#16a34a">${stock - line.qty} 包</strong>${warning}`;
+}
+
+function updateTransferTotals() {
+  const totalQty = currentTransferLines.reduce((s, l) => s + (l.qty || 0), 0);
+  document.getElementById('tr-total-count').textContent = currentTransferLines.filter(l => l.productId).length + ' 項';
+  document.getElementById('tr-total-qty').textContent = totalQty + ' 包';
+}
+
+function renderTransferLines() {
+  const wrap = document.getElementById('tr-lines');
+  wrap.innerHTML = currentTransferLines.map((l, idx) => `
+    <div class="line-item">
+      <div class="line-header">
+        <div><span class="line-num">${idx + 1}</span><strong>轉倉品項</strong></div>
+        <button class="btn btn-danger" onclick="removeTransferLine(${l.lineId})">🗑️ 刪除</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column: 1 / -1;"><label>商品 *</label>
+          ${buildProductPickerHTML('tr-prod-' + l.lineId, l.productId)}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>轉移數量（包）</label>
+          <input type="number" min="0" step="0.01" value="${l.qty}" oninput="updateTransferLine(${l.lineId}, 'qty', this.value)">
+        </div>
+      </div>
+      <div class="calc-display" id="tr-calc-${l.lineId}"></div>
+    </div>
+  `).join('');
+  currentTransferLines.forEach(l => updateTransferLineCalc(l.lineId));
+  updateTransferTotals();
+}
+
+function submitTransfer() {
+  const fromWarehouseId = parseInt(document.getElementById('tr-from').value);
+  const toWarehouseId = parseInt(document.getElementById('tr-to').value);
+  const date = document.getElementById('tr-date').value;
+  const note = document.getElementById('tr-note').value;
+  if (!fromWarehouseId || !toWarehouseId) { alert('請選擇來源倉庫與目的倉庫'); return; }
+  if (fromWarehouseId === toWarehouseId) { alert('來源倉庫與目的倉庫不能相同'); return; }
+  if (!date) { alert('請填寫轉倉日期'); return; }
+
+  const validLines = currentTransferLines.filter(l => l.productId && l.qty > 0);
+  if (validLines.length === 0) { alert('請至少填寫一筆轉倉品項（商品與數量）'); return; }
+  if (validLines.length !== currentTransferLines.length) {
+    if (!confirm(`有 ${currentTransferLines.length - validLines.length} 筆未完整填寫，將自動跳過。要繼續嗎？`)) return;
+  }
+
+  // 檢查每個品項的來源倉庫存
+  const insufficient = [];
+  validLines.forEach(l => {
+    const stock = calcStock(l.productId, fromWarehouseId);
+    if (l.qty > stock) {
+      const p = products.find(x => x.id === l.productId);
+      insufficient.push(`${p ? p.name : '?'}：庫存 ${stock}，要轉 ${l.qty}`);
+    }
+  });
+  const fromName = (warehouses.find(w => w.id === fromWarehouseId) || {}).name || '';
+  const toName = (warehouses.find(w => w.id === toWarehouseId) || {}).name || '';
+  if (insufficient.length > 0) {
+    if (!confirm(`「${fromName}」以下品項庫存不足：\n\n${insufficient.join('\n')}\n\n要繼續轉倉嗎？（會出現負庫存）`)) return;
+  }
+
+  const baseId = Date.now();
+  validLines.forEach((l, idx) => {
+    transfers.push({
+      id: baseId + idx,
+      date,
+      fromWarehouseId,
+      toWarehouseId,
+      productId: l.productId,
+      qty: l.qty,
+      note,
+      recorder: currentUserName()
+    });
+  });
+  DB.save('transfers', transfers);
+
+  const totalQty = validLines.reduce((s, l) => s + l.qty, 0);
+  alert(`✅ 轉倉完成！\n${fromName} → ${toName}\n品項數：${validLines.length}\n總包數：${totalQty}`);
+
+  currentTransferLines = [];
+  addTransferLine();
+  renderTransfers();
+}
+
+function deleteTransfer(id) {
+  if (!confirm('確定要刪除此筆轉倉？來源倉與目的倉庫存會回到轉倉前的狀態')) return;
+  transfers = transfers.filter(t => t.id !== id);
+  DB.save('transfers', transfers);
+  renderTransfers();
+}
+
+function renderTransfers() {
+  const tbody = document.getElementById('transfer-tbody');
+  if (!tbody) return;
+  if (transfers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty"><div class="icon">🔄</div>還沒有轉倉紀錄</td></tr>';
+    return;
+  }
+  const sorted = [...transfers].sort((a, b) => b.id - a.id).slice(0, 50);
+  tbody.innerHTML = sorted.map(t => {
+    const product = products.find(x => x.id === t.productId);
+    return `<tr>
+      <td>${t.date}</td>
+      <td>${warehouseBadgeHTML(t.fromWarehouseId)}</td>
+      <td style="text-align:center; font-size:18px; color:#088395">→</td>
+      <td>${warehouseBadgeHTML(t.toWarehouseId)}</td>
+      <td>${product ? product.name : '已刪除'}</td>
+      <td><strong>${t.qty} 包</strong></td>
+      <td style="font-size:12px">${t.note || '-'}</td>
+      <td>${recorderBadge(t.recorder)}</td>
+      <td><button class="btn btn-danger" onclick="deleteTransfer(${t.id})">刪除</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ 通用商品選擇器 ============
+let activeProductPicker = null; // 當前打開的選擇器 ID
+
+function toggleProductPicker(pickerId) {
+  const panel = document.getElementById(pickerId + '-panel');
+  if (!panel) return;
+  // 先關閉其他
+  document.querySelectorAll('.product-picker-panel.show').forEach(p => {
+    if (p.id !== pickerId + '-panel') p.classList.remove('show');
+  });
+  if (panel.classList.contains('show')) {
+    panel.classList.remove('show');
+    activeProductPicker = null;
+  } else {
+    panel.classList.add('show');
+    activeProductPicker = pickerId;
+    renderProductPickerList(pickerId);
+    setTimeout(() => {
+      const search = document.getElementById(pickerId + '-search');
+      if (search) search.focus();
+    }, 50);
+  }
+}
+
+function renderProductPickerList(pickerId) {
+  const search = (document.getElementById(pickerId + '-search')?.value || '').toLowerCase().trim();
+  const filterCat = document.getElementById(pickerId + '-cat')?.value || '';
+  const listEl = document.getElementById(pickerId + '-list');
+  if (!listEl) return;
+
+  const matchSearch = (p) => !search || (p.name + (p.spec || '')).toLowerCase().includes(search);
+  const matchCat = (p) => !filterCat || (filterCat === 'none' ? !p.categoryId : p.categoryId === parseInt(filterCat));
+
+  let items = products.filter(p => matchSearch(p) && matchCat(p));
+
+  // 排序：最近使用優先，其餘按名稱
+  const recentSet = new Set(recentProducts);
+  items.sort((a, b) => {
+    const aR = recentProducts.indexOf(a.id);
+    const bR = recentProducts.indexOf(b.id);
+    if (aR !== -1 && bR === -1) return -1;
+    if (bR !== -1 && aR === -1) return 1;
+    if (aR !== -1 && bR !== -1) return aR - bR;
+    return a.name.localeCompare(b.name);
+  });
+
+  if (items.length === 0) {
+    listEl.innerHTML = '<div class="product-item" style="color:#94a3b8; cursor:default; text-align:center">沒有符合的商品</div>';
+    return;
+  }
+
+  let html = '';
+  let hasRecentSection = false;
+  let hasOtherSection = false;
+  items.forEach(p => {
+    const cat = productCategories.find(c => c.id === p.categoryId);
+    const isRecent = recentSet.has(p.id);
+    if (isRecent && !hasRecentSection && !search && !filterCat) {
+      html += '<div class="picker-section-title">🕐 最近使用</div>';
+      hasRecentSection = true;
+    }
+    if (!isRecent && !hasOtherSection && hasRecentSection && !search && !filterCat) {
+      html += '<div class="picker-section-title">📂 全部商品</div>';
+      hasOtherSection = true;
+    }
+    html += `<div class="product-item" onclick="selectProduct('${pickerId}', ${p.id})">
+      <div>
+        <div class="name">${p.name}</div>
+        <div class="meta">${cat ? '🏷️ '+cat.name+' · ' : ''}${p.spec || ''} · 零售 $${p.retail} / 批發 $${p.wholesale}</div>
+      </div>
+      <div style="color:#088395; font-size:13px">選 →</div>
+    </div>`;
+  });
+
+  listEl.innerHTML = html;
+}
+
+function selectProduct(pickerId, productId) {
+  // pickerId 格式：pu-prod-{lineId} / sa-prod-{lineId} / tr-prod-{lineId}
+  const [type, , lineIdStr] = pickerId.split('-');
+  const lineId = parseInt(lineIdStr);
+  if (type === 'pu') {
+    updatePurchaseLine(lineId, 'productId', productId);
+  } else if (type === 'sa') {
+    updateSaleLine(lineId, 'productId', productId);
+  } else if (type === 'tr') {
+    updateTransferLine(lineId, 'productId', productId);
+  }
+  // 記入最近使用
+  recentProducts = [productId, ...recentProducts.filter(x => x !== productId)].slice(0, 8);
+  DB.save('recentProducts', recentProducts);
+  // 關閉面板
+  document.getElementById(pickerId + '-panel').classList.remove('show');
+  activeProductPicker = null;
+}
+
+function buildProductPickerHTML(pickerId, currentProductId) {
+  const product = products.find(p => p.id === currentProductId);
+  const triggerText = product ? `✓ ${product.name}${product.spec ? ' ('+product.spec+')' : ''}` : '🔍 點此選擇商品...';
+  const triggerClass = product ? 'product-picker-trigger has-value' : 'product-picker-trigger';
+  const catOptions = '<option value="">全部分類</option><option value="none">未分類</option>' +
+    productCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  return `<div class="product-picker">
+    <button type="button" class="${triggerClass}" onclick="toggleProductPicker('${pickerId}')">
+      <span>${triggerText}</span>
+      <span style="color:#64748b">▼</span>
+    </button>
+    <div class="product-picker-panel" id="${pickerId}-panel">
+      <div class="panel-header">
+        <div style="display:flex; gap:6px">
+          <input id="${pickerId}-search" placeholder="🔍 輸入商品名稱搜尋" oninput="renderProductPickerList('${pickerId}')" style="flex:2">
+          <select id="${pickerId}-cat" onchange="renderProductPickerList('${pickerId}')" style="flex:1">${catOptions}</select>
+        </div>
+      </div>
+      <div id="${pickerId}-list"></div>
+    </div>
+  </div>`;
+}
+
+// 點擊空白處關閉選擇器
+document.addEventListener('click', (e) => {
+  if (!activeProductPicker) return;
+  const trigger = e.target.closest('.product-picker');
+  if (!trigger) {
+    document.querySelectorAll('.product-picker-panel.show').forEach(p => p.classList.remove('show'));
+    activeProductPicker = null;
+  }
+});
+
+// ============ 進貨（多品項） ============
+function renderPurchaseSelects() {
+  renderWarehouseSelects();
+  const supplierSel = document.getElementById('pu-supplier');
+  supplierSel.innerHTML = '<option value="">請選擇</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  if (!document.getElementById('pu-date').value) document.getElementById('pu-date').value = new Date().toISOString().split('T')[0];
+  const wEl = document.getElementById('pu-warehouse');
+  if (wEl && !wEl.value && warehouses.length > 0) wEl.value = warehouses[0].id;
+  // 確保至少一筆明細
+  if (currentPurchaseLines.length === 0) addPurchaseLine();
+  else renderPurchaseLines();
+}
+
+function addPurchaseLine() {
+  currentPurchaseLines.push({
+    lineId: lineIdCounter++,
+    productId: '',
+    boxes: 1,
+    packsPerBox: 1,
+    costPerBox: 0,
+    batch: '',
+    expiry: ''
+  });
+  renderPurchaseLines();
+}
+
+function removePurchaseLine(lineId) {
+  currentPurchaseLines = currentPurchaseLines.filter(l => l.lineId !== lineId);
+  if (currentPurchaseLines.length === 0) addPurchaseLine();
+  else renderPurchaseLines();
+}
+
+function updatePurchaseLine(lineId, field, value) {
+  const line = currentPurchaseLines.find(l => l.lineId === lineId);
+  if (!line) return;
+  if (['boxes', 'packsPerBox', 'costPerBox', 'productId'].includes(field)) {
+    line[field] = field === 'productId' ? (parseInt(value) || '') : (parseFloat(value) || 0);
+  } else {
+    line[field] = value;
+  }
+  // 商品變動時要重新渲染整列（更新選擇器顯示的商品名稱）
+  if (field === 'productId') {
+    renderPurchaseLines();
+    return;
+  }
+  // 其他數值變動只更新該行的計算顯示與總計
+  updatePurchaseLineCalc(lineId);
+  updatePurchaseTotals();
+}
+
+function updatePurchaseLineCalc(lineId) {
+  const line = currentPurchaseLines.find(l => l.lineId === lineId);
+  if (!line) return;
+  const totalPacks = (line.boxes || 0) * (line.packsPerBox || 0);
+  const avgCost = (line.packsPerBox > 0) ? (line.costPerBox / line.packsPerBox) : 0;
+  const totalCost = (line.boxes || 0) * (line.costPerBox || 0);
+  const calcEl = document.getElementById('pu-calc-' + lineId);
+  if (calcEl) {
+    calcEl.innerHTML =
+      `<span class="calc-label">總入庫：</span><strong>${totalPacks} 包</strong>` +
+      ` ｜ <span class="calc-label">每包平均成本：</span><strong style="color:#16a34a">$${avgCost.toFixed(2)}</strong>` +
+      ` ｜ <span class="calc-label">本品項總金額：</span><strong>$${totalCost.toLocaleString()}</strong>`;
+  }
+}
+
+function updatePurchaseTotals() {
+  let totalQty = 0, totalAmt = 0;
+  currentPurchaseLines.forEach(l => {
+    totalQty += (l.boxes || 0) * (l.packsPerBox || 0);
+    totalAmt += (l.boxes || 0) * (l.costPerBox || 0);
+  });
+  document.getElementById('pu-total-qty').textContent = totalQty + ' 包';
+  document.getElementById('pu-total-amount').textContent = '$' + totalAmt.toLocaleString();
+}
+
+function renderPurchaseLines() {
+  const wrap = document.getElementById('pu-lines');
+  wrap.innerHTML = currentPurchaseLines.map((l, idx) => `
+    <div class="line-item">
+      <div class="line-header">
+        <div><span class="line-num">${idx + 1}</span><strong>進貨品項</strong></div>
+        <button class="btn btn-danger" onclick="removePurchaseLine(${l.lineId})">🗑️ 刪除</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column: 1 / -1;"><label>商品 *</label>
+          ${buildProductPickerHTML('pu-prod-' + l.lineId, l.productId)}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>箱數</label>
+          <input type="number" min="0" step="0.01" value="${l.boxes}" oninput="updatePurchaseLine(${l.lineId}, 'boxes', this.value)">
+        </div>
+        <div class="form-group"><label>每箱包數</label>
+          <input type="number" min="0" step="1" value="${l.packsPerBox}" oninput="updatePurchaseLine(${l.lineId}, 'packsPerBox', this.value)">
+        </div>
+        <div class="form-group"><label>每箱整箱成本 ($)</label>
+          <input type="number" min="0" step="0.01" value="${l.costPerBox}" oninput="updatePurchaseLine(${l.lineId}, 'costPerBox', this.value)">
+        </div>
+      </div>
+      <div class="calc-display" id="pu-calc-${l.lineId}"></div>
+      <div class="form-row" style="margin-top:12px">
+        <div class="form-group"><label>批號</label>
+          <input value="${l.batch}" placeholder="例如：20260506-A" oninput="updatePurchaseLine(${l.lineId}, 'batch', this.value)">
+        </div>
+        <div class="form-group"><label>保存期限</label>
+          <input type="date" value="${l.expiry}" oninput="updatePurchaseLine(${l.lineId}, 'expiry', this.value)">
+        </div>
+      </div>
+    </div>
+  `).join('');
+  // 渲染後更新所有計算顯示
+  currentPurchaseLines.forEach(l => updatePurchaseLineCalc(l.lineId));
+  updatePurchaseTotals();
+}
+
+function submitPurchase() {
+  const warehouseId = parseInt(document.getElementById('pu-warehouse').value);
+  const supplierId = parseInt(document.getElementById('pu-supplier').value) || null;
+  const date = document.getElementById('pu-date').value;
+  const note = document.getElementById('pu-note').value;
+  if (!warehouseId) { alert('請選擇入庫倉庫'); return; }
+  if (!date) { alert('請填寫進貨日期'); return; }
+
+  // 驗證每筆明細
+  const validLines = currentPurchaseLines.filter(l => l.productId && l.boxes > 0 && l.packsPerBox > 0 && l.costPerBox > 0);
+  if (validLines.length === 0) { alert('請至少完整填寫一筆明細（商品、箱數、每箱包數、整箱成本）'); return; }
+  if (validLines.length !== currentPurchaseLines.length) {
+    if (!confirm(`有 ${currentPurchaseLines.length - validLines.length} 筆明細未完整填寫，將自動跳過。要繼續送出嗎？`)) return;
+  }
+
+  // 拆成個別 purchase 記錄（保留每包平均成本）
+  const baseId = Date.now();
+  validLines.forEach((l, idx) => {
+    const totalPacks = l.boxes * l.packsPerBox;
+    const pricePerPack = l.costPerBox / l.packsPerBox;
+    purchases.push({
+      id: baseId + idx,
+      date, warehouseId, supplierId,
+      productId: l.productId,
+      qty: totalPacks,
+      price: pricePerPack,
+      // 額外保留原始輸入資料，方便日後查詢
+      boxes: l.boxes,
+      packsPerBox: l.packsPerBox,
+      costPerBox: l.costPerBox,
+      batch: l.batch,
+      expiry: l.expiry,
+      note,
+      recorder: currentUserName()
+    });
+  });
+  DB.save('purchases', purchases);
+
+  const wName = (warehouses.find(w => w.id === warehouseId) || {}).name || '';
+  const totalPacks = validLines.reduce((s, l) => s + l.boxes * l.packsPerBox, 0);
+  const totalCost = validLines.reduce((s, l) => s + l.boxes * l.costPerBox, 0);
+  alert(`✅ 進貨單送出成功！\n倉庫：${wName}\n品項數：${validLines.length}\n總包數：${totalPacks}\n總金額：$${totalCost.toLocaleString()}`);
+
+  // 清空，準備下一張單
+  currentPurchaseLines = [];
+  addPurchaseLine();
+  renderPurchases();
+}
+
+function deletePurchase(id) {
+  if (!confirm('確定要刪除此筆進貨？庫存將會回滾')) return;
+  purchases = purchases.filter(p => p.id !== id);
+  DB.save('purchases', purchases);
+  renderPurchases();
+}
+
+function renderPurchases() {
+  const tbody = document.getElementById('purchase-tbody');
+  if (purchases.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12" class="empty"><div class="icon">🚚</div>還沒有進貨紀錄</td></tr>';
+    return;
+  }
+  const sorted = [...purchases].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 50);
+  tbody.innerHTML = sorted.map(p => {
+    const product = products.find(x => x.id === p.productId);
+    const supplier = suppliers.find(x => x.id === p.supplierId);
+    const warehouse = warehouses.find(x => x.id === p.warehouseId);
+    const boxInfo = (p.boxes && p.packsPerBox) ? `${p.boxes} × ${p.packsPerBox}` : '-';
+    return `<tr>
+      <td>${p.date}</td>
+      <td>${warehouseBadgeHTML(p.warehouseId)}</td>
+      <td>${supplier ? supplier.name : '-'}</td>
+      <td>${product ? product.name : '已刪除'}</td>
+      <td>${boxInfo}</td>
+      <td>${p.qty}</td>
+      <td>$${(p.price || 0).toFixed(2)}</td>
+      <td><strong>$${(p.qty * p.price).toLocaleString()}</strong></td>
+      <td>${p.batch || '-'}</td>
+      <td>${p.expiry || '-'}</td>
+      <td>${recorderBadge(p.recorder)}</td>
+      <td><button class="btn btn-danger" onclick="deletePurchase(${p.id})">刪除</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ 銷貨（多品項） ============
+function renderSaleSelects() {
+  renderWarehouseSelects();
+  if (!document.getElementById('sa-date').value) document.getElementById('sa-date').value = new Date().toISOString().split('T')[0];
+  const wEl = document.getElementById('sa-warehouse');
+  if (wEl && !wEl.value && warehouses.length > 0) wEl.value = warehouses[0].id;
+  // 重置客戶選擇
+  document.getElementById('sa-customer').value = '';
+  document.getElementById('sa-customer-search').value = '';
+  document.getElementById('sa-customer-selected').style.display = 'none';
+  document.getElementById('sa-favorites-row').style.display = 'none';
+  renderCustomerPicker();
+  // 確保至少一筆明細
+  if (currentSaleLines.length === 0) addSaleLine();
+  else renderSaleLines();
+}
+
+function addSaleLine(productId = '') {
+  const customerId = parseInt(document.getElementById('sa-customer').value);
+  const customer = customers.find(c => c.id === customerId);
+  let price = 0, type = 'retail';
+  if (productId) {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      if (customer && customer.customPrices && customer.customPrices[productId]) {
+        price = customer.customPrices[productId];
+      } else {
+        price = product.retail;
+      }
+    }
+  }
+  currentSaleLines.push({
+    lineId: lineIdCounter++,
+    productId: productId || '',
+    type,
+    qty: 1,
+    price
+  });
+  renderSaleLines();
+}
+
+function removeSaleLine(lineId) {
+  currentSaleLines = currentSaleLines.filter(l => l.lineId !== lineId);
+  if (currentSaleLines.length === 0) addSaleLine();
+  else renderSaleLines();
+}
+
+function updateSaleLine(lineId, field, value) {
+  const line = currentSaleLines.find(l => l.lineId === lineId);
+  if (!line) return;
+  if (['qty', 'price', 'productId'].includes(field)) {
+    line[field] = field === 'productId' ? (parseInt(value) || '') : (parseFloat(value) || 0);
+  } else {
+    line[field] = value;
+  }
+  // 商品/類型變動時自動重算單價（除非使用者已自己改過）
+  if (field === 'productId' || field === 'type') {
+    const product = products.find(p => p.id === line.productId);
+    const customerId = parseInt(document.getElementById('sa-customer').value);
+    const customer = customers.find(c => c.id === customerId);
+    if (product) {
+      if (customer && customer.customPrices && customer.customPrices[line.productId]) {
+        line.price = customer.customPrices[line.productId];
+      } else {
+        line.price = line.type === 'wholesale' ? product.wholesale : product.retail;
+      }
+    }
+    renderSaleLines();
+    return;
+  }
+  updateSaleLineCalc(lineId);
+  updateSaleTotals();
+}
+
+function updateSaleLineCalc(lineId) {
+  const line = currentSaleLines.find(l => l.lineId === lineId);
+  if (!line) return;
+  const subtotal = (line.qty || 0) * (line.price || 0);
+  const calcEl = document.getElementById('sa-calc-' + lineId);
+  if (calcEl) {
+    calcEl.innerHTML = `<span class="calc-label">小計：</span><strong style="color:#16a34a; font-size:18px">$${subtotal.toLocaleString()}</strong>` +
+      ` ｜ <span class="calc-label">${line.qty || 0} × $${line.price || 0}</span>`;
+  }
+  // 同步更新單價輸入框（避免類型切換後 UI 不同步）
+  const priceInput = document.getElementById('sa-price-' + lineId);
+  if (priceInput && parseFloat(priceInput.value) !== line.price) priceInput.value = line.price;
+}
+
+function updateSaleTotals() {
+  const total = currentSaleLines.reduce((s, l) => s + (l.qty || 0) * (l.price || 0), 0);
+  document.getElementById('sa-total-count').textContent = currentSaleLines.filter(l => l.productId).length + ' 項';
+  document.getElementById('sa-total-amount').textContent = '$' + total.toLocaleString();
+}
+
+function renderSaleLines() {
+  const wrap = document.getElementById('sa-lines');
+  wrap.innerHTML = currentSaleLines.map((l, idx) => `
+    <div class="line-item">
+      <div class="line-header">
+        <div><span class="line-num">${idx + 1}</span><strong>銷貨品項</strong></div>
+        <button class="btn btn-danger" onclick="removeSaleLine(${l.lineId})">🗑️ 刪除</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column: 1 / -1;"><label>商品 *</label>
+          ${buildProductPickerHTML('sa-prod-' + l.lineId, l.productId)}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>銷售類型</label>
+          <select onchange="updateSaleLine(${l.lineId}, 'type', this.value)">
+            <option value="retail" ${l.type === 'retail' ? 'selected' : ''}>零售</option>
+            <option value="wholesale" ${l.type === 'wholesale' ? 'selected' : ''}>批發</option>
+          </select>
+        </div>
+        <div class="form-group"><label>數量</label>
+          <input type="number" min="0" step="0.01" value="${l.qty}" oninput="updateSaleLine(${l.lineId}, 'qty', this.value)">
+        </div>
+        <div class="form-group"><label>單價 ($)</label>
+          <input id="sa-price-${l.lineId}" type="number" min="0" step="0.01" value="${l.price}" oninput="updateSaleLine(${l.lineId}, 'price', this.value)">
+        </div>
+      </div>
+      <div class="calc-display" id="sa-calc-${l.lineId}"></div>
+    </div>
+  `).join('');
+  currentSaleLines.forEach(l => updateSaleLineCalc(l.lineId));
+  updateSaleTotals();
+}
+
+function submitSale() {
+  const warehouseId = parseInt(document.getElementById('sa-warehouse').value);
+  const customerId = parseInt(document.getElementById('sa-customer').value);
+  const date = document.getElementById('sa-date').value;
+  const note = document.getElementById('sa-note').value;
+  if (!warehouseId) { alert('請選擇出貨倉庫'); return; }
+  if (!customerId) { alert('請選擇客戶'); return; }
+  if (!date) { alert('請填寫銷貨日期'); return; }
+
+  const validLines = currentSaleLines.filter(l => l.productId && l.qty > 0 && l.price > 0);
+  if (validLines.length === 0) { alert('請至少完整填寫一筆明細'); return; }
+  if (validLines.length !== currentSaleLines.length) {
+    if (!confirm(`有 ${currentSaleLines.length - validLines.length} 筆明細未完整填寫，將自動跳過。要繼續送出嗎？`)) return;
+  }
+
+  // 檢查每個品項的庫存
+  const insufficientItems = [];
+  validLines.forEach(l => {
+    const stock = calcStock(l.productId, warehouseId);
+    if (l.qty > stock) {
+      const p = products.find(x => x.id === l.productId);
+      insufficientItems.push(`${p ? p.name : '?'}：庫存 ${stock}，要賣 ${l.qty}`);
+    }
+  });
+  if (insufficientItems.length > 0) {
+    const wName = (warehouses.find(w => w.id === warehouseId) || {}).name || '';
+    if (!confirm(`「${wName}」以下品項庫存不足：\n\n${insufficientItems.join('\n')}\n\n要繼續送出嗎？（會出現負庫存）`)) return;
+  }
+
+  // 寫入 sales
+  const baseId = Date.now();
+  validLines.forEach((l, idx) => {
+    sales.push({
+      id: baseId + idx,
+      date, warehouseId, customerId,
+      type: l.type,
+      productId: l.productId,
+      qty: l.qty,
+      price: l.price,
+      note,
+      recorder: currentUserName()
+    });
+  });
+  DB.save('sales', sales);
+
+  // 更新最近使用
+  recentCustomers = [customerId, ...recentCustomers.filter(x => x !== customerId)].slice(0, 10);
+  DB.save('recentCustomers', recentCustomers);
+
+  const cName = (customers.find(c => c.id === customerId) || {}).name || '';
+  const wName = (warehouses.find(w => w.id === warehouseId) || {}).name || '';
+  const total = validLines.reduce((s, l) => s + l.qty * l.price, 0);
+  alert(`✅ 銷貨單送出成功！\n客戶：${cName}\n倉庫：${wName}\n品項數：${validLines.length}\n💰 總金額：$${total.toLocaleString()}`);
+
+  // 清空，準備下一張單
+  currentSaleLines = [];
+  document.getElementById('sa-customer').value = '';
+  document.getElementById('sa-customer-search').value = '';
+  document.getElementById('sa-customer-selected').style.display = 'none';
+  document.getElementById('sa-favorites-row').style.display = 'none';
+  document.getElementById('sa-note').value = '';
+  addSaleLine();
+  renderCustomerPicker();
+  renderSales();
+}
+
+// ---- 客戶選擇器 ----
+function renderCustomerPicker() {
+  const search = document.getElementById('sa-customer-search').value.toLowerCase().trim();
+  const listEl = document.getElementById('sa-customer-list');
+
+  const matchSearch = (c) => !search || (c.name + (c.contact||'') + (c.phone||'')).toLowerCase().includes(search);
+
+  // 1. 最愛客戶
+  const favorites = customers.filter(c => c.favorite && matchSearch(c));
+  // 2. 最近使用（不含已在最愛者）
+  const recent = recentCustomers
+    .map(id => customers.find(c => c.id === id))
+    .filter(c => c && !c.favorite && matchSearch(c))
+    .slice(0, 5);
+  // 3. 按分類分組（不含上面已顯示的）
+  const recentIds = new Set(recent.map(c => c.id));
+  const others = customers.filter(c => !c.favorite && !recentIds.has(c.id) && matchSearch(c));
+  const grouped = {};
+  others.forEach(c => {
+    const cat = categories.find(x => x.id === c.categoryId);
+    const key = cat ? cat.name : '未分類';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(c);
+  });
+
+  let html = '';
+  if (favorites.length > 0) {
+    html += '<div class="picker-section-title">⭐ 最愛客戶</div>';
+    html += favorites.map(c => renderPickerItem(c, true)).join('');
+  }
+  if (recent.length > 0) {
+    html += '<div class="picker-section-title">🕐 最近選過</div>';
+    html += recent.map(c => renderPickerItem(c)).join('');
+  }
+  Object.keys(grouped).sort().forEach(cat => {
+    html += `<div class="picker-section-title">📂 ${cat} (${grouped[cat].length})</div>`;
+    html += grouped[cat].map(c => renderPickerItem(c)).join('');
+  });
+
+  if (!html) {
+    html = '<div class="picker-item empty-state">' + (customers.length === 0 ? '還沒有客戶，請先到「客戶供應商」新增' : '沒有符合搜尋的客戶') + '</div>';
+  }
+  listEl.innerHTML = html;
+}
+
+function renderPickerItem(c, fav = false) {
+  const cat = categories.find(x => x.id === c.categoryId);
+  const star = c.favorite ? '<span class="star">⭐</span>' : '';
+  return `<div class="picker-item" onclick="selectCustomer(${c.id})">
+    <div>
+      <div class="name">${star}${c.name}</div>
+      <div class="meta">${cat ? '🏷️ '+cat.name+' · ' : ''}${c.phone || c.contact || ''}</div>
+    </div>
+    <div style="color:#088395; font-size:13px">選 →</div>
+  </div>`;
+}
+
+function selectCustomer(id) {
+  const c = customers.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('sa-customer').value = id;
+  document.getElementById('sa-customer-search').value = '';
+  const cat = categories.find(x => x.id === c.categoryId);
+  document.getElementById('sa-customer-selected').innerHTML =
+    `<button class="clear-btn" onclick="clearCustomer()">×</button>` +
+    `✓ 已選：<strong>${c.name}</strong>${cat ? ' <span class="cat-pill">'+cat.name+'</span>' : ''}` +
+    `${c.payment ? ' · 付款：'+c.payment : ''}`;
+  document.getElementById('sa-customer-selected').style.display = 'block';
+
+  // 更新「最近使用」
+  recentCustomers = [id, ...recentCustomers.filter(x => x !== id)].slice(0, 10);
+  DB.save('recentCustomers', recentCustomers);
+
+  // 顯示常訂商品快選
+  renderFavoriteProducts(c);
+
+  // 重新整理選單（隱藏列表，因為已選）
+  document.getElementById('sa-customer-list').innerHTML = '';
+
+  // 對已存在但已有商品的明細，重新套用該客戶的專屬價
+  currentSaleLines.forEach(l => {
+    if (l.productId) {
+      const product = products.find(p => p.id === l.productId);
+      if (product) {
+        if (c.customPrices && c.customPrices[l.productId]) {
+          l.price = c.customPrices[l.productId];
+        } else {
+          l.price = l.type === 'wholesale' ? product.wholesale : product.retail;
+        }
+      }
+    }
+  });
+  renderSaleLines();
+}
+
+function clearCustomer() {
+  document.getElementById('sa-customer').value = '';
+  document.getElementById('sa-customer-selected').style.display = 'none';
+  document.getElementById('sa-favorites-row').style.display = 'none';
+  document.getElementById('sa-customer-search').focus();
+  renderCustomerPicker();
+}
+
+function renderFavoriteProducts(customer) {
+  const row = document.getElementById('sa-favorites-row');
+  const list = document.getElementById('sa-favorite-products');
+  if (!customer.favoriteProducts || customer.favoriteProducts.length === 0) {
+    row.style.display = 'none';
+    return;
+  }
+  list.innerHTML = customer.favoriteProducts.map(fp => {
+    const p = products.find(x => x.id === fp.productId);
+    if (!p) return '';
+    const customPrice = customer.customPrices && customer.customPrices[fp.productId];
+    const priceTag = customPrice ? `（專屬 $${customPrice}）` : '';
+    return `<span class="fav-product-btn" onclick="quickPickProduct(${fp.productId})">⭐ ${p.name}${priceTag}</span>`;
+  }).join('');
+  row.style.display = 'block';
+}
+
+function quickPickProduct(productId) {
+  // 在多品項模式下：找第一個空白品項，把它填入；沒有的話就新增一筆
+  const emptyLine = currentSaleLines.find(l => !l.productId);
+  if (emptyLine) {
+    updateSaleLine(emptyLine.lineId, 'productId', productId);
+  } else {
+    addSaleLine(productId);
+  }
+}
+
+function deleteSale(id) {
+  if (!confirm('確定要刪除此筆銷貨？庫存將會回滾')) return;
+  sales = sales.filter(s => s.id !== id);
+  DB.save('sales', sales);
+  renderSales();
+}
+
+function renderSales() {
+  const tbody = document.getElementById('sale-tbody');
+  if (sales.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty"><div class="icon">💰</div>還沒有銷貨紀錄</td></tr>';
+    return;
+  }
+  const sorted = [...sales].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 50);
+  tbody.innerHTML = sorted.map(s => {
+    const product = products.find(x => x.id === s.productId);
+    const customer = customers.find(x => x.id === s.customerId);
+    const warehouse = warehouses.find(x => x.id === s.warehouseId);
+    return `<tr>
+      <td>${s.date}</td>
+      <td>${warehouseBadgeHTML(s.warehouseId)}</td>
+      <td>${customer ? customer.name : '-'}</td>
+      <td><span class="badge ${s.type === 'wholesale' ? 'badge-info' : 'badge-success'}">${s.type === 'wholesale' ? '批發' : '零售'}</span></td>
+      <td>${product ? product.name : '已刪除'}</td>
+      <td>${s.qty}</td>
+      <td>$${s.price.toLocaleString()}</td>
+      <td><strong>$${(s.qty * s.price).toLocaleString()}</strong></td>
+      <td>${recorderBadge(s.recorder)}</td>
+      <td><button class="btn btn-danger" onclick="deleteSale(${s.id})">刪除</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ 庫存計算 ============
+// warehouseId: null 或 'all' 表示不分倉庫
+function calcStock(productId, warehouseId = null) {
+  const filterW = (rec) => !warehouseId || warehouseId === 'all' || rec.warehouseId === warehouseId;
+  const purchased = purchases.filter(p => p.productId === productId && filterW(p)).reduce((s, p) => s + p.qty, 0);
+  const sold = sales.filter(s => s.productId === productId && filterW(s)).reduce((s, p) => s + p.qty, 0);
+  // 盤點調整：diff > 0 增加、< 0 減少
+  const adjusted = adjustments.filter(a => a.productId === productId && filterW(a)).reduce((s, a) => s + a.diff, 0);
+  // 轉倉：來源倉減少，目的倉增加（指定倉庫時才有意義；'all' 時轉倉互相抵銷不影響）
+  let transferDiff = 0;
+  if (warehouseId && warehouseId !== 'all') {
+    transfers.forEach(t => {
+      if (t.productId !== productId) return;
+      if (t.fromWarehouseId === warehouseId) transferDiff -= t.qty;
+      if (t.toWarehouseId === warehouseId) transferDiff += t.qty;
+    });
+  }
+  return purchased - sold + adjusted + transferDiff;
+}
+
+function calcStockByBatch(productId, warehouseId = null) {
+  const filterW = (rec) => !warehouseId || warehouseId === 'all' || rec.warehouseId === warehouseId;
+  const batches = {};
+  purchases.filter(p => p.productId === productId && filterW(p)).forEach(p => {
+    const key = p.batch || '無批號';
+    if (!batches[key]) batches[key] = { qty: 0, expiry: p.expiry };
+    batches[key].qty += p.qty;
+  });
+
+  // 轉倉：當指定倉庫時，目的倉「轉入」視為一個批號補進，來源倉「轉出」視為扣除
+  let transferIn = 0, transferOut = 0;
+  if (warehouseId && warehouseId !== 'all') {
+    transfers.forEach(t => {
+      if (t.productId !== productId) return;
+      if (t.toWarehouseId === warehouseId) transferIn += t.qty;
+      if (t.fromWarehouseId === warehouseId) transferOut += t.qty;
+    });
+  }
+  if (transferIn > 0) {
+    batches['轉入'] = { qty: transferIn, expiry: '' };
+  }
+
+  // 銷貨 + 盤損（負調整）+ 轉出 一起 FIFO 扣
+  const sold = sales.filter(s => s.productId === productId && filterW(s)).reduce((s, p) => s + p.qty, 0);
+  const adjustNet = adjustments.filter(a => a.productId === productId && filterW(a)).reduce((s, a) => s + a.diff, 0);
+  if (adjustNet > 0) {
+    batches['盤點調整'] = { qty: adjustNet, expiry: '' };
+  }
+  let toSubtract = sold + (adjustNet < 0 ? -adjustNet : 0) + transferOut;
+  const sortedBatches = Object.keys(batches).sort();
+  for (const k of sortedBatches) {
+    if (toSubtract <= 0) break;
+    const sub = Math.min(toSubtract, batches[k].qty);
+    batches[k].qty -= sub;
+    toSubtract -= sub;
+  }
+  return Object.entries(batches).filter(([k, v]) => v.qty > 0).map(([k, v]) => ({ batch: k, qty: v.qty, expiry: v.expiry }));
+}
+
+function renderInventory() {
+  const tbody = document.getElementById('inventory-tbody');
+  const wSelEl = document.getElementById('inv-warehouse');
+  const wFilter = wSelEl ? wSelEl.value : 'all';
+  const wId = wFilter === 'all' ? 'all' : parseInt(wFilter);
+
+  // 更新表頭文字
+  const header = document.getElementById('inv-stock-header');
+  if (header) {
+    if (wId === 'all') header.textContent = '總庫存（全部倉庫）';
+    else {
+      const w = warehouses.find(x => x.id === wId);
+      header.textContent = '庫存（' + (w ? w.name : '') + '）';
+    }
+  }
+
+  if (products.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty"><div class="icon">📦</div>還沒有商品</td></tr>';
+    renderAdjustments();
+    return;
+  }
+
+  tbody.innerHTML = products.map(p => {
+    const stock = calcStock(p.id, wId);
+    const batches = calcStockByBatch(p.id, wId);
+    const cat = productCategories.find(c => c.id === p.categoryId);
+    const today = new Date();
+    let status = '';
+    if (stock < 0) status = '<span class="badge badge-danger">負庫存</span>';
+    else if (stock === 0) status = '<span class="badge badge-danger">缺貨</span>';
+    else if (stock <= p.safestock) status = '<span class="badge badge-warning">低於安全庫存</span>';
+    else status = '<span class="badge badge-success">正常</span>';
+
+    // 若選「全部」，額外顯示各倉庫拆分
+    let stockDisplay = `<strong style="font-size:18px;color:#0a4d68">${stock} ${p.unit}</strong>`;
+    if (wId === 'all' && warehouses.length > 0) {
+      const breakdown = warehouses.map(w => {
+        const s = calcStock(p.id, w.id);
+        return `<div class="inv-warehouse-row" style="font-size:13px;color:#64748b;margin-top:4px;display:flex;align-items:center;gap:6px">${warehouseLogoHTML(w.id)}${w.name}: <strong style="color:#0a4d68">${s}</strong></div>`;
+      }).join('');
+      stockDisplay += breakdown;
+    }
+
+    const batchInfo = batches.length === 0 ? '-' : batches.map(b => {
+      let warn = '';
+      if (b.expiry) {
+        const daysLeft = Math.floor((new Date(b.expiry) - today) / (1000*60*60*24));
+        if (daysLeft < 0) warn = ' <span class="badge badge-danger">已過期</span>';
+        else if (daysLeft <= 30) warn = ` <span class="badge badge-warning">${daysLeft}天到期</span>`;
+      }
+      return `${b.batch}: ${b.qty}${b.expiry ? ' (到期 '+b.expiry+')' : ''}${warn}`;
+    }).join('<br>');
+
+    // 「全部倉庫」時不能直接調整（因為要分倉），提示先選倉庫
+    let actionBtn;
+    if (wId === 'all') {
+      actionBtn = warehouses.map(w => {
+        const s = calcStock(p.id, w.id);
+        return `<button class="btn btn-primary" style="padding:4px 10px;font-size:11px;margin:2px;display:inline-flex;align-items:center;gap:3px" onclick="openAdjustModal(${p.id}, ${w.id})">✏️ ${warehouseLogoHTML(w.id)}${w.name} (${s})</button>`;
+      }).join('<br>');
+    } else {
+      actionBtn = `<button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="openAdjustModal(${p.id}, ${wId})">✏️ 調整庫存</button>`;
+    }
+
+    return `<tr>
+      <td><strong>${p.name}</strong></td>
+      <td>${cat ? '<span class="cat-pill">'+cat.name+'</span>' : '-'}</td>
+      <td>${p.spec || '-'}</td>
+      <td>${stockDisplay}</td>
+      <td>${p.safestock}</td>
+      <td>${status}</td>
+      <td style="font-size:12px;line-height:1.6">${batchInfo}</td>
+      <td>${actionBtn}</td>
+    </tr>`;
+  }).join('');
+
+  renderAdjustments();
+}
+
+function renderAdjustments() {
+  const tbody = document.getElementById('adjustments-tbody');
+  if (!tbody) return;
+  if (adjustments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty"><div class="icon">📋</div>還沒有盤點紀錄</td></tr>';
+    return;
+  }
+  const sorted = [...adjustments].sort((a, b) => b.id - a.id).slice(0, 30);
+  tbody.innerHTML = sorted.map(a => {
+    const product = products.find(x => x.id === a.productId);
+    const warehouse = warehouses.find(x => x.id === a.warehouseId);
+    const diffStyle = a.diff > 0 ? 'color:#16a34a' : 'color:#dc2626';
+    const diffSign = a.diff > 0 ? '+' : '';
+    return `<tr>
+      <td>${a.date}</td>
+      <td>${warehouseBadgeHTML(a.warehouseId)}</td>
+      <td>${product ? product.name : '已刪除'}</td>
+      <td>${a.before}</td>
+      <td><strong>${a.after}</strong></td>
+      <td><strong style="${diffStyle}; font-size:15px">${diffSign}${a.diff}</strong></td>
+      <td><span class="badge ${a.diff < 0 ? 'badge-warning' : 'badge-success'}">${a.reason}</span></td>
+      <td style="font-size:12px">${a.note || '-'}</td>
+      <td>${recorderBadge(a.recorder)}</td>
+      <td><button class="btn btn-danger" onclick="deleteAdjustment(${a.id})">刪除</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function deleteAdjustment(id) {
+  if (!confirm('確定要刪除此筆盤點紀錄？庫存會回到調整前的狀態')) return;
+  adjustments = adjustments.filter(a => a.id !== id);
+  DB.save('adjustments', adjustments);
+  renderInventory();
+}
+
+// ---- 盤點調整 Modal ----
+let adjustingContext = null; // {productId, warehouseId, before}
+
+function openAdjustModal(productId, warehouseId) {
+  const product = products.find(p => p.id === productId);
+  const warehouse = warehouses.find(w => w.id === warehouseId);
+  if (!product || !warehouse) return;
+  const before = calcStock(productId, warehouseId);
+  adjustingContext = { productId, warehouseId, before };
+
+  document.getElementById('adj-title').textContent = `🔄 盤點調整：${product.name}`;
+  document.getElementById('adj-current').textContent = before + ' ' + product.unit;
+  document.getElementById('adj-product-info').innerHTML = `${warehouseLogoHTML(warehouseId)}<strong>${warehouse.name}</strong>${product.spec ? ' · '+product.spec : ''}`;
+  document.getElementById('adj-actual').value = '';
+  document.getElementById('adj-note').value = '';
+  document.getElementById('adj-reason').selectedIndex = 0;
+  document.getElementById('adj-diff-display').style.display = 'none';
+  document.getElementById('adjust-modal').classList.add('show');
+  setTimeout(() => document.getElementById('adj-actual').focus(), 100);
+}
+
+function closeAdjustModal() {
+  document.getElementById('adjust-modal').classList.remove('show');
+  adjustingContext = null;
+}
+
+function updateAdjDiff() {
+  if (!adjustingContext) return;
+  const actual = parseFloat(document.getElementById('adj-actual').value);
+  const display = document.getElementById('adj-diff-display');
+  const value = document.getElementById('adj-diff-value');
+  if (isNaN(actual)) {
+    display.style.display = 'none';
+    return;
+  }
+  const diff = actual - adjustingContext.before;
+  display.style.display = 'block';
+  if (diff > 0) {
+    value.innerHTML = `<span style="color:#16a34a">+${diff} 包（盤盈）</span>`;
+  } else if (diff < 0) {
+    value.innerHTML = `<span style="color:#dc2626">${diff} 包（盤損）</span>`;
+  } else {
+    value.innerHTML = `<span style="color:#64748b">0（無差異）</span>`;
+  }
+}
+
+function confirmAdjust() {
+  if (!adjustingContext) return;
+  const actual = parseFloat(document.getElementById('adj-actual').value);
+  const reason = document.getElementById('adj-reason').value;
+  const note = document.getElementById('adj-note').value;
+  if (isNaN(actual)) { alert('請輸入實際盤點數量'); return; }
+  const diff = actual - adjustingContext.before;
+  if (diff === 0) {
+    if (!confirm('差額為 0，仍要記錄一筆盤點嗎？')) return;
+  }
+
+  adjustments.push({
+    id: Date.now(),
+    date: new Date().toISOString().split('T')[0],
+    productId: adjustingContext.productId,
+    warehouseId: adjustingContext.warehouseId,
+    before: adjustingContext.before,
+    after: actual,
+    diff,
+    reason,
+    note,
+    recorder: currentUserName()
+  });
+  DB.save('adjustments', adjustments);
+  closeAdjustModal();
+  renderInventory();
+  alert(`✅ 盤點調整完成！\n${diff > 0 ? '增加' : diff < 0 ? '減少' : '差異為'} ${Math.abs(diff)} 包`);
+}
+
+// ============ 身分系統 ============
+function currentUserName() {
+  return currentRole === 'admin' ? userSettings.adminName : userSettings.partnerName;
+}
+
+function isAdmin() { return currentRole === 'admin'; }
+
+function applyUserMode() {
+  // 套用 body class
+  document.body.classList.toggle('admin-mode', isAdmin());
+  // 更新側邊欄顯示
+  const display = document.getElementById('current-user-display');
+  if (display) {
+    if (isAdmin()) {
+      display.innerHTML = `${userSettings.adminName} <span class="role-tag">管理員</span>`;
+    } else {
+      display.innerHTML = `${userSettings.partnerName} <span class="role-tag partner">合夥人</span>`;
+    }
+  }
+}
+
+function toggleUserRole() {
+  const otherName = isAdmin() ? userSettings.partnerName : userSettings.adminName;
+  const otherRole = isAdmin() ? '合夥人' : '管理員';
+  if (!confirm(`要切換為「${otherName}（${otherRole}）」嗎？\n\n之後新增的進銷貨/轉倉/盤點都會以這個身分記錄。`)) return;
+  currentRole = isAdmin() ? 'partner' : 'admin';
+  localStorage.setItem('yujianke_currentRole', currentRole);
+  applyUserMode();
+  // 若目前在儀表板，重新渲染（因為拖拉手柄要變）
+  if (document.getElementById('page-dashboard').classList.contains('active')) {
+    renderDashboard();
+  }
+}
+
+function saveUserNames() {
+  const adminName = document.getElementById('setting-admin-name').value.trim() || '韋成';
+  const partnerName = document.getElementById('setting-partner-name').value.trim() || '合夥人';
+  userSettings.adminName = adminName;
+  userSettings.partnerName = partnerName;
+  DB.save('userSettings', userSettings);
+  applyUserMode();
+  alert('✅ 姓名設定已儲存');
+}
+
+// 在紀錄表格中顯示「記錄者」徽章
+function recorderBadge(recorder) {
+  if (!recorder) return '<span class="recorder-badge">—</span>';
+  const isAdminRecord = recorder === userSettings.adminName;
+  const cls = isAdminRecord ? 'admin' : 'partner';
+  const icon = isAdminRecord ? '👑' : '👤';
+  return `<span class="recorder-badge ${cls}">${icon} ${recorder}</span>`;
+}
+
+// ============ 儀表板拖拉排版 ============
+function applyDashboardOrder() {
+  const container = document.getElementById('dashboard-cards-container');
+  if (!container) return;
+  if (!Array.isArray(dashboardOrder) || dashboardOrder.length === 0) return;
+  // 依儲存的順序重排子元素
+  const cards = Array.from(container.children);
+  const cardMap = {};
+  cards.forEach(c => { cardMap[c.dataset.cardId] = c; });
+  // 先把存過順序的依序 append，剩下未列入的留在最後
+  const seen = new Set();
+  dashboardOrder.forEach(id => {
+    if (cardMap[id]) {
+      container.appendChild(cardMap[id]);
+      seen.add(id);
+    }
+  });
+  cards.forEach(c => { if (!seen.has(c.dataset.cardId)) container.appendChild(c); });
+}
+
+// 自動為所有表格 td 加上 data-label（手機版卡片式呈現需要）
+function applyTableLabels() {
+  document.querySelectorAll('table').forEach(table => {
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+    if (headers.length === 0) return;
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      // 跳過 empty 行
+      if (tr.querySelector('.empty')) return;
+      tr.querySelectorAll('td').forEach((td, idx) => {
+        if (headers[idx]) td.setAttribute('data-label', headers[idx]);
+      });
+    });
+  });
+}
+
+// MutationObserver 監聽 tbody 變化，自動套 data-label
+function startTableLabelObserver() {
+  const tbodies = document.querySelectorAll('tbody');
+  tbodies.forEach(tbody => {
+    const observer = new MutationObserver(() => applyTableLabels());
+    observer.observe(tbody, { childList: true });
+  });
+  applyTableLabels(); // 首次也跑一次
+}
+
+function setupDashboardDragDrop() {
+  const container = document.getElementById('dashboard-cards-container');
+  if (!container) return;
+  const cards = container.querySelectorAll('.draggable-card');
+  cards.forEach(card => {
+    // 只有管理員模式下才啟用拖拉
+    card.draggable = isAdmin();
+
+    card.ondragstart = (e) => {
+      if (!isAdmin()) { e.preventDefault(); return; }
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.dataset.cardId);
+    };
+    card.ondragend = () => {
+      card.classList.remove('dragging');
+      container.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+      // 儲存新順序
+      const order = Array.from(container.querySelectorAll('.draggable-card')).map(c => c.dataset.cardId);
+      dashboardOrder = order;
+      DB.save('dashboardOrder', dashboardOrder);
+    };
+    card.ondragover = (e) => {
+      if (!isAdmin()) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    };
+    card.ondragenter = (e) => {
+      if (!isAdmin()) return;
+      const dragging = container.querySelector('.dragging');
+      if (dragging && dragging !== card) card.classList.add('drag-over');
+    };
+    card.ondragleave = () => {
+      card.classList.remove('drag-over');
+    };
+    card.ondrop = (e) => {
+      if (!isAdmin()) return;
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      const dragging = container.querySelector('.dragging');
+      if (!dragging || dragging === card) return;
+      // 比較位置決定插在前還是後
+      const rect = card.getBoundingClientRect();
+      const middleY = rect.top + rect.height / 2;
+      if (e.clientY < middleY) {
+        container.insertBefore(dragging, card);
+      } else {
+        container.insertBefore(dragging, card.nextSibling);
+      }
+    };
+  });
+}
+
+// ============ 報表計算輔助函式 ============
+// 取某商品的「平均進貨成本」（截至某日期前的累計平均，沒有就用 0）
+function avgCost(productId, beforeDate = null) {
+  const list = purchases.filter(p => p.productId === productId && (!beforeDate || p.date <= beforeDate));
+  if (list.length === 0) return 0;
+  return list.reduce((s, p) => s + p.price, 0) / list.length;
+}
+
+// 計算指定銷貨資料的「總額、毛利、訂單數、客戶數」
+// salesList: 已篩選過的 sales 陣列
+function calcSummary(salesList) {
+  const total = salesList.reduce((s, x) => s + x.qty * x.price, 0);
+  let cost = 0;
+  salesList.forEach(s => {
+    cost += s.qty * avgCost(s.productId, s.date);
+  });
+  const profit = total - cost;
+  // 訂單數：以「日期+客戶+倉庫」為一筆訂單（同一張單寫入多筆 sales 共用 baseId 但不易追，用日期+客戶判定）
+  const orderKeys = new Set(salesList.map(s => `${s.date}|${s.customerId}|${s.warehouseId}`));
+  const customerSet = new Set(salesList.filter(s => s.customerId).map(s => s.customerId));
+  return {
+    total, cost, profit,
+    margin: total > 0 ? (profit / total * 100) : 0,
+    orders: orderKeys.size,
+    customers: customerSet.size,
+    avg: customerSet.size > 0 ? total / customerSet.size : 0
+  };
+}
+
+// 判斷「環比」指標
+function deltaHTML(current, previous, isPercent = false) {
+  if (previous === 0) {
+    if (current === 0) return '<span class="delta delta-flat">— 持平</span>';
+    return '<span class="delta delta-up">▲ 新</span>';
+  }
+  const pct = ((current - previous) / Math.abs(previous)) * 100;
+  if (Math.abs(pct) < 0.1) return '<span class="delta delta-flat">— 持平</span>';
+  const cls = pct > 0 ? 'delta-up' : 'delta-down';
+  const arrow = pct > 0 ? '▲' : '▼';
+  return `<span class="delta ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;
+}
+
+// 判斷某客戶是否為新客（在指定月份之前從未下過單）
+function isNewCustomer(customerId, ym) {
+  return !sales.some(s => s.customerId === customerId && s.date < ym + '-01');
+}
+
+// ============ 儀表板 ============
+function renderDashboard() {
+  const wSelEl = document.getElementById('dash-warehouse');
+  const wFilter = wSelEl ? wSelEl.value : 'all';
+  const wId = wFilter === 'all' ? 'all' : parseInt(wFilter);
+  const filterW = (rec) => wId === 'all' || rec.warehouseId === wId;
+
+  const now = new Date();
+  const ym = now.toISOString().slice(0, 7);
+  const todayStr = now.toISOString().split('T')[0];
+  // 本週起算：以週一為週首
+  const weekStart = new Date(now);
+  const dow = (now.getDay() + 6) % 7; // 週一=0
+  weekStart.setDate(now.getDate() - dow);
+  const weekStartStr = weekStart.toISOString().split('T')[0];
+
+  // ─── 三維度快錢 ───
+  const todaySales = sales.filter(s => s.date === todayStr && filterW(s));
+  const weekSales = sales.filter(s => s.date && s.date >= weekStartStr && s.date <= todayStr && filterW(s));
+  const monthSales = sales.filter(s => s.date && s.date.startsWith(ym) && filterW(s));
+
+  const todaySum = calcSummary(todaySales);
+  const weekSum = calcSummary(weekSales);
+  const monthSum = calcSummary(monthSales);
+
+  document.getElementById('today-sale').textContent = '$' + Math.round(todaySum.total).toLocaleString();
+  document.getElementById('today-profit').textContent = '$' + Math.round(todaySum.profit).toLocaleString();
+  document.getElementById('today-orders').textContent = todaySum.orders;
+  document.getElementById('week-sale').textContent = '$' + Math.round(weekSum.total).toLocaleString();
+  document.getElementById('week-profit').textContent = '$' + Math.round(weekSum.profit).toLocaleString();
+  document.getElementById('week-orders').textContent = weekSum.orders;
+  document.getElementById('month-sale').textContent = '$' + Math.round(monthSum.total).toLocaleString();
+  document.getElementById('month-profit').textContent = '$' + Math.round(monthSum.profit).toLocaleString();
+  document.getElementById('month-orders').textContent = monthSum.orders;
+
+  // ─── 本月進貨 ───
+  const monthPurchases = purchases.filter(p => p.date && p.date.startsWith(ym) && filterW(p));
+  const purchaseTotal = monthPurchases.reduce((s, p) => s + p.qty * p.price, 0);
+  document.getElementById('stat-purchase').textContent = '$' + Math.round(purchaseTotal).toLocaleString();
+
+  // 低庫存（依當前倉庫篩選）
+  const lowStock = products.filter(p => calcStock(p.id, wId) <= p.safestock);
+  document.getElementById('stat-lowstock').textContent = lowStock.length;
+
+  const lowEl = document.getElementById('lowstock-list');
+  if (lowStock.length === 0) lowEl.innerHTML = '<p style="color:#16a34a">✅ 所有商品庫存充足</p>';
+  else lowEl.innerHTML = '<table><thead><tr><th>商品</th><th>目前庫存</th><th>安全庫存</th></tr></thead><tbody>' +
+    lowStock.map(p => `<tr><td>${p.name}</td><td><strong style="color:#dc2626">${calcStock(p.id, wId)}</strong></td><td>${p.safestock}</td></tr>`).join('') + '</tbody></table>';
+
+  // 即將到期（依當前倉庫篩選）
+  const today = new Date();
+  const expiring = [];
+  products.forEach(p => {
+    calcStockByBatch(p.id, wId).forEach(b => {
+      if (b.expiry) {
+        const daysLeft = Math.floor((new Date(b.expiry) - today) / (1000*60*60*24));
+        if (daysLeft <= 30) expiring.push({ ...b, productName: p.name, daysLeft });
+      }
+    });
+  });
+  document.getElementById('stat-expiring').textContent = expiring.length;
+  const expEl = document.getElementById('expiring-list');
+  if (expiring.length === 0) expEl.innerHTML = '<p style="color:#16a34a">✅ 沒有即將到期的商品</p>';
+  else expEl.innerHTML = '<table><thead><tr><th>商品</th><th>批號</th><th>數量</th><th>到期日</th><th>剩餘天數</th></tr></thead><tbody>' +
+    expiring.sort((a,b) => a.daysLeft - b.daysLeft).map(e =>
+      `<tr><td>${e.productName}</td><td>${e.batch}</td><td>${e.qty}</td><td>${e.expiry}</td><td>${e.daysLeft < 0 ? '<span class="badge badge-danger">已過期 '+(-e.daysLeft)+'天</span>' : '<span class="badge badge-warning">'+e.daysLeft+'天</span>'}</td></tr>`
+    ).join('') + '</tbody></table>';
+
+  // 套用儲存的卡片排序 + 重新綁定拖拉
+  applyDashboardOrder();
+  setupDashboardDragDrop();
+}
+
+// ============ 月報表（完整經營分析） ============
+function renderReport() {
+  const monthInput = document.getElementById('report-month');
+  if (!monthInput.value) monthInput.value = new Date().toISOString().slice(0, 7);
+  const ym = monthInput.value;
+
+  const wSelEl = document.getElementById('report-warehouse');
+  const wFilter = wSelEl ? wSelEl.value : 'all';
+  const wId = wFilter === 'all' ? 'all' : parseInt(wFilter);
+  const filterW = (rec) => wId === 'all' || rec.warehouseId === wId;
+
+  // 計算上月 ym
+  const [yy, mm] = ym.split('-').map(Number);
+  const prev = new Date(yy, mm - 2, 1);
+  const prevYm = prev.toISOString().slice(0, 7);
+
+  const monthPurchases = purchases.filter(p => p.date && p.date.startsWith(ym) && filterW(p));
+  const monthSales = sales.filter(s => s.date && s.date.startsWith(ym) && filterW(s));
+  const prevSales = sales.filter(s => s.date && s.date.startsWith(prevYm) && filterW(s));
+
+  const cur = calcSummary(monthSales);
+  const prv = calcSummary(prevSales);
+  const purchaseTotal = monthPurchases.reduce((s, p) => s + p.qty * p.price, 0);
+  const prevPurchaseTotal = purchases.filter(p => p.date && p.date.startsWith(prevYm) && filterW(p)).reduce((s, p) => s + p.qty * p.price, 0);
+
+  // 盤損
+  const monthAdjustments = adjustments.filter(a => a.date && a.date.startsWith(ym) && filterW(a));
+  let lossAmount = 0;
+  monthAdjustments.forEach(a => {
+    if (a.diff < 0) {
+      lossAmount += Math.abs(a.diff) * avgCost(a.productId, a.date);
+    }
+  });
+
+  // 渲染 KPI + delta
+  document.getElementById('r-purchase').textContent = '$' + Math.round(purchaseTotal).toLocaleString();
+  document.getElementById('r-sale').textContent = '$' + Math.round(cur.total).toLocaleString();
+  document.getElementById('r-profit').textContent = '$' + Math.round(cur.profit).toLocaleString();
+  document.getElementById('r-margin').textContent = cur.margin.toFixed(1) + '%';
+  document.getElementById('r-orders').textContent = cur.orders;
+  document.getElementById('r-customers').textContent = cur.customers;
+  document.getElementById('r-avg').textContent = '$' + Math.round(cur.avg).toLocaleString();
+  document.getElementById('r-loss').textContent = '$' + Math.round(lossAmount).toLocaleString();
+
+  document.getElementById('r-purchase-delta').innerHTML = deltaHTML(purchaseTotal, prevPurchaseTotal);
+  document.getElementById('r-sale-delta').innerHTML = deltaHTML(cur.total, prv.total);
+  document.getElementById('r-profit-delta').innerHTML = deltaHTML(cur.profit, prv.profit);
+  document.getElementById('r-margin-delta').innerHTML = deltaHTML(cur.margin, prv.margin);
+  document.getElementById('r-orders-delta').innerHTML = deltaHTML(cur.orders, prv.orders);
+  document.getElementById('r-customers-delta').innerHTML = deltaHTML(cur.customers, prv.customers);
+  document.getElementById('r-avg-delta').innerHTML = deltaHTML(cur.avg, prv.avg);
+
+  // ─── 圖表：零售 vs 批發 ───
+  let retailAmt = 0, wholesaleAmt = 0;
+  monthSales.forEach(s => {
+    const amt = s.qty * s.price;
+    if (s.type === 'wholesale') wholesaleAmt += amt; else retailAmt += amt;
+  });
+  if (retailWholesaleChart) retailWholesaleChart.destroy();
+  retailWholesaleChart = new Chart(document.getElementById('retailWholesaleChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['零售', '批發'],
+      datasets: [{ data: [retailAmt, wholesaleAmt], backgroundColor: ['#22c55e', '#3b82f6'] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // ─── 圖表：新客 vs 老客 ───
+  let newAmt = 0, oldAmt = 0;
+  const customerFirstSeen = {};
+  monthSales.forEach(s => {
+    if (!s.customerId) return;
+    const isNew = isNewCustomer(s.customerId, ym);
+    const amt = s.qty * s.price;
+    if (isNew) newAmt += amt; else oldAmt += amt;
+  });
+  if (newOldCustomerChart) newOldCustomerChart.destroy();
+  newOldCustomerChart = new Chart(document.getElementById('newOldCustomerChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['新客', '老客'],
+      datasets: [{ data: [newAmt, oldAmt], backgroundColor: ['#f59e0b', '#0a4d68'] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // ─── 圖表：商品銷售排行 ───
+  const productSales = {};
+  const productProfit = {};
+  monthSales.forEach(s => {
+    const product = products.find(p => p.id === s.productId);
+    if (!product) return;
+    if (!productSales[product.name]) productSales[product.name] = 0;
+    if (!productProfit[product.name]) productProfit[product.name] = 0;
+    const amt = s.qty * s.price;
+    const c = s.qty * avgCost(s.productId, s.date);
+    productSales[product.name] += amt;
+    productProfit[product.name] += amt - c;
+  });
+  const topProducts = Object.entries(productSales).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  const topProfit = Object.entries(productProfit).sort((a,b) => b[1] - a[1]).slice(0, 10);
+
+  if (topProductsChart) topProductsChart.destroy();
+  topProductsChart = new Chart(document.getElementById('topProductsChart'), {
+    type: 'bar',
+    data: {
+      labels: topProducts.map(t => t[0]),
+      datasets: [{ label: '銷售金額', data: topProducts.map(t => t[1]), backgroundColor: '#088395' }]
+    },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  if (topProfitChart) topProfitChart.destroy();
+  topProfitChart = new Chart(document.getElementById('topProfitChart'), {
+    type: 'bar',
+    data: {
+      labels: topProfit.map(t => t[0]),
+      datasets: [{ label: '毛利金額', data: topProfit.map(t => t[1]), backgroundColor: '#f59e0b' }]
+    },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  // ─── 圖表：每日趨勢 ───
+  const days = {};
+  const daysInMonth = new Date(yy, mm, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${ym}-${String(d).padStart(2,'0')}`;
+    days[key] = { purchase: 0, sale: 0 };
+  }
+  monthPurchases.forEach(p => { if (days[p.date]) days[p.date].purchase += p.qty * p.price; });
+  monthSales.forEach(s => { if (days[s.date]) days[s.date].sale += s.qty * s.price; });
+
+  if (dailyTrendChart) dailyTrendChart.destroy();
+  dailyTrendChart = new Chart(document.getElementById('dailyTrendChart'), {
+    type: 'line',
+    data: {
+      labels: Object.keys(days).map(k => k.split('-')[2] + '日'),
+      datasets: [
+        { label: '進貨', data: Object.values(days).map(d => d.purchase), borderColor: '#0a4d68', backgroundColor: 'rgba(10,77,104,0.1)', fill: true },
+        { label: '銷貨', data: Object.values(days).map(d => d.sale), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', fill: true }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // ─── 圖表：過去 12 個月趨勢 ───
+  const yearLabels = [];
+  const yearSales = [];
+  const yearProfit = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(yy, mm - 1 - i, 1);
+    const monthKey = d.toISOString().slice(0, 7);
+    const monthData = sales.filter(s => s.date && s.date.startsWith(monthKey) && filterW(s));
+    const sum = calcSummary(monthData);
+    yearLabels.push(monthKey.replace('-', '/'));
+    yearSales.push(sum.total);
+    yearProfit.push(sum.profit);
+  }
+  if (yearTrendChart) yearTrendChart.destroy();
+  yearTrendChart = new Chart(document.getElementById('yearTrendChart'), {
+    type: 'line',
+    data: {
+      labels: yearLabels,
+      datasets: [
+        { label: '銷貨', data: yearSales, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', fill: true, tension: 0.3 },
+        { label: '毛利', data: yearProfit, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.3 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // ─── 客戶業績 TOP 10 ───
+  const customerPerf = {};
+  monthSales.forEach(s => {
+    if (!s.customerId) return;
+    if (!customerPerf[s.customerId]) customerPerf[s.customerId] = { total: 0, orders: new Set() };
+    customerPerf[s.customerId].total += s.qty * s.price;
+    customerPerf[s.customerId].orders.add(`${s.date}|${s.warehouseId}`);
+  });
+  const topCustomers = Object.entries(customerPerf)
+    .map(([id, d]) => ({ id: parseInt(id), total: d.total, orders: d.orders.size }))
+    .sort((a, b) => b.total - a.total).slice(0, 10);
+  const topCusTbody = document.getElementById('topCustomersTbody');
+  if (topCustomers.length === 0) {
+    topCusTbody.innerHTML = '<tr><td colspan="3" class="empty">本月還沒有銷售資料</td></tr>';
+  } else {
+    topCusTbody.innerHTML = topCustomers.map((c, i) => {
+      const cust = customers.find(x => x.id === c.id);
+      return `<tr><td>${i+1}. <strong>${cust ? cust.name : '?'}</strong>${cust && cust.favorite ? ' ⭐' : ''}</td><td>$${Math.round(c.total).toLocaleString()}</td><td>${c.orders}</td></tr>`;
+    }).join('');
+  }
+
+  // ─── 客戶下單頻率 ───
+  const freqTbody = document.getElementById('customerFreqTbody');
+  const freqRows = [];
+  customers.forEach(c => {
+    const monthCount = customerPerf[c.id] ? customerPerf[c.id].orders : new Set();
+    const allCustomerSales = sales.filter(s => s.customerId === c.id).sort((a, b) => b.date.localeCompare(a.date));
+    const lastSale = allCustomerSales[0];
+    if (monthCount.size > 0 || lastSale) {
+      freqRows.push({
+        name: c.name,
+        count: monthCount.size,
+        lastDate: lastSale ? lastSale.date : '從未',
+        favorite: c.favorite
+      });
+    }
+  });
+  freqRows.sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate));
+  if (freqRows.length === 0) {
+    freqTbody.innerHTML = '<tr><td colspan="3" class="empty">還沒有客戶資料</td></tr>';
+  } else {
+    const today = new Date().toISOString().split('T')[0];
+    freqTbody.innerHTML = freqRows.slice(0, 15).map(r => {
+      const daysAgo = r.lastDate !== '從未' ? Math.floor((new Date(today) - new Date(r.lastDate)) / 86400000) : -1;
+      let lastDisplay = r.lastDate;
+      if (daysAgo > 30) lastDisplay = `<span class="badge badge-danger">${r.lastDate} (${daysAgo}天前)</span>`;
+      else if (daysAgo > 14) lastDisplay = `<span class="badge badge-warning">${r.lastDate} (${daysAgo}天前)</span>`;
+      return `<tr><td>${r.favorite ? '⭐ ' : ''}${r.name}</td><td><strong>${r.count}</strong></td><td>${lastDisplay}</td></tr>`;
+    }).join('');
+  }
+
+  // ─── 滯銷商品（30 天沒賣） ───
+  const staleEl = document.getElementById('staleProductsList');
+  const today = new Date();
+  const staleProducts = [];
+  products.forEach(p => {
+    const lastSale = sales.filter(s => s.productId === p.id).sort((a, b) => b.date.localeCompare(a.date))[0];
+    const stock = calcStock(p.id, wId);
+    if (stock <= 0) return; // 沒庫存的不算
+    if (!lastSale) {
+      staleProducts.push({ name: p.name, daysAgo: '從未售出', stock, p });
+    } else {
+      const daysAgo = Math.floor((today - new Date(lastSale.date)) / 86400000);
+      if (daysAgo > 30) {
+        staleProducts.push({ name: p.name, daysAgo: daysAgo + ' 天前', stock, p });
+      }
+    }
+  });
+  if (staleProducts.length === 0) {
+    staleEl.innerHTML = '<p style="color:#16a34a">✅ 所有商品都有正常流動</p>';
+  } else {
+    staleEl.innerHTML = staleProducts.map(s =>
+      `<div class="stale-item">⚠️ <strong>${s.name}</strong> · 上次售出：${s.daysAgo} · 仍有庫存 ${s.stock} ${s.p.unit}</div>`
+    ).join('');
+  }
+
+  // ─── 進貨成本變化趨勢 ───
+  const costTbody = document.getElementById('costChangeTbody');
+  const costRows = [];
+  products.forEach(p => {
+    const purchHistory = purchases.filter(x => x.productId === p.id).sort((a, b) => b.date.localeCompare(a.date));
+    if (purchHistory.length < 2) return;
+    const recent6 = purchHistory.slice(0, 6);
+    const recentAvg = recent6.reduce((s, x) => s + x.price, 0) / recent6.length;
+    const earlierBatch = purchHistory.slice(6, 12);
+    let trend = '';
+    if (earlierBatch.length > 0) {
+      const earlierAvg = earlierBatch.reduce((s, x) => s + x.price, 0) / earlierBatch.length;
+      const pct = ((recentAvg - earlierAvg) / earlierAvg) * 100;
+      if (Math.abs(pct) < 1) trend = '<span class="delta delta-flat">— 穩定</span>';
+      else if (pct > 0) trend = `<span class="delta delta-down">▲ +${pct.toFixed(1)}%</span>`;
+      else trend = `<span class="delta delta-up">▼ ${pct.toFixed(1)}%</span>`;
+    } else {
+      trend = '<span class="delta delta-flat">資料不足</span>';
+    }
+    costRows.push({ name: p.name, recentAvg, trend, purchases: purchHistory.length });
+  });
+  if (costRows.length === 0) {
+    costTbody.innerHTML = '<tr><td colspan="3" class="empty">尚無足夠進貨資料</td></tr>';
+  } else {
+    costRows.sort((a, b) => b.purchases - a.purchases);
+    costTbody.innerHTML = costRows.slice(0, 15).map(r =>
+      `<tr><td>${r.name}</td><td>$${r.recentAvg.toFixed(2)}</td><td>${r.trend}</td></tr>`
+    ).join('');
+  }
+}
+
+// ============ 客戶/供應商 ============
+function showContactTab(type, el) {
+  currentContactType = type;
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('contact-form-title').textContent = type === 'customer' ? '新增客戶' : '新增供應商';
+  document.getElementById('contact-list-title').textContent = type === 'customer' ? '客戶列表' : '供應商列表';
+  // 分類、額外欄位、篩選欄只在「客戶」分頁顯示
+  const showOnlyForCustomer = type === 'customer';
+  document.getElementById('category-card').style.display = showOnlyForCustomer ? '' : 'none';
+  document.getElementById('c-category-group').style.display = showOnlyForCustomer ? '' : 'none';
+  document.getElementById('c-extra-row').style.display = showOnlyForCustomer ? '' : 'none';
+  document.getElementById('contact-filter-row').style.display = showOnlyForCustomer ? '' : 'none';
+  renderCategories();
+  renderContacts();
+}
+
+// ---- 分類管理 ----
+function addCategory() {
+  const name = document.getElementById('cat-name').value.trim();
+  if (!name) { alert('請輸入分類名稱'); return; }
+  if (categories.some(c => c.name === name)) { alert('此分類已存在'); return; }
+  categories.push({ id: Date.now(), name });
+  DB.save('categories', categories);
+  document.getElementById('cat-name').value = '';
+  renderCategories();
+}
+
+function deleteCategory(id) {
+  const using = customers.filter(c => c.categoryId === id);
+  if (using.length > 0) {
+    if (!confirm(`有 ${using.length} 個客戶屬於此分類，刪除後他們會變成「未分類」，確定？`)) return;
+    using.forEach(c => c.categoryId = null);
+    DB.save('customers', customers);
+  }
+  categories = categories.filter(c => c.id !== id);
+  DB.save('categories', categories);
+  renderCategories();
+  renderContacts();
+}
+
+function renderCategories() {
+  // 1. 在分類管理卡片顯示
+  const display = document.getElementById('categories-display');
+  if (display) {
+    if (categories.length === 0) {
+      display.innerHTML = '<p style="color:#94a3b8">還沒有分類，新增後客戶資料就能選分類</p>';
+    } else {
+      display.innerHTML = categories.map(c => {
+        const count = customers.filter(cu => cu.categoryId === c.id).length;
+        return `<span class="cat-pill removable">🏷️ ${c.name} (${count}) <span class="x" onclick="deleteCategory(${c.id})" title="刪除分類">×</span></span>`;
+      }).join('');
+    }
+  }
+  // 2. 客戶表單下拉選單
+  const sel = document.getElementById('c-category');
+  if (sel) {
+    sel.innerHTML = '<option value="">未分類</option>' + categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+  // 3. 列表篩選下拉
+  const filterSel = document.getElementById('contact-filter-cat');
+  if (filterSel) {
+    const cur = filterSel.value;
+    filterSel.innerHTML = '<option value="">全部分類</option><option value="favorite">⭐ 只看最愛</option><option value="none">未分類</option>' +
+      categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    filterSel.value = cur;
+  }
+}
+
+function addContact() {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { alert('請填寫名稱'); return; }
+  const item = {
+    id: Date.now(),
+    name,
+    contact: document.getElementById('c-contact').value,
+    phone: document.getElementById('c-phone').value,
+    note: document.getElementById('c-note').value
+  };
+  if (currentContactType === 'customer') {
+    item.categoryId = parseInt(document.getElementById('c-category').value) || null;
+    item.email = document.getElementById('c-email').value;
+    item.payment = document.getElementById('c-payment').value;
+    item.favorite = document.getElementById('c-favorite').value === '1';
+    item.favoriteProducts = []; // 常訂商品 [{productId, defaultQty}]
+    item.customPrices = {};      // 專屬價 {productId: price}
+    customers.push(item); DB.save('customers', customers);
+    renderCategories();
+  } else {
+    suppliers.push(item); DB.save('suppliers', suppliers);
+  }
+  ['c-name','c-contact','c-phone','c-note','c-email'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+  ['c-category','c-payment','c-favorite'].forEach(id => { const e = document.getElementById(id); if (e) e.selectedIndex = 0; });
+  renderContacts();
+}
+
+function deleteContact(id) {
+  if (!confirm('確定要刪除？')) return;
+  if (currentContactType === 'customer') {
+    customers = customers.filter(c => c.id !== id);
+    DB.save('customers', customers);
+    renderCategories();
+  } else {
+    suppliers = suppliers.filter(s => s.id !== id);
+    DB.save('suppliers', suppliers);
+  }
+  renderContacts();
+}
+
+function toggleFavorite(id) {
+  const c = customers.find(x => x.id === id);
+  if (c) { c.favorite = !c.favorite; DB.save('customers', customers); renderContacts(); }
+}
+
+function renderContacts() {
+  const tbody = document.getElementById('contacts-tbody');
+  if (currentContactType === 'supplier') {
+    if (suppliers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty"><div class="icon">👥</div>還沒有供應商</td></tr>';
+      return;
+    }
+    tbody.innerHTML = suppliers.map(c => `
+      <tr>
+        <td>-</td>
+        <td><strong>${c.name}</strong></td>
+        <td>-</td>
+        <td>${c.contact || '-'}</td>
+        <td>${c.phone || '-'}</td>
+        <td>-</td>
+        <td>${c.note || '-'}</td>
+        <td><button class="btn btn-danger" onclick="deleteContact(${c.id})">刪除</button></td>
+      </tr>
+    `).join('');
+    return;
+  }
+
+  // 客戶：套用搜尋與分類篩選
+  const search = (document.getElementById('contact-search')?.value || '').toLowerCase().trim();
+  const filterCat = document.getElementById('contact-filter-cat')?.value || '';
+
+  let list = customers.filter(c => {
+    if (search) {
+      const hit = (c.name + (c.contact||'') + (c.phone||'')).toLowerCase().includes(search);
+      if (!hit) return false;
+    }
+    if (filterCat === 'favorite') return c.favorite;
+    if (filterCat === 'none') return !c.categoryId;
+    if (filterCat) return c.categoryId === parseInt(filterCat);
+    return true;
+  });
+
+  // 排序：最愛在前
+  list.sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty"><div class="icon">👥</div>沒有符合的客戶</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(c => {
+    const cat = categories.find(x => x.id === c.categoryId);
+    const star = c.favorite ?
+      `<span style="color:#f59e0b; cursor:pointer; font-size:18px" onclick="toggleFavorite(${c.id})">⭐</span>` :
+      `<span style="color:#cbd5e1; cursor:pointer; font-size:18px" onclick="toggleFavorite(${c.id})">☆</span>`;
+    return `<tr>
+      <td>${star}</td>
+      <td><strong>${c.name}</strong></td>
+      <td>${cat ? '<span class="cat-pill">'+cat.name+'</span>' : '-'}</td>
+      <td>${c.contact || '-'}</td>
+      <td>${c.phone || '-'}</td>
+      <td>${c.payment || '-'}</td>
+      <td>${c.note || '-'}</td>
+      <td>
+        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="openCustomerDetail(${c.id})">⚙️ 設定</button>
+        <button class="btn btn-danger" style="margin-left:4px" onclick="deleteContact(${c.id})">刪除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ 客戶詳情 Modal（常訂商品 + 專屬價） ============
+function openCustomerDetail(id) {
+  editingCustomerId = id;
+  const c = customers.find(x => x.id === id);
+  if (!c) return;
+  if (!c.favoriteProducts) c.favoriteProducts = [];
+  if (!c.customPrices) c.customPrices = {};
+  document.getElementById('cd-title').textContent = '⚙️ 設定：' + c.name;
+
+  // 商品下拉
+  const prodOpts = '<option value="">請選擇商品</option>' + products.map(p => `<option value="${p.id}">${p.name} ${p.spec ? '('+p.spec+')' : ''}</option>`).join('');
+  document.getElementById('cd-fav-product').innerHTML = prodOpts;
+  document.getElementById('cd-price-product').innerHTML = prodOpts;
+
+  renderCustomerDetailLists();
+  document.getElementById('customer-detail-modal').classList.add('show');
+}
+
+function closeCustomerDetail() {
+  document.getElementById('customer-detail-modal').classList.remove('show');
+  editingCustomerId = null;
+}
+
+function renderCustomerDetailLists() {
+  const c = customers.find(x => x.id === editingCustomerId);
+  if (!c) return;
+  // 常訂商品
+  const favEl = document.getElementById('cd-fav-list');
+  if (c.favoriteProducts.length === 0) {
+    favEl.innerHTML = '<p style="color:#94a3b8">還沒有設定常訂商品</p>';
+  } else {
+    favEl.innerHTML = c.favoriteProducts.map(fp => {
+      const p = products.find(x => x.id === fp.productId);
+      if (!p) return '';
+      return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:white; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:6px">
+        <span><strong>⭐ ${p.name}</strong> ${p.spec ? '<span style="color:#64748b">'+p.spec+'</span>' : ''}</span>
+        <button class="btn btn-danger" onclick="removeFavoriteProduct(${fp.productId})">移除</button>
+      </div>`;
+    }).join('');
+  }
+  // 專屬價
+  const priceEl = document.getElementById('cd-price-list');
+  const priceEntries = Object.entries(c.customPrices);
+  if (priceEntries.length === 0) {
+    priceEl.innerHTML = '<p style="color:#94a3b8">還沒有設定專屬價</p>';
+  } else {
+    priceEl.innerHTML = priceEntries.map(([pid, price]) => {
+      const p = products.find(x => x.id === parseInt(pid));
+      if (!p) return '';
+      return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:white; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:6px">
+        <span><strong>💰 ${p.name}</strong> → 專屬價 <strong style="color:#16a34a">$${price}</strong> <span style="color:#64748b; font-size:12px">(零售 $${p.retail} / 批發 $${p.wholesale})</span></span>
+        <button class="btn btn-danger" onclick="removeCustomPrice(${pid})">移除</button>
+      </div>`;
+    }).join('');
+  }
+}
+
+function addFavoriteProduct() {
+  const c = customers.find(x => x.id === editingCustomerId);
+  if (!c) return;
+  const productId = parseInt(document.getElementById('cd-fav-product').value);
+  if (!productId) { alert('請選擇商品'); return; }
+  if (c.favoriteProducts.some(fp => fp.productId === productId)) { alert('已經是常訂商品'); return; }
+  c.favoriteProducts.push({ productId });
+  DB.save('customers', customers);
+  document.getElementById('cd-fav-product').selectedIndex = 0;
+  renderCustomerDetailLists();
+}
+
+function removeFavoriteProduct(productId) {
+  const c = customers.find(x => x.id === editingCustomerId);
+  if (!c) return;
+  c.favoriteProducts = c.favoriteProducts.filter(fp => fp.productId !== productId);
+  DB.save('customers', customers);
+  renderCustomerDetailLists();
+}
+
+function addCustomPrice() {
+  const c = customers.find(x => x.id === editingCustomerId);
+  if (!c) return;
+  const productId = parseInt(document.getElementById('cd-price-product').value);
+  const price = parseFloat(document.getElementById('cd-price-value').value);
+  if (!productId || !price) { alert('請選擇商品並填寫價格'); return; }
+  c.customPrices[productId] = price;
+  DB.save('customers', customers);
+  document.getElementById('cd-price-product').selectedIndex = 0;
+  document.getElementById('cd-price-value').value = '';
+  renderCustomerDetailLists();
+}
+
+function removeCustomPrice(productId) {
+  const c = customers.find(x => x.id === editingCustomerId);
+  if (!c) return;
+  delete c.customPrices[productId];
+  DB.save('customers', customers);
+  renderCustomerDetailLists();
+}
+
+// ============ 備份/匯入 ============
+function exportData() {
+  const data = { products, customers, suppliers, purchases, sales, warehouses, categories, productCategories, adjustments, transfers, recentCustomers, recentProducts, userSettings, dashboardOrder, exportDate: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `漁健客備份_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!confirm(`確定要覆蓋目前資料？匯入時間：${data.exportDate}`)) return;
+      products = data.products || [];
+      customers = data.customers || [];
+      suppliers = data.suppliers || [];
+      purchases = data.purchases || [];
+      sales = data.sales || [];
+      warehouses = data.warehouses || [];
+      categories = data.categories || [];
+      productCategories = data.productCategories || [];
+      adjustments = data.adjustments || [];
+      transfers = data.transfers || [];
+      recentCustomers = data.recentCustomers || [];
+      recentProducts = data.recentProducts || [];
+      if (data.userSettings) userSettings = data.userSettings;
+      if (data.dashboardOrder) dashboardOrder = data.dashboardOrder;
+      DB.save('products', products);
+      DB.save('customers', customers);
+      DB.save('suppliers', suppliers);
+      DB.save('purchases', purchases);
+      DB.save('sales', sales);
+      DB.save('warehouses', warehouses);
+      DB.save('categories', categories);
+      DB.save('productCategories', productCategories);
+      DB.save('adjustments', adjustments);
+      DB.save('transfers', transfers);
+      DB.save('recentCustomers', recentCustomers);
+      DB.save('recentProducts', recentProducts);
+      DB.save('userSettings', userSettings);
+      DB.save('dashboardOrder', dashboardOrder);
+      alert('匯入成功！');
+      location.reload();
+    } catch(err) { alert('檔案格式錯誤：' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function clearAll() {
+  ['products','customers','suppliers','purchases','sales','warehouses','categories','productCategories','adjustments','transfers','recentCustomers','recentProducts','userSettings','dashboardOrder','currentRole'].forEach(k => localStorage.removeItem('yujianke_' + k));
+  alert('已清除所有資料');
+  location.reload();
+}
+
+// ============ 初始化 ============
+window.addEventListener('DOMContentLoaded', () => {
+  // 預設倉庫（如果沒有）
+  if (warehouses.length === 0) {
+    warehouses = [
+      { id: 901, name: '漁健客' },
+      { id: 902, name: '華德' },
+      { id: 903, name: '華漢' }
+    ];
+    DB.save('warehouses', warehouses);
+  }
+  // 舊資料相容：如果還沒有「華漢」就自動加入
+  if (!warehouses.some(w => w.name === '華漢')) {
+    warehouses.push({ id: 903, name: '華漢' });
+    DB.save('warehouses', warehouses);
+  }
+
+  // 如果是首次使用，加入示範資料
+  if (products.length === 0 && customers.length === 0 && suppliers.length === 0) {
+    categories = [
+      { id: 801, name: '餐廳' },
+      { id: 802, name: '批發商' },
+      { id: 803, name: '散客' }
+    ];
+    suppliers = [
+      { id: 1, name: '東港漁港直送', contact: '林老闆', phone: '08-832-XXXX', note: '蝦類專長' },
+      { id: 2, name: '蘇澳冷凍廠', contact: '張經理', phone: '03-997-XXXX', note: '魚類批發' }
+    ];
+    customers = [
+      { id: 11, name: '海鮮王餐廳', contact: '陳老闆', phone: '0912-345-678', note: '每週二訂貨', categoryId: 801, payment: '月結', favorite: true, favoriteProducts: [], customPrices: {} },
+      { id: 12, name: '林媽媽（散客）', contact: '', phone: '0922-111-222', note: '', categoryId: 803, payment: '現金', favorite: false, favoriteProducts: [], customPrices: {} }
+    ];
+    productCategories = [
+      { id: 701, name: '魚類' },
+      { id: 702, name: '蝦類' },
+      { id: 703, name: '蟹類' },
+      { id: 704, name: '頭足類' },
+      { id: 705, name: '貝類' }
+    ];
+    products = [
+      { id: 101, name: '白蝦 16/20', spec: '1kg/盒', unit: '盒', categoryId: 702, retail: 480, wholesale: 380, safestock: 10 },
+      { id: 102, name: '挪威鯖魚片', spec: '500g/包', unit: '包', categoryId: 701, retail: 180, wholesale: 130, safestock: 20 },
+      { id: 103, name: '阿根廷魷魚', spec: '1kg/包', unit: '包', categoryId: 704, retail: 320, wholesale: 250, safestock: 15 }
+    ];
+    DB.save('categories', categories);
+    DB.save('productCategories', productCategories);
+    DB.save('suppliers', suppliers);
+    DB.save('customers', customers);
+    DB.save('products', products);
+  }
+
+  // 舊資料相容：為已存在的客戶補上預設欄位
+  let needSave = false;
+  customers.forEach(c => {
+    if (c.favorite === undefined) { c.favorite = false; needSave = true; }
+    if (!c.favoriteProducts) { c.favoriteProducts = []; needSave = true; }
+    if (!c.customPrices) { c.customPrices = {}; needSave = true; }
+  });
+  if (needSave) DB.save('customers', customers);
+
+  applyUserMode();
+  renderWarehouseSelects();
+  renderDashboard();
+  startTableLabelObserver();
+});
+</script>
+</body>
+</html>
