@@ -8,6 +8,8 @@
 <meta name="theme-color" content="#0a4d68">
 <title>漁健客 進銷存系統</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- SheetJS：讀取 Excel 用 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <!-- Firebase SDK (compat 版本，無需打包工具) -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
@@ -1044,6 +1046,29 @@
           <tbody id="warehouses-tbody"></tbody>
         </table>
       </div>
+      <div class="card">
+        <div class="card-title">📥 從 Ragic 匯入歷史資料</div>
+        <p style="color:#475569; font-size:14px; line-height:1.7; margin-bottom:14px">
+          可從 Ragic 匯出的 <strong>入庫單.xlsx</strong> 與 <strong>出庫單.xlsx</strong> 一鍵匯入歷史資料。<br>
+          • 商品、客戶、供應商不存在時會<strong>自動建立</strong><br>
+          • 進貨倉庫一律設為「漁健客」<br>
+          • 記錄者「劉韋成」→ 管理員姓名；「林春華」→ 合夥人姓名
+        </p>
+        <div style="background:#fef3c7; padding:12px 16px; border-radius:8px; margin-bottom:14px; border-left:4px solid #f59e0b; font-size:13px">
+          ⚠️ <strong>重要</strong>：匯入前會清空所有現有的進貨/銷貨資料（商品、客戶、供應商等主檔不會被刪）。建議先備份。
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>📥 入庫單 Excel</label>
+            <input type="file" id="ragic-purchase-file" accept=".xlsx,.xls">
+          </div>
+          <div class="form-group"><label>📤 出庫單 Excel</label>
+            <input type="file" id="ragic-sale-file" accept=".xlsx,.xls">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="importFromRagic()" style="margin-top:8px">🚀 開始匯入</button>
+        <div id="ragic-import-log" style="margin-top:14px; padding:12px; background:#f8fafc; border-radius:8px; max-height:400px; overflow-y:auto; font-size:13px; font-family:monospace; display:none"></div>
+      </div>
+
       <div class="card">
         <div class="card-title">資料備份</div>
         <p style="margin-bottom:16px; color:#475569;">為了避免資料遺失，建議定期備份。點擊下方按鈕將所有資料存成檔案。</p>
@@ -3683,6 +3708,220 @@ function importData(event) {
     } catch(err) { alert('檔案格式錯誤：' + err.message); }
   };
   reader.readAsText(file);
+}
+
+// ============ Ragic Excel 匯入 ============
+async function importFromRagic() {
+  const purchaseFile = document.getElementById('ragic-purchase-file').files[0];
+  const saleFile = document.getElementById('ragic-sale-file').files[0];
+
+  if (!purchaseFile && !saleFile) { alert('請至少選一個檔案'); return; }
+  if (!confirm('確定要匯入嗎？\n\n⚠️ 系統會先清空所有現有的進貨/銷貨/盤點/轉倉紀錄，然後匯入 Excel 內容。\n\n商品、客戶、供應商主檔不會被刪除（會自動補齊缺少的）。\n\n建議先到 ⚙️ 備份設定匯出備份再匯入！')) return;
+
+  const logEl = document.getElementById('ragic-import-log');
+  logEl.style.display = 'block';
+  logEl.innerHTML = '';
+  const log = (msg) => { logEl.innerHTML += msg + '<br>'; logEl.scrollTop = logEl.scrollHeight; };
+
+  log('🚀 開始匯入...');
+
+  // 1. 清空現有交易資料（保留主檔）
+  log('🗑️ 清空現有的進貨/銷貨/轉倉/盤點紀錄...');
+  purchases = [];
+  sales = [];
+  transfers = [];
+  adjustments = [];
+
+  // 2. 確保有「漁健客」倉庫
+  let yujiankeWarehouse = warehouses.find(w => w.name === '漁健客');
+  if (!yujiankeWarehouse) {
+    yujiankeWarehouse = { id: Date.now() + 9001, name: '漁健客' };
+    warehouses.push(yujiankeWarehouse);
+    DB.save('warehouses', warehouses);
+    log('✓ 自動建立倉庫「漁健客」');
+  }
+  const yujiankeId = yujiankeWarehouse.id;
+
+  // 工具：依名稱找或建立 商品
+  function findOrCreateProduct(name) {
+    name = (name || '').toString().trim();
+    if (!name) return null;
+    let p = products.find(x => x.name === name);
+    if (!p) {
+      p = {
+        id: Date.now() + Math.floor(Math.random() * 1000000),
+        name, spec: '', unit: '包',
+        categoryId: null,
+        retail: 0, wholesale: 0, safestock: 10
+      };
+      products.push(p);
+      log(`  + 自動建立商品「${name}」`);
+    }
+    return p;
+  }
+
+  // 工具：依名稱找或建立 客戶
+  function findOrCreateCustomer(name) {
+    name = (name || '').toString().trim();
+    if (!name) return null;
+    let c = customers.find(x => x.name === name);
+    if (!c) {
+      c = {
+        id: Date.now() + Math.floor(Math.random() * 1000000),
+        name, contact: '', phone: '', note: '',
+        categoryId: null, email: '', payment: '',
+        favorite: false, favoriteProducts: [], customPrices: {}
+      };
+      customers.push(c);
+      log(`  + 自動建立客戶「${name}」`);
+    }
+    return c;
+  }
+
+  // 工具：依名稱找或建立 供應商
+  function findOrCreateSupplier(name) {
+    name = (name || '').toString().trim();
+    if (!name) return null;
+    let s = suppliers.find(x => x.name === name);
+    if (!s) {
+      s = {
+        id: Date.now() + Math.floor(Math.random() * 1000000),
+        name, contact: '', phone: '', note: ''
+      };
+      suppliers.push(s);
+      log(`  + 自動建立供應商「${name}」`);
+    }
+    return s;
+  }
+
+  // 工具：把 Ragic 記錄者對應到目前系統姓名
+  function mapRecorder(name) {
+    name = (name || '').toString().trim();
+    if (name === '劉韋成' || name === '韋成') return userSettings.adminName;
+    if (name === '林春華') {
+      // 如果合夥人姓名還是預設「合夥人」，自動改名為林春華
+      if (userSettings.partnerName === '合夥人') {
+        userSettings.partnerName = '林春華';
+        DB.save('userSettings', userSettings);
+        log('✓ 自動將合夥人姓名改為「林春華」');
+      }
+      return userSettings.partnerName;
+    }
+    return name; // 其他人保留原名
+  }
+
+  // 工具：解析日期（Excel 可能是 Date 物件、字串或 datetime）
+  function parseDate(v) {
+    if (!v) return new Date().toISOString().split('T')[0];
+    if (v instanceof Date) return v.toISOString().split('T')[0];
+    const s = v.toString();
+    // 嘗試從 "2026-05-06 00:00:00" 或 "2026-05-06" 解析
+    const m = s.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (m) {
+      return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+    }
+    return new Date().toISOString().split('T')[0];
+  }
+
+  // 3. 處理入庫單
+  if (purchaseFile) {
+    log('<br>📥 讀取入庫單...');
+    try {
+      const buf = await purchaseFile.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      log(`  讀到 ${rows.length} 筆入庫紀錄`);
+
+      let created = 0;
+      const baseId = Date.now();
+      rows.forEach((row, idx) => {
+        const productName = row['商品名稱'];
+        const cost = parseFloat(row['成本']) || 0;
+        const packs = parseFloat(row['幾片/幾包']) || 0;
+        if (!productName || !packs || !cost) return; // 跳過空行
+        const product = findOrCreateProduct(productName);
+        const supplier = findOrCreateSupplier(row['進貨廠商']);
+
+        purchases.push({
+          id: baseId + idx,
+          date: parseDate(row['日期']),
+          warehouseId: yujiankeId,
+          supplierId: supplier ? supplier.id : null,
+          productId: product.id,
+          qty: packs,
+          price: packs > 0 ? (cost / packs) : 0,
+          // 保留原 Ragic 結構：1 箱 = N 包
+          boxes: 1,
+          packsPerBox: packs,
+          costPerBox: cost,
+          batch: row['入庫單號'] || '',
+          expiry: row['有效日期'] ? parseDate(row['有效日期']) : '',
+          note: row['單據備註'] || '',
+          recorder: mapRecorder(row['建檔人員'])
+        });
+        created++;
+      });
+      DB.save('products', products);
+      DB.save('suppliers', suppliers);
+      DB.save('purchases', purchases);
+      log(`✅ 入庫單匯入完成：${created} 筆`);
+    } catch(err) {
+      log(`❌ 入庫單匯入失敗：${err.message}`);
+      console.error(err);
+    }
+  }
+
+  // 4. 處理出庫單
+  if (saleFile) {
+    log('<br>📤 讀取出庫單...');
+    try {
+      const buf = await saleFile.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      log(`  讀到 ${rows.length} 筆出庫紀錄`);
+
+      let created = 0;
+      const baseId = Date.now() + 100000; // 避免 ID 撞到入庫
+      rows.forEach((row, idx) => {
+        const productName = row['商品名稱'];
+        const customerName = row['客戶名稱'];
+        const qty = parseFloat(row['數量']) || 0;
+        const price = parseFloat(row['金額']) || 0;
+        if (!productName || !qty) return;
+
+        const product = findOrCreateProduct(productName);
+        const customer = customerName ? findOrCreateCustomer(customerName) : null;
+        const typeStr = (row['批發/零售'] || '').toString();
+        const type = typeStr.includes('批發') ? 'wholesale' : 'retail';
+
+        sales.push({
+          id: baseId + idx,
+          date: parseDate(row['日期']),
+          warehouseId: yujiankeId,
+          customerId: customer ? customer.id : null,
+          type,
+          productId: product.id,
+          qty,
+          price,
+          note: '',
+          recorder: mapRecorder(row['建檔人員'])
+        });
+        created++;
+      });
+      DB.save('products', products);
+      DB.save('customers', customers);
+      DB.save('sales', sales);
+      log(`✅ 出庫單匯入完成：${created} 筆`);
+    } catch(err) {
+      log(`❌ 出庫單匯入失敗：${err.message}`);
+      console.error(err);
+    }
+  }
+
+  log('<br>🎉 全部完成！3 秒後重新載入頁面...');
+  setTimeout(() => location.reload(), 3000);
 }
 
 function clearAll() {
