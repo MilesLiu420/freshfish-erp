@@ -111,6 +111,64 @@
   td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
   tr:hover { background: #f8fafc; }
 
+  /* ===== 庫存查詢 — 簡潔精緻表格 ===== */
+  .inv-summary-card { padding: 18px 20px; }
+  .inv-summary-row {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+  }
+  .inv-summary-cell {
+    background: #f8fafc; border-radius: 10px; padding: 14px 12px; text-align: center;
+    border-left: 4px solid #088395;
+  }
+  .inv-summary-cell.green { border-left-color: #22c55e; }
+  .inv-summary-cell.orange { border-left-color: #f59e0b; }
+  .inv-summary-cell.red { border-left-color: #ef4444; }
+  .inv-summary-cell.yellow { border-left-color: #eab308; }
+  .inv-summary-cell .lbl { font-size: 12px; color: #64748b; margin-bottom: 6px; font-weight: 600; }
+  .inv-summary-cell .val { font-size: 24px; font-weight: 700; color: #0a4d68; }
+  .inv-summary-cell.green .val { color: #16a34a; }
+  .inv-summary-cell.orange .val { color: #d97706; }
+  .inv-summary-cell.red .val { color: #dc2626; }
+  .inv-summary-cell.yellow .val { color: #ca8a04; }
+
+  .inv-toolbar {
+    display: flex; gap: 14px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .inv-search-wrap { flex: 1; min-width: 220px; }
+  .inv-search-wrap input {
+    width: 100%; padding: 12px 16px; border: 1.5px solid #cbd5e1;
+    border-radius: 10px; font-size: 15px; background: white;
+  }
+  .inv-search-wrap input:focus { outline: none; border-color: #088395; box-shadow: 0 0 0 3px rgba(8,131,149,0.1); }
+  .inv-filter-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .inv-pill {
+    padding: 8px 14px; border-radius: 20px; border: 1.5px solid #e2e8f0;
+    background: white; cursor: pointer; font-size: 13px; font-weight: 600; color: #64748b;
+    transition: 0.2s;
+  }
+  .inv-pill:hover { background: #f1f5f9; }
+  .inv-pill.active { background: #088395; color: white; border-color: #088395; }
+  .inv-pill.orange.active { background: #f59e0b; border-color: #f59e0b; }
+  .inv-pill.red.active { background: #ef4444; border-color: #ef4444; }
+  .inv-pill.yellow.active { background: #eab308; border-color: #eab308; }
+
+  .inv-table { font-size: 15px; }
+  .inv-table th { background: #f8fafc; font-size: 14px; padding: 14px 12px; }
+  .inv-table td { padding: 14px 12px; vertical-align: middle; }
+  .inv-table .stock-num { font-size: 22px; font-weight: 700; color: #0a4d68; }
+  .inv-table .stock-num.warn { color: #d97706; }
+  .inv-table .stock-num.danger { color: #dc2626; }
+  .inv-table .product-name { font-weight: 700; font-size: 16px; color: #0a4d68; }
+  .inv-table .product-spec { font-size: 12px; color: #64748b; margin-top: 2px; }
+  .inv-table .warehouse-line {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: #475569; margin-top: 4px;
+  }
+  .inv-table .expiry-line {
+    font-size: 13px; line-height: 1.6; color: #475569;
+  }
+  .inv-table .expiry-line .expiry-date { font-weight: 600; color: #0a4d68; }
+
   /* 警示標籤 */
   .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
   .badge-warning { background: #fef3c7; color: #d97706; }
@@ -230,6 +288,43 @@
     }
     /* 操作欄按鈕往右靠 */
     .card table td .btn { margin-left: auto; }
+
+    /* 短欄位（日期/倉庫/到期日/記錄者等）— 強制不換行、字體稍小，避免太擁擠 */
+    .card table td[data-label="日期"],
+    .card table td[data-label="倉庫"],
+    .card table td[data-label="到期日"],
+    .card table td[data-label="記錄者"],
+    .card table td[data-label="包數"],
+    .card table td[data-label="箱×包"],
+    .card table td[data-label="每包成本"],
+    .card table td[data-label="金額"],
+    .card table td[data-label="安全庫存"],
+    .card table td[data-label="單位"],
+    .card table td[data-label="類型"],
+    .card table td[data-label="數量"],
+    .card table td[data-label="單價"],
+    .card table td[data-label="狀態"] {
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      font-size: 15px;
+      padding: 6px 0;
+    }
+    .card table td[data-label="日期"]::before,
+    .card table td[data-label="倉庫"]::before,
+    .card table td[data-label="到期日"]::before,
+    .card table td[data-label="記錄者"]::before,
+    .card table td[data-label="包數"]::before,
+    .card table td[data-label="箱×包"]::before,
+    .card table td[data-label="每包成本"]::before,
+    .card table td[data-label="金額"]::before,
+    .card table td[data-label="安全庫存"]::before,
+    .card table td[data-label="單位"]::before,
+    .card table td[data-label="類型"]::before,
+    .card table td[data-label="數量"]::before,
+    .card table td[data-label="單價"]::before,
+    .card table td[data-label="狀態"]::before {
+      font-size: 13px;
+    }
 
     /* 分類膠囊放大 */
     .cat-pill { padding: 6px 12px; font-size: 14px; margin: 4px 6px 4px 0; }
@@ -645,8 +740,6 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>零售價 *</label><input id="p-retail" type="number" placeholder="0"></div>
-          <div class="form-group"><label>批發價 *</label><input id="p-wholesale" type="number" placeholder="0"></div>
           <div class="form-group"><label>安全庫存</label><input id="p-safestock" type="number" placeholder="0" value="10"></div>
         </div>
         <button class="btn btn-primary" onclick="addProduct()">新增商品</button>
@@ -662,7 +755,7 @@
           </div>
         </div>
         <table>
-          <thead><tr><th>名稱</th><th>分類</th><th>規格</th><th>單位</th><th>零售價</th><th>批發價</th><th>安全庫存</th><th>操作</th></tr></thead>
+          <thead><tr><th>名稱</th><th>分類</th><th>規格</th><th>單位</th><th>安全庫存</th><th>操作</th></tr></thead>
           <tbody id="products-tbody"></tbody>
         </table>
       </div>
@@ -702,7 +795,7 @@
       <div class="card">
         <div class="card-title">最近進貨紀錄</div>
         <table>
-          <thead><tr><th>日期</th><th>倉庫</th><th>供應商</th><th>商品</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>批號</th><th>到期日</th><th>記錄者</th><th></th></tr></thead>
+          <thead><tr><th>日期</th><th>倉庫</th><th>供應商</th><th>商品</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>到期日</th><th>記錄者</th><th>操作</th></tr></thead>
           <tbody id="purchase-tbody"></tbody>
         </table>
       </div>
@@ -761,7 +854,7 @@
       <div class="card">
         <div class="card-title">最近銷貨紀錄</div>
         <table>
-          <thead><tr><th>日期</th><th>倉庫</th><th>客戶</th><th>類型</th><th>商品</th><th>數量</th><th>單價</th><th>金額</th><th>記錄者</th><th></th></tr></thead>
+          <thead><tr><th>日期</th><th>倉庫</th><th>客戶</th><th>類型</th><th>商品</th><th>數量</th><th>單價</th><th>金額</th><th>記錄者</th><th>操作</th></tr></thead>
           <tbody id="sale-tbody"></tbody>
         </table>
       </div>
@@ -820,9 +913,32 @@
           </div>
         </div>
       </div>
+      <!-- 庫存查詢 — 簡潔表格 + 狀態分組統計 -->
+      <div class="card inv-summary-card">
+        <div class="inv-summary-row">
+          <div class="inv-summary-cell"><div class="lbl">總商品數</div><div class="val" id="inv-sum-total">0</div></div>
+          <div class="inv-summary-cell green"><div class="lbl">正常</div><div class="val" id="inv-sum-ok">0</div></div>
+          <div class="inv-summary-cell orange"><div class="lbl">低於安全庫存</div><div class="val" id="inv-sum-low">0</div></div>
+          <div class="inv-summary-cell red"><div class="lbl">缺貨/負庫存</div><div class="val" id="inv-sum-out">0</div></div>
+          <div class="inv-summary-cell yellow"><div class="lbl">即將/已過期</div><div class="val" id="inv-sum-exp">0</div></div>
+        </div>
+      </div>
+
       <div class="card">
-        <table>
-          <thead><tr><th>商品</th><th>分類</th><th>規格</th><th id="inv-stock-header">目前庫存</th><th>安全庫存</th><th>狀態</th><th>批號明細</th><th>操作</th></tr></thead>
+        <div class="inv-toolbar">
+          <div class="inv-search-wrap">
+            <input id="inv-search" placeholder="🔍 搜尋商品名稱/規格" oninput="renderInventory()">
+          </div>
+          <div class="inv-filter-pills">
+            <button class="inv-pill active" data-filter="all" onclick="setInvFilter('all')">全部</button>
+            <button class="inv-pill" data-filter="ok" onclick="setInvFilter('ok')">✅ 正常</button>
+            <button class="inv-pill orange" data-filter="low" onclick="setInvFilter('low')">⚠️ 低庫存</button>
+            <button class="inv-pill red" data-filter="out" onclick="setInvFilter('out')">🚫 缺貨</button>
+            <button class="inv-pill yellow" data-filter="exp" onclick="setInvFilter('exp')">⏰ 將過期</button>
+          </div>
+        </div>
+        <table class="inv-table">
+          <thead><tr><th>商品</th><th>分類</th><th id="inv-stock-header">目前庫存</th><th>安全庫存</th><th>狀態</th><th>有效期限</th><th>操作</th></tr></thead>
           <tbody id="inventory-tbody"></tbody>
         </table>
       </div>
@@ -1595,9 +1711,7 @@ function renderProductCategories() {
 
 function addProduct() {
   const name = document.getElementById('p-name').value.trim();
-  const retail = parseFloat(document.getElementById('p-retail').value);
-  const wholesale = parseFloat(document.getElementById('p-wholesale').value);
-  if (!name || !retail || !wholesale) { alert('請填寫商品名稱、零售價、批發價'); return; }
+  if (!name) { alert('請填寫商品名稱'); return; }
 
   products.push({
     id: Date.now(),
@@ -1605,12 +1719,12 @@ function addProduct() {
     spec: document.getElementById('p-spec').value,
     unit: document.getElementById('p-unit').value || '個',
     categoryId: parseInt(document.getElementById('p-category').value) || null,
-    retail,
-    wholesale,
+    retail: 0,
+    wholesale: 0,
     safestock: parseFloat(document.getElementById('p-safestock').value) || 10
   });
   DB.save('products', products);
-  ['p-name','p-spec','p-unit','p-retail','p-wholesale'].forEach(id => document.getElementById(id).value = '');
+  ['p-name','p-spec','p-unit'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('p-safestock').value = 10;
   document.getElementById('p-category').selectedIndex = 0;
   renderProductCategories();
@@ -1628,7 +1742,7 @@ function deleteProduct(id) {
 function renderProducts() {
   const tbody = document.getElementById('products-tbody');
   if (products.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty"><div class="icon">📦</div>還沒有商品，請先新增</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty"><div class="icon">📦</div>還沒有商品，請先新增</td></tr>';
     return;
   }
 
@@ -1643,7 +1757,7 @@ function renderProducts() {
   });
 
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty">沒有符合的商品</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">沒有符合的商品</td></tr>';
     return;
   }
 
@@ -1653,14 +1767,12 @@ function renderProducts() {
       // 編輯模式：欄位變成輸入框
       const catOptions = '<option value="">未分類</option>' + productCategories.map(c => `<option value="${c.id}" ${p.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
       return `<tr style="background:#fef9c3">
-        <td><input id="edit-name-${p.id}" value="${p.name}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
-        <td><select id="edit-category-${p.id}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${catOptions}</select></td>
-        <td><input id="edit-spec-${p.id}" value="${p.spec || ''}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
-        <td><input id="edit-unit-${p.id}" value="${p.unit}" style="width:80px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
-        <td><input id="edit-retail-${p.id}" type="number" value="${p.retail}" style="width:90px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
-        <td><input id="edit-wholesale-${p.id}" type="number" value="${p.wholesale}" style="width:90px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
-        <td><input id="edit-safestock-${p.id}" type="number" value="${p.safestock}" style="width:70px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
-        <td>
+        <td data-label="名稱"><input id="edit-name-${p.id}" value="${p.name}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="分類"><select id="edit-category-${p.id}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${catOptions}</select></td>
+        <td data-label="規格"><input id="edit-spec-${p.id}" value="${p.spec || ''}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="單位"><input id="edit-unit-${p.id}" value="${p.unit}" style="width:80px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="安全庫存"><input id="edit-safestock-${p.id}" type="number" value="${p.safestock}" style="width:70px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="操作">
           <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="saveProductEdit(${p.id})">💾 儲存</button>
           <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:4px" onclick="cancelProductEdit()">取消</button>
         </td>
@@ -1668,14 +1780,12 @@ function renderProducts() {
     }
     // 顯示模式
     return `<tr>
-      <td><strong>${p.name}</strong></td>
-      <td>${cat ? '<span class="cat-pill">'+cat.name+'</span>' : '-'}</td>
-      <td>${p.spec || '-'}</td>
-      <td>${p.unit}</td>
-      <td>$${p.retail.toLocaleString()}</td>
-      <td>$${p.wholesale.toLocaleString()}</td>
-      <td>${p.safestock}</td>
-      <td>
+      <td data-label="名稱"><strong>${p.name}</strong></td>
+      <td data-label="分類">${cat ? '<span class="cat-pill">'+cat.name+'</span>' : '-'}</td>
+      <td data-label="規格">${p.spec || '-'}</td>
+      <td data-label="單位">${p.unit}</td>
+      <td data-label="安全庫存">${p.safestock}</td>
+      <td data-label="操作">
         <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startProductEdit(${p.id})">✏️ 編輯</button>
         <button class="btn btn-danger" style="margin-left:4px" onclick="deleteProduct(${p.id})">刪除</button>
       </td>
@@ -1698,17 +1808,14 @@ function saveProductEdit(id) {
   const spec = document.getElementById('edit-spec-' + id).value.trim();
   const unit = document.getElementById('edit-unit-' + id).value.trim();
   const categoryId = parseInt(document.getElementById('edit-category-' + id).value) || null;
-  const retail = parseFloat(document.getElementById('edit-retail-' + id).value);
-  const wholesale = parseFloat(document.getElementById('edit-wholesale-' + id).value);
   const safestock = parseFloat(document.getElementById('edit-safestock-' + id).value);
 
-  if (!name || !retail || !wholesale) { alert('名稱、零售價、批發價不能空白'); return; }
+  if (!name) { alert('商品名稱不能空白'); return; }
 
   const p = products.find(x => x.id === id);
   if (!p) return;
   p.name = name; p.spec = spec; p.unit = unit || '個';
   p.categoryId = categoryId;
-  p.retail = retail; p.wholesale = wholesale;
   p.safestock = isNaN(safestock) ? 10 : safestock;
 
   DB.save('products', products);
@@ -1963,7 +2070,7 @@ function renderProductPickerList(pickerId) {
     html += `<div class="product-item" onclick="selectProduct('${pickerId}', ${p.id})">
       <div>
         <div class="name">${p.name}</div>
-        <div class="meta">${cat ? '🏷️ '+cat.name+' · ' : ''}${p.spec || ''} · 零售 $${p.retail} / 批發 $${p.wholesale}</div>
+        <div class="meta">${cat ? '🏷️ '+cat.name+' · ' : ''}${p.spec || ''}${p.unit ? ' · '+p.unit : ''}</div>
       </div>
       <div style="color:#088395; font-size:13px">選 →</div>
     </div>`;
@@ -2125,9 +2232,6 @@ function renderPurchaseLines() {
       </div>
       <div class="calc-display" id="pu-calc-${l.lineId}"></div>
       <div class="form-row" style="margin-top:12px">
-        <div class="form-group"><label>批號</label>
-          <input value="${l.batch}" placeholder="例如：20260506-A" oninput="updatePurchaseLine(${l.lineId}, 'batch', this.value)">
-        </div>
         <div class="form-group"><label>保存期限</label>
           <input type="date" value="${l.expiry}" oninput="updatePurchaseLine(${l.lineId}, 'expiry', this.value)">
         </div>
@@ -2198,30 +2302,120 @@ function deletePurchase(id) {
 function renderPurchases() {
   const tbody = document.getElementById('purchase-tbody');
   if (purchases.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" class="empty"><div class="icon">🚚</div>還沒有進貨紀錄</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="empty"><div class="icon">🚚</div>還沒有進貨紀錄</td></tr>';
     return;
   }
   const sorted = [...purchases].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 50);
   tbody.innerHTML = sorted.map(p => {
     const product = products.find(x => x.id === p.productId);
     const supplier = suppliers.find(x => x.id === p.supplierId);
-    const warehouse = warehouses.find(x => x.id === p.warehouseId);
+
+    // 編輯模式
+    if (editingPurchaseId === p.id) {
+      const wOpts = warehouses.map(w => `<option value="${w.id}" ${p.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
+      const sOpts = '<option value="">無</option>' + suppliers.map(s => `<option value="${s.id}" ${p.supplierId === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
+      const prodOpts = products.map(x => `<option value="${x.id}" ${p.productId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
+      const boxes = p.boxes || 1;
+      const packsPerBox = p.packsPerBox || p.qty || 1;
+      const costPerBox = p.costPerBox || ((p.price || 0) * (p.packsPerBox || p.qty || 1));
+      return `<tr style="background:#fef9c3">
+        <td data-label="日期"><input id="ep-date-${p.id}" type="date" value="${p.date}" style="width:140px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="倉庫"><select id="ep-warehouse-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts}</select></td>
+        <td data-label="供應商"><select id="ep-supplier-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${sOpts}</select></td>
+        <td data-label="商品"><select id="ep-product-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${prodOpts}</select></td>
+        <td data-label="箱×包">
+          <input id="ep-boxes-${p.id}" type="number" step="0.01" value="${boxes}" style="width:60px;padding:6px;border:1.5px solid #088395;border-radius:6px" placeholder="箱">
+          ×
+          <input id="ep-packs-${p.id}" type="number" step="1" value="${packsPerBox}" style="width:60px;padding:6px;border:1.5px solid #088395;border-radius:6px" placeholder="包">
+        </td>
+        <td data-label="包數"><span id="ep-qty-display-${p.id}" style="color:#0a4d68;font-weight:600">${(boxes * packsPerBox).toFixed(0)}</span></td>
+        <td data-label="每包成本"><span id="ep-price-display-${p.id}" style="color:#16a34a;font-weight:600">$${(costPerBox / packsPerBox).toFixed(2)}</span></td>
+        <td data-label="整箱成本($)"><input id="ep-costbox-${p.id}" type="number" step="0.01" value="${costPerBox}" style="width:90px;padding:6px;border:1.5px solid #088395;border-radius:6px" oninput="updatePurchaseEditCalc(${p.id})"></td>
+        <td data-label="到期日"><input id="ep-expiry-${p.id}" type="date" value="${p.expiry || ''}" style="width:140px;padding:6px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="記錄者">${recorderBadge(p.recorder)}</td>
+        <td data-label="操作">
+          <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="savePurchaseEdit(${p.id})">💾 儲存</button>
+          <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:4px" onclick="cancelPurchaseEdit()">取消</button>
+        </td>
+      </tr>`;
+    }
+
     const boxInfo = (p.boxes && p.packsPerBox) ? `${p.boxes} × ${p.packsPerBox}` : '-';
     return `<tr>
-      <td>${p.date}</td>
-      <td>${warehouseBadgeHTML(p.warehouseId)}</td>
-      <td>${supplier ? supplier.name : '-'}</td>
-      <td>${product ? product.name : '已刪除'}</td>
-      <td>${boxInfo}</td>
-      <td>${p.qty}</td>
-      <td>$${(p.price || 0).toFixed(2)}</td>
-      <td><strong>$${(p.qty * p.price).toLocaleString()}</strong></td>
-      <td>${p.batch || '-'}</td>
-      <td>${p.expiry || '-'}</td>
-      <td>${recorderBadge(p.recorder)}</td>
-      <td><button class="btn btn-danger" onclick="deletePurchase(${p.id})">刪除</button></td>
+      <td data-label="日期" style="white-space:nowrap">${p.date}</td>
+      <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(p.warehouseId)}</td>
+      <td data-label="供應商">${supplier ? supplier.name : '-'}</td>
+      <td data-label="商品">${product ? product.name : '已刪除'}</td>
+      <td data-label="箱×包" style="white-space:nowrap">${boxInfo}</td>
+      <td data-label="包數">${p.qty}</td>
+      <td data-label="每包成本" style="white-space:nowrap">$${(p.price || 0).toFixed(2)}</td>
+      <td data-label="金額" style="white-space:nowrap"><strong>$${(p.qty * p.price).toLocaleString()}</strong></td>
+      <td data-label="到期日" style="white-space:nowrap">${p.expiry || '-'}</td>
+      <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(p.recorder)}</td>
+      <td data-label="操作" style="white-space:nowrap">
+        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startPurchaseEdit(${p.id})">✏️ 編輯</button>
+        <button class="btn btn-danger" style="margin-left:4px" onclick="deletePurchase(${p.id})">刪除</button>
+      </td>
     </tr>`;
   }).join('');
+}
+
+let editingPurchaseId = null;
+
+function startPurchaseEdit(id) {
+  editingPurchaseId = id;
+  renderPurchases();
+}
+
+function cancelPurchaseEdit() {
+  editingPurchaseId = null;
+  renderPurchases();
+}
+
+function updatePurchaseEditCalc(id) {
+  const boxes = parseFloat(document.getElementById('ep-boxes-' + id).value) || 0;
+  const packs = parseFloat(document.getElementById('ep-packs-' + id).value) || 0;
+  const costBox = parseFloat(document.getElementById('ep-costbox-' + id).value) || 0;
+  const qtyEl = document.getElementById('ep-qty-display-' + id);
+  const priceEl = document.getElementById('ep-price-display-' + id);
+  if (qtyEl) qtyEl.textContent = (boxes * packs).toFixed(0);
+  if (priceEl) priceEl.textContent = '$' + (packs > 0 ? (costBox / packs).toFixed(2) : '0.00');
+}
+
+function savePurchaseEdit(id) {
+  const p = purchases.find(x => x.id === id);
+  if (!p) return;
+  const date = document.getElementById('ep-date-' + id).value;
+  const warehouseId = parseInt(document.getElementById('ep-warehouse-' + id).value);
+  const supplierId = parseInt(document.getElementById('ep-supplier-' + id).value) || null;
+  const productId = parseInt(document.getElementById('ep-product-' + id).value);
+  const boxes = parseFloat(document.getElementById('ep-boxes-' + id).value) || 0;
+  const packsPerBox = parseFloat(document.getElementById('ep-packs-' + id).value) || 0;
+  const costPerBox = parseFloat(document.getElementById('ep-costbox-' + id).value) || 0;
+  const expiry = document.getElementById('ep-expiry-' + id).value;
+
+  if (!date || !warehouseId || !productId || boxes <= 0 || packsPerBox <= 0 || costPerBox <= 0) {
+    alert('請完整填寫日期、倉庫、商品、箱數、每箱包數、整箱成本');
+    return;
+  }
+
+  p.date = date;
+  p.warehouseId = warehouseId;
+  p.supplierId = supplierId;
+  p.productId = productId;
+  p.boxes = boxes;
+  p.packsPerBox = packsPerBox;
+  p.costPerBox = costPerBox;
+  p.qty = boxes * packsPerBox;
+  p.price = costPerBox / packsPerBox;
+  p.expiry = expiry;
+
+  DB.save('purchases', purchases);
+  editingPurchaseId = null;
+  renderPurchases();
+  // 更新庫存頁（如果開著）
+  if (typeof renderInventory === 'function') renderInventory();
+  alert('✅ 進貨紀錄已更新');
 }
 
 // ============ 銷貨（多品項） ============
@@ -2246,13 +2440,9 @@ function addSaleLine(productId = '') {
   const customer = customers.find(c => c.id === customerId);
   let price = 0, type = 'retail';
   if (productId) {
-    const product = products.find(p => p.id === productId);
-    if (product) {
-      if (customer && customer.customPrices && customer.customPrices[productId]) {
-        price = customer.customPrices[productId];
-      } else {
-        price = product.retail;
-      }
+    // 只有在客戶設定了專屬價時才自動帶入，否則保持 0 由使用者輸入
+    if (customer && customer.customPrices && customer.customPrices[productId]) {
+      price = customer.customPrices[productId];
     }
   }
   currentSaleLines.push({
@@ -2279,18 +2469,20 @@ function updateSaleLine(lineId, field, value) {
   } else {
     line[field] = value;
   }
-  // 商品/類型變動時自動重算單價（除非使用者已自己改過）
-  if (field === 'productId' || field === 'type') {
-    const product = products.find(p => p.id === line.productId);
+  // 商品變動時：若客戶有專屬價就帶入，否則歸 0 由使用者手動輸入
+  if (field === 'productId') {
     const customerId = parseInt(document.getElementById('sa-customer').value);
     const customer = customers.find(c => c.id === customerId);
-    if (product) {
-      if (customer && customer.customPrices && customer.customPrices[line.productId]) {
-        line.price = customer.customPrices[line.productId];
-      } else {
-        line.price = line.type === 'wholesale' ? product.wholesale : product.retail;
-      }
+    if (customer && customer.customPrices && customer.customPrices[line.productId]) {
+      line.price = customer.customPrices[line.productId];
+    } else {
+      line.price = 0;
     }
+    renderSaleLines();
+    return;
+  }
+  // 類型變動只是分類用，價格由使用者手動輸入，不重算
+  if (field === 'type') {
     renderSaleLines();
     return;
   }
@@ -2497,17 +2689,10 @@ function selectCustomer(id) {
   // 重新整理選單（隱藏列表，因為已選）
   document.getElementById('sa-customer-list').innerHTML = '';
 
-  // 對已存在但已有商品的明細，重新套用該客戶的專屬價
+  // 對已存在但已有商品的明細，若該客戶有設定專屬價就套用；否則保留使用者已輸入的價格
   currentSaleLines.forEach(l => {
-    if (l.productId) {
-      const product = products.find(p => p.id === l.productId);
-      if (product) {
-        if (c.customPrices && c.customPrices[l.productId]) {
-          l.price = c.customPrices[l.productId];
-        } else {
-          l.price = l.type === 'wholesale' ? product.wholesale : product.retail;
-        }
-      }
+    if (l.productId && c.customPrices && c.customPrices[l.productId]) {
+      l.price = c.customPrices[l.productId];
     }
   });
   renderSaleLines();
@@ -2565,20 +2750,100 @@ function renderSales() {
   tbody.innerHTML = sorted.map(s => {
     const product = products.find(x => x.id === s.productId);
     const customer = customers.find(x => x.id === s.customerId);
-    const warehouse = warehouses.find(x => x.id === s.warehouseId);
+
+    // 編輯模式
+    if (editingSaleId === s.id) {
+      const wOpts = warehouses.map(w => `<option value="${w.id}" ${s.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
+      const cOpts = '<option value="">無</option>' + customers.map(x => `<option value="${x.id}" ${s.customerId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
+      const prodOpts = products.map(x => `<option value="${x.id}" ${s.productId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
+      return `<tr style="background:#fef9c3">
+        <td data-label="日期"><input id="es-date-${s.id}" type="date" value="${s.date}" style="width:140px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="倉庫"><select id="es-warehouse-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts}</select></td>
+        <td data-label="客戶"><select id="es-customer-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${cOpts}</select></td>
+        <td data-label="類型">
+          <select id="es-type-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">
+            <option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option>
+            <option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option>
+          </select>
+        </td>
+        <td data-label="商品"><select id="es-product-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${prodOpts}</select></td>
+        <td data-label="數量"><input id="es-qty-${s.id}" type="number" step="0.01" value="${s.qty}" style="width:70px;padding:6px;border:1.5px solid #088395;border-radius:6px" oninput="updateSaleEditCalc(${s.id})"></td>
+        <td data-label="單價"><input id="es-price-${s.id}" type="number" step="0.01" value="${s.price}" style="width:90px;padding:6px;border:1.5px solid #088395;border-radius:6px" oninput="updateSaleEditCalc(${s.id})"></td>
+        <td data-label="金額"><strong id="es-amt-display-${s.id}" style="color:#16a34a">$${(s.qty * s.price).toLocaleString()}</strong></td>
+        <td data-label="記錄者">${recorderBadge(s.recorder)}</td>
+        <td data-label="操作">
+          <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="saveSaleEdit(${s.id})">💾 儲存</button>
+          <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:4px" onclick="cancelSaleEdit()">取消</button>
+        </td>
+      </tr>`;
+    }
+
     return `<tr>
-      <td>${s.date}</td>
-      <td>${warehouseBadgeHTML(s.warehouseId)}</td>
-      <td>${customer ? customer.name : '-'}</td>
-      <td><span class="badge ${s.type === 'wholesale' ? 'badge-info' : 'badge-success'}">${s.type === 'wholesale' ? '批發' : '零售'}</span></td>
-      <td>${product ? product.name : '已刪除'}</td>
-      <td>${s.qty}</td>
-      <td>$${s.price.toLocaleString()}</td>
-      <td><strong>$${(s.qty * s.price).toLocaleString()}</strong></td>
-      <td>${recorderBadge(s.recorder)}</td>
-      <td><button class="btn btn-danger" onclick="deleteSale(${s.id})">刪除</button></td>
+      <td data-label="日期" style="white-space:nowrap">${s.date}</td>
+      <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(s.warehouseId)}</td>
+      <td data-label="客戶">${customer ? customer.name : '-'}</td>
+      <td data-label="類型"><span class="badge ${s.type === 'wholesale' ? 'badge-info' : 'badge-success'}">${s.type === 'wholesale' ? '批發' : '零售'}</span></td>
+      <td data-label="商品">${product ? product.name : '已刪除'}</td>
+      <td data-label="數量">${s.qty}</td>
+      <td data-label="單價" style="white-space:nowrap">$${s.price.toLocaleString()}</td>
+      <td data-label="金額" style="white-space:nowrap"><strong>$${(s.qty * s.price).toLocaleString()}</strong></td>
+      <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(s.recorder)}</td>
+      <td data-label="操作" style="white-space:nowrap">
+        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startSaleEdit(${s.id})">✏️ 編輯</button>
+        <button class="btn btn-danger" style="margin-left:4px" onclick="deleteSale(${s.id})">刪除</button>
+      </td>
     </tr>`;
   }).join('');
+}
+
+let editingSaleId = null;
+
+function startSaleEdit(id) {
+  editingSaleId = id;
+  renderSales();
+}
+
+function cancelSaleEdit() {
+  editingSaleId = null;
+  renderSales();
+}
+
+function updateSaleEditCalc(id) {
+  const qty = parseFloat(document.getElementById('es-qty-' + id).value) || 0;
+  const price = parseFloat(document.getElementById('es-price-' + id).value) || 0;
+  const el = document.getElementById('es-amt-display-' + id);
+  if (el) el.textContent = '$' + (qty * price).toLocaleString();
+}
+
+function saveSaleEdit(id) {
+  const s = sales.find(x => x.id === id);
+  if (!s) return;
+  const date = document.getElementById('es-date-' + id).value;
+  const warehouseId = parseInt(document.getElementById('es-warehouse-' + id).value);
+  const customerId = parseInt(document.getElementById('es-customer-' + id).value) || null;
+  const type = document.getElementById('es-type-' + id).value;
+  const productId = parseInt(document.getElementById('es-product-' + id).value);
+  const qty = parseFloat(document.getElementById('es-qty-' + id).value) || 0;
+  const price = parseFloat(document.getElementById('es-price-' + id).value) || 0;
+
+  if (!date || !warehouseId || !productId || qty <= 0 || price <= 0) {
+    alert('請完整填寫日期、倉庫、商品、數量、單價');
+    return;
+  }
+
+  s.date = date;
+  s.warehouseId = warehouseId;
+  s.customerId = customerId;
+  s.type = type;
+  s.productId = productId;
+  s.qty = qty;
+  s.price = price;
+
+  DB.save('sales', sales);
+  editingSaleId = null;
+  renderSales();
+  if (typeof renderInventory === 'function') renderInventory();
+  alert('✅ 銷貨紀錄已更新');
 }
 
 // ============ 庫存計算 ============
@@ -2640,6 +2905,16 @@ function calcStockByBatch(productId, warehouseId = null) {
   return Object.entries(batches).filter(([k, v]) => v.qty > 0).map(([k, v]) => ({ batch: k, qty: v.qty, expiry: v.expiry }));
 }
 
+let inventoryFilter = 'all'; // all / ok / low / out / exp
+
+function setInvFilter(filter) {
+  inventoryFilter = filter;
+  document.querySelectorAll('.inv-pill').forEach(el => {
+    el.classList.toggle('active', el.dataset.filter === filter);
+  });
+  renderInventory();
+}
+
 function renderInventory() {
   const tbody = document.getElementById('inventory-tbody');
   const wSelEl = document.getElementById('inv-warehouse');
@@ -2649,7 +2924,7 @@ function renderInventory() {
   // 更新表頭文字
   const header = document.getElementById('inv-stock-header');
   if (header) {
-    if (wId === 'all') header.textContent = '總庫存（全部倉庫）';
+    if (wId === 'all') header.textContent = '總庫存';
     else {
       const w = warehouses.find(x => x.id === wId);
       header.textContent = '庫存（' + (w ? w.name : '') + '）';
@@ -2657,43 +2932,88 @@ function renderInventory() {
   }
 
   if (products.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty"><div class="icon">📦</div>還沒有商品</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty"><div class="icon">📦</div>還沒有商品</td></tr>';
+    updateInventorySummary([]);
     renderAdjustments();
     return;
   }
 
-  tbody.innerHTML = products.map(p => {
+  const today = new Date();
+  const search = (document.getElementById('inv-search')?.value || '').toLowerCase().trim();
+
+  // 先計算所有商品狀態
+  const enriched = products.map(p => {
     const stock = calcStock(p.id, wId);
     const batches = calcStockByBatch(p.id, wId);
+    let statusType = 'ok';
+    if (stock < 0 || stock === 0) statusType = 'out';
+    else if (stock <= p.safestock) statusType = 'low';
+    // 過期判斷
+    let hasExpiringBatch = false;
+    batches.forEach(b => {
+      if (b.expiry) {
+        const daysLeft = Math.floor((new Date(b.expiry) - today) / (1000*60*60*24));
+        if (daysLeft <= 30) hasExpiringBatch = true;
+      }
+    });
+    return { p, stock, batches, statusType, hasExpiringBatch };
+  });
+
+  // 更新統計卡
+  updateInventorySummary(enriched);
+
+  // 套用搜尋與篩選
+  let filtered = enriched.filter(r => {
+    if (search && !((r.p.name + (r.p.spec||'')).toLowerCase().includes(search))) return false;
+    if (inventoryFilter === 'all') return true;
+    if (inventoryFilter === 'exp') return r.hasExpiringBatch;
+    return r.statusType === inventoryFilter;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">沒有符合條件的商品</td></tr>';
+    renderAdjustments();
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(({ p, stock, batches, statusType }) => {
     const cat = productCategories.find(c => c.id === p.categoryId);
-    const today = new Date();
+
     let status = '';
-    if (stock < 0) status = '<span class="badge badge-danger">負庫存</span>';
-    else if (stock === 0) status = '<span class="badge badge-danger">缺貨</span>';
-    else if (stock <= p.safestock) status = '<span class="badge badge-warning">低於安全庫存</span>';
+    if (statusType === 'out') status = stock < 0
+      ? '<span class="badge badge-danger">負庫存</span>'
+      : '<span class="badge badge-danger">缺貨</span>';
+    else if (statusType === 'low') status = '<span class="badge badge-warning">低庫存</span>';
     else status = '<span class="badge badge-success">正常</span>';
 
-    // 若選「全部」，額外顯示各倉庫拆分
-    let stockDisplay = `<strong style="font-size:18px;color:#0a4d68">${stock} ${p.unit}</strong>`;
+    // 庫存數字（顏色依狀態）
+    const stockClass = statusType === 'out' ? 'danger' : (statusType === 'low' ? 'warn' : '');
+    let stockDisplay = `<div class="stock-num ${stockClass}">${stock} <span style="font-size:13px;color:#94a3b8;font-weight:500">${p.unit}</span></div>`;
     if (wId === 'all' && warehouses.length > 0) {
       const breakdown = warehouses.map(w => {
         const s = calcStock(p.id, w.id);
-        return `<div class="inv-warehouse-row" style="font-size:13px;color:#64748b;margin-top:4px;display:flex;align-items:center;gap:6px">${warehouseLogoHTML(w.id)}${w.name}: <strong style="color:#0a4d68">${s}</strong></div>`;
+        return `<div class="warehouse-line">${warehouseLogoHTML(w.id)}${w.name}: <strong style="color:#0a4d68">${s}</strong></div>`;
       }).join('');
       stockDisplay += breakdown;
     }
 
-    const batchInfo = batches.length === 0 ? '-' : batches.map(b => {
-      let warn = '';
-      if (b.expiry) {
+    // 有效期限：聚合該商品所有批次的最近到期日
+    const expiryInfo = (() => {
+      const withExpiry = batches.filter(b => b.expiry);
+      if (withExpiry.length === 0) return '<span style="color:#94a3b8">—</span>';
+      // 按到期日排序，最快到期的在前
+      withExpiry.sort((a, b) => a.expiry.localeCompare(b.expiry));
+      return withExpiry.map(b => {
         const daysLeft = Math.floor((new Date(b.expiry) - today) / (1000*60*60*24));
-        if (daysLeft < 0) warn = ' <span class="badge badge-danger">已過期</span>';
-        else if (daysLeft <= 30) warn = ` <span class="badge badge-warning">${daysLeft}天到期</span>`;
-      }
-      return `${b.batch}: ${b.qty}${b.expiry ? ' (到期 '+b.expiry+')' : ''}${warn}`;
-    }).join('<br>');
+        let warn = '';
+        if (daysLeft < 0) warn = ` <span class="badge badge-danger">已過期${-daysLeft}天</span>`;
+        else if (daysLeft <= 7) warn = ` <span class="badge badge-danger">${daysLeft}天</span>`;
+        else if (daysLeft <= 30) warn = ` <span class="badge badge-warning">${daysLeft}天</span>`;
+        return `<div class="expiry-line"><span class="expiry-date">${b.expiry}</span> · ${b.qty}${p.unit}${warn}</div>`;
+      }).join('');
+    })();
 
-    // 「全部倉庫」時不能直接調整（因為要分倉），提示先選倉庫
+    // 操作按鈕
     let actionBtn;
     if (wId === 'all') {
       actionBtn = warehouses.map(w => {
@@ -2701,22 +3021,43 @@ function renderInventory() {
         return `<button class="btn btn-primary" style="padding:4px 10px;font-size:11px;margin:2px;display:inline-flex;align-items:center;gap:3px" onclick="openAdjustModal(${p.id}, ${w.id})">✏️ ${warehouseLogoHTML(w.id)}${w.name} (${s})</button>`;
       }).join('<br>');
     } else {
-      actionBtn = `<button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="openAdjustModal(${p.id}, ${wId})">✏️ 調整庫存</button>`;
+      actionBtn = `<button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="openAdjustModal(${p.id}, ${wId})">✏️ 盤點調整</button>`;
     }
 
     return `<tr>
-      <td><strong>${p.name}</strong></td>
-      <td>${cat ? '<span class="cat-pill">'+cat.name+'</span>' : '-'}</td>
-      <td>${p.spec || '-'}</td>
-      <td>${stockDisplay}</td>
-      <td>${p.safestock}</td>
-      <td>${status}</td>
-      <td style="font-size:12px;line-height:1.6">${batchInfo}</td>
-      <td>${actionBtn}</td>
+      <td data-label="商品">
+        <div class="product-name">${p.name}</div>
+        ${p.spec ? '<div class="product-spec">'+p.spec+'</div>' : ''}
+      </td>
+      <td data-label="分類">${cat ? '<span class="cat-pill">'+cat.name+'</span>' : '-'}</td>
+      <td data-label="目前庫存">${stockDisplay}</td>
+      <td data-label="安全庫存">${p.safestock}</td>
+      <td data-label="狀態">${status}</td>
+      <td data-label="有效期限">${expiryInfo}</td>
+      <td data-label="操作">${actionBtn}</td>
     </tr>`;
   }).join('');
 
   renderAdjustments();
+}
+
+function updateInventorySummary(enriched) {
+  const totalEl = document.getElementById('inv-sum-total');
+  const okEl = document.getElementById('inv-sum-ok');
+  const lowEl = document.getElementById('inv-sum-low');
+  const outEl = document.getElementById('inv-sum-out');
+  const expEl = document.getElementById('inv-sum-exp');
+  if (!totalEl) return;
+  const total = enriched.length;
+  const ok = enriched.filter(r => r.statusType === 'ok').length;
+  const low = enriched.filter(r => r.statusType === 'low').length;
+  const out = enriched.filter(r => r.statusType === 'out').length;
+  const exp = enriched.filter(r => r.hasExpiringBatch).length;
+  totalEl.textContent = total;
+  okEl.textContent = ok;
+  lowEl.textContent = low;
+  outEl.textContent = out;
+  expEl.textContent = exp;
 }
 
 function renderAdjustments() {
@@ -3090,9 +3431,9 @@ function renderDashboard() {
   document.getElementById('stat-expiring').textContent = expiring.length;
   const expEl = document.getElementById('expiring-list');
   if (expiring.length === 0) expEl.innerHTML = '<p style="color:#16a34a">✅ 沒有即將到期的商品</p>';
-  else expEl.innerHTML = '<table><thead><tr><th>商品</th><th>批號</th><th>數量</th><th>到期日</th><th>剩餘天數</th></tr></thead><tbody>' +
+  else expEl.innerHTML = '<table><thead><tr><th>商品</th><th>數量</th><th>有效期限</th><th>剩餘天數</th></tr></thead><tbody>' +
     expiring.sort((a,b) => a.daysLeft - b.daysLeft).map(e =>
-      `<tr><td>${e.productName}</td><td>${e.batch}</td><td>${e.qty}</td><td>${e.expiry}</td><td>${e.daysLeft < 0 ? '<span class="badge badge-danger">已過期 '+(-e.daysLeft)+'天</span>' : '<span class="badge badge-warning">'+e.daysLeft+'天</span>'}</td></tr>`
+      `<tr><td data-label="商品">${e.productName}</td><td data-label="數量">${e.qty}</td><td data-label="有效期限">${e.expiry}</td><td data-label="剩餘天數">${e.daysLeft < 0 ? '<span class="badge badge-danger">已過期 '+(-e.daysLeft)+'天</span>' : '<span class="badge badge-warning">'+e.daysLeft+'天</span>'}</td></tr>`
     ).join('') + '</tbody></table>';
 
   // 套用儲存的卡片排序 + 重新綁定拖拉
@@ -3608,7 +3949,7 @@ function renderCustomerDetailLists() {
       const p = products.find(x => x.id === parseInt(pid));
       if (!p) return '';
       return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:white; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:6px">
-        <span><strong>💰 ${p.name}</strong> → 專屬價 <strong style="color:#16a34a">$${price}</strong> <span style="color:#64748b; font-size:12px">(零售 $${p.retail} / 批發 $${p.wholesale})</span></span>
+        <span><strong>💰 ${p.name}</strong> → 專屬價 <strong style="color:#16a34a">$${price}</strong></span>
         <button class="btn btn-danger" onclick="removeCustomPrice(${pid})">移除</button>
       </div>`;
     }).join('');
