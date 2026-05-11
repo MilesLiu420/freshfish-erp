@@ -1319,11 +1319,31 @@
       <div style="color:#64748b; font-size:13px" id="adj-product-info"></div>
     </div>
 
-    <div class="form-row">
+    <!-- 箱裝商品：顯示「N 箱 + M 包」雙輸入 -->
+    <div id="adj-box-row" class="form-row" style="display:none">
+      <div class="form-group">
+        <label>📦 箱</label>
+        <input id="adj-boxes" type="number" min="0" step="1" placeholder="0" oninput="updateAdjDiff()">
+        <div style="font-size:12px;color:#64748b;margin-top:4px" id="adj-box-hint"></div>
+      </div>
+      <div class="form-group">
+        <label id="adj-pack-label">+ 散包</label>
+        <input id="adj-extra-packs" type="number" min="0" step="0.01" placeholder="0" oninput="updateAdjDiff()">
+        <div style="font-size:12px;color:#64748b;margin-top:4px">沒有就填 0</div>
+      </div>
+    </div>
+
+    <!-- 散裝商品：單一輸入 -->
+    <div id="adj-pack-row" class="form-row">
       <div class="form-group" style="grid-column: 1 / -1;">
         <label>📋 實際盤點數量 *</label>
         <input id="adj-actual" type="number" step="0.01" placeholder="輸入實際盤點到的數量" oninput="updateAdjDiff()">
       </div>
+    </div>
+
+    <!-- 換算後總數（箱裝才顯示） -->
+    <div id="adj-converted-display" style="display:none; background:#ecfdf5; padding:10px 14px; border-radius:8px; margin-bottom:16px; border-left:4px solid #16a34a">
+      <div style="font-size:13px; color:#065f46">合計實際盤點 = <strong id="adj-converted-value" style="font-size:18px">0 包</strong></div>
     </div>
 
     <div id="adj-diff-display" style="display:none; background:#fef3c7; padding:12px 16px; border-radius:8px; margin-bottom:16px; border-left:4px solid #f59e0b">
@@ -3629,17 +3649,53 @@ function openAdjustModal(productId, warehouseId) {
   const warehouse = warehouses.find(w => w.id === warehouseId);
   if (!product || !warehouse) return;
   const before = calcStock(productId, warehouseId);
-  adjustingContext = { productId, warehouseId, before };
+  const ppb = product.packsPerBox || 1;
+  adjustingContext = { productId, warehouseId, before, ppb };
 
   document.getElementById('adj-title').textContent = `🔄 盤點調整：${product.name}`;
-  document.getElementById('adj-current').textContent = before + ' ' + product.unit;
-  document.getElementById('adj-product-info').innerHTML = `${warehouseLogoHTML(warehouseId)}<strong>${warehouse.name}</strong>${product.spec ? ' · '+product.spec : ''}`;
-  document.getElementById('adj-actual').value = '';
+
+  // 系統目前庫存顯示：箱裝商品額外顯示「≈ N 箱 + M 包」
+  let currentHTML = `${before} ${product.unit}`;
+  if (ppb >= 2 && before > 0) {
+    const b = Math.floor(before / ppb);
+    const r = before % ppb;
+    let conv = '';
+    if (b > 0 && r > 0) conv = `${b} 箱 + ${r} ${product.unit}`;
+    else if (b > 0) conv = `${b} 箱（整箱）`;
+    else if (r > 0) conv = `不足一箱（${r} ${product.unit}）`;
+    if (conv) currentHTML += `<div style="font-size:14px;color:#088395;font-weight:600;margin-top:4px">≈ ${conv}</div>`;
+  }
+  document.getElementById('adj-current').innerHTML = currentHTML;
+  document.getElementById('adj-product-info').innerHTML = `${warehouseLogoHTML(warehouseId)}<strong>${warehouse.name}</strong>${product.spec ? ' · '+product.spec : ''}${ppb >= 2 ? ` · <span style="color:#088395;font-weight:600">1箱=${ppb}${product.unit}</span>` : ''}`;
+
+  // 切換輸入區塊
+  const boxRow = document.getElementById('adj-box-row');
+  const packRow = document.getElementById('adj-pack-row');
+  const boxesInput = document.getElementById('adj-boxes');
+  const extraInput = document.getElementById('adj-extra-packs');
+  const actualInput = document.getElementById('adj-actual');
+  if (ppb >= 2) {
+    // 箱裝商品：顯示箱+包雙輸入
+    boxRow.style.display = '';
+    packRow.style.display = 'none';
+    boxesInput.value = '';
+    extraInput.value = '';
+    document.getElementById('adj-box-hint').textContent = `1 箱 = ${ppb} ${product.unit}`;
+    document.getElementById('adj-pack-label').textContent = `+ 散${product.unit}`;
+    setTimeout(() => boxesInput.focus(), 100);
+  } else {
+    // 散裝：單一輸入
+    boxRow.style.display = 'none';
+    packRow.style.display = '';
+    actualInput.value = '';
+    setTimeout(() => actualInput.focus(), 100);
+  }
+
   document.getElementById('adj-note').value = '';
   document.getElementById('adj-reason').selectedIndex = 0;
   document.getElementById('adj-diff-display').style.display = 'none';
+  document.getElementById('adj-converted-display').style.display = 'none';
   document.getElementById('adjust-modal').classList.add('show');
-  setTimeout(() => document.getElementById('adj-actual').focus(), 100);
 }
 
 function closeAdjustModal() {
@@ -3647,21 +3703,66 @@ function closeAdjustModal() {
   adjustingContext = null;
 }
 
+// 計算實際盤點數量（總包數）
+function getAdjActualPacks() {
+  if (!adjustingContext) return NaN;
+  const ppb = adjustingContext.ppb || 1;
+  if (ppb >= 2) {
+    const boxesStr = document.getElementById('adj-boxes').value;
+    const extraStr = document.getElementById('adj-extra-packs').value;
+    if (boxesStr === '' && extraStr === '') return NaN;
+    const boxes = parseFloat(boxesStr) || 0;
+    const extra = parseFloat(extraStr) || 0;
+    return boxes * ppb + extra;
+  }
+  const v = parseFloat(document.getElementById('adj-actual').value);
+  return isNaN(v) ? NaN : v;
+}
+
 function updateAdjDiff() {
   if (!adjustingContext) return;
-  const actual = parseFloat(document.getElementById('adj-actual').value);
+  const product = products.find(p => p.id === adjustingContext.productId);
+  const unit = product ? product.unit : '包';
+  const ppb = adjustingContext.ppb || 1;
+  const actual = getAdjActualPacks();
   const display = document.getElementById('adj-diff-display');
   const value = document.getElementById('adj-diff-value');
+  const convDisplay = document.getElementById('adj-converted-display');
+  const convValue = document.getElementById('adj-converted-value');
+
   if (isNaN(actual)) {
     display.style.display = 'none';
+    convDisplay.style.display = 'none';
     return;
   }
+
+  // 換算後合計（箱裝才顯示）
+  if (ppb >= 2) {
+    const boxes = parseFloat(document.getElementById('adj-boxes').value) || 0;
+    const extra = parseFloat(document.getElementById('adj-extra-packs').value) || 0;
+    convValue.innerHTML = `${actual} ${unit} <span style="color:#64748b;font-size:14px;font-weight:500">(${boxes} 箱 × ${ppb} + ${extra} = ${actual})</span>`;
+    convDisplay.style.display = 'block';
+  } else {
+    convDisplay.style.display = 'none';
+  }
+
   const diff = actual - adjustingContext.before;
   display.style.display = 'block';
+  // 差額也顯示箱數換算
+  const formatDiffPacks = (n) => {
+    if (ppb < 2 || Math.abs(n) < ppb) return `${n} ${unit}`;
+    const absN = Math.abs(n);
+    const b = Math.floor(absN / ppb);
+    const r = absN % ppb;
+    let str = (n < 0 ? '-' : '+') + absN + ` ${unit}`;
+    if (b > 0 && r > 0) str += ` (${b} 箱 + ${r} ${unit})`;
+    else if (b > 0) str += ` (${b} 箱)`;
+    return str;
+  };
   if (diff > 0) {
-    value.innerHTML = `<span style="color:#16a34a">+${diff} 包（盤盈）</span>`;
+    value.innerHTML = `<span style="color:#16a34a">${formatDiffPacks(diff)}（盤盈）</span>`;
   } else if (diff < 0) {
-    value.innerHTML = `<span style="color:#dc2626">${diff} 包（盤損）</span>`;
+    value.innerHTML = `<span style="color:#dc2626">${formatDiffPacks(diff)}（盤損）</span>`;
   } else {
     value.innerHTML = `<span style="color:#64748b">0（無差異）</span>`;
   }
@@ -3669,7 +3770,7 @@ function updateAdjDiff() {
 
 function confirmAdjust() {
   if (!adjustingContext) return;
-  const actual = parseFloat(document.getElementById('adj-actual').value);
+  const actual = getAdjActualPacks();
   const reason = document.getElementById('adj-reason').value;
   const note = document.getElementById('adj-note').value;
   if (isNaN(actual)) { alert('請輸入實際盤點數量'); return; }
@@ -3693,7 +3794,9 @@ function confirmAdjust() {
   DB.save('adjustments', adjustments);
   closeAdjustModal();
   renderInventory();
-  alert(`✅ 盤點調整完成！\n${diff > 0 ? '增加' : diff < 0 ? '減少' : '差異為'} ${Math.abs(diff)} 包`);
+  const product = products.find(p => p.id === adjustingContext?.productId);
+  const unit = product ? product.unit : '包';
+  alert(`✅ 盤點調整完成！\n${diff > 0 ? '增加' : diff < 0 ? '減少' : '差異為'} ${Math.abs(diff)} ${unit}`);
 }
 
 // ============ 身分系統 ============
