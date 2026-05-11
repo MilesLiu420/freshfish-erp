@@ -864,11 +864,13 @@
           <div class="rec-field"><label>📦 倉庫</label><select id="pu-filter-warehouse" onchange="renderPurchases()"><option value="">全部倉庫</option></select></div>
           <div class="rec-field"><label>🏭 供應商</label><select id="pu-filter-supplier" onchange="renderPurchases()"><option value="">全部供應商</option></select></div>
           <div class="rec-field"><label>🐟 商品</label><select id="pu-filter-product" onchange="renderPurchases()"><option value="">全部商品</option></select></div>
+          <div class="rec-field"><label>🌍 國家</label><select id="pu-filter-country" onchange="renderPurchases()"><option value="">全部國家</option></select></div>
           <button class="rec-clear-btn" onclick="clearPurchaseFilters()">🔄 清除篩選</button>
+          <datalist id="pu-country-list"></datalist>
         </div>
         <div class="rec-result-info" id="pu-result-info"></div>
         <table>
-          <thead><tr><th>日期</th><th>倉庫</th><th>供應商</th><th>商品</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>到期日</th><th>記錄者</th><th>操作</th></tr></thead>
+          <thead><tr><th>日期</th><th>倉庫</th><th>供應商</th><th>商品</th><th>🌍 國家</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>到期日</th><th>記錄者</th><th>操作</th></tr></thead>
           <tbody id="purchase-tbody"></tbody>
         </table>
         <div class="rec-pagination" id="pu-pagination"></div>
@@ -2380,7 +2382,8 @@ function addPurchaseLine() {
     packsPerBox: 1,
     costPerBox: 0,
     batch: '',
-    expiry: ''
+    expiry: '',
+    country: ''
   });
   renderPurchaseLines();
 }
@@ -2439,6 +2442,28 @@ function updatePurchaseTotals() {
   document.getElementById('pu-total-amount').textContent = '$' + totalAmt.toLocaleString();
 }
 
+// 從現有進貨資料萃取出曾用過的國家清單，做自動完成
+function getUsedCountries() {
+  const set = new Set();
+  purchases.forEach(p => { if (p.country) set.add(p.country); });
+  return Array.from(set).sort();
+}
+function refreshCountryDatalist() {
+  const list = getUsedCountries();
+  const html = list.map(c => `<option value="${c}"></option>`).join('');
+  // 進貨紀錄頁面有 datalist
+  const dl1 = document.getElementById('pu-country-list');
+  if (dl1) dl1.innerHTML = html;
+  // 進貨登記明細區也可能有一個獨立 datalist（動態插入用）
+  return html;
+}
+// 進貨明細區用（會在 renderPurchaseLines 拼到 HTML 尾端）
+function buildCountryDatalist() {
+  // 為避免和紀錄頁的 datalist 衝突，在登記明細區用不同 ID
+  const list = getUsedCountries();
+  return `<datalist id="pu-country-list-form">${list.map(c => `<option value="${c}"></option>`).join('')}</datalist>`;
+}
+
 function renderPurchaseLines() {
   const wrap = document.getElementById('pu-lines');
   wrap.innerHTML = currentPurchaseLines.map((l, idx) => {
@@ -2474,9 +2499,12 @@ function renderPurchaseLines() {
         <div class="form-group"><label>保存期限</label>
           <input type="date" value="${l.expiry}" oninput="updatePurchaseLine(${l.lineId}, 'expiry', this.value)">
         </div>
+        <div class="form-group"><label>🌍 國家（產地）</label>
+          <input type="text" value="${l.country || ''}" placeholder="例如：挪威、阿根廷" oninput="updatePurchaseLine(${l.lineId}, 'country', this.value)" list="pu-country-list-form">
+        </div>
       </div>
     </div>`;
-  }).join('');
+  }).join('') + buildCountryDatalist();
   // 渲染後更新所有計算顯示
   currentPurchaseLines.forEach(l => updatePurchaseLineCalc(l.lineId));
   updatePurchaseTotals();
@@ -2514,6 +2542,7 @@ function submitPurchase() {
       costPerBox: l.costPerBox,
       batch: l.batch,
       expiry: l.expiry,
+      country: l.country || '',
       note,
       recorder: currentUserName()
     });
@@ -2542,7 +2571,7 @@ function renderPurchases() {
   const tbody = document.getElementById('purchase-tbody');
   const infoEl = document.getElementById('pu-result-info');
   if (purchases.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="11" class="empty"><div class="icon">🚚</div>還沒有進貨紀錄</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="empty"><div class="icon">🚚</div>還沒有進貨紀錄</td></tr>';
     if (infoEl) infoEl.innerHTML = '';
     renderPagination('pu-pagination', 0, 1, 'purchase');
     return;
@@ -2553,6 +2582,7 @@ function renderPurchases() {
   const fW = parseInt(document.getElementById('pu-filter-warehouse')?.value) || null;
   const fS = parseInt(document.getElementById('pu-filter-supplier')?.value) || null;
   const fP = parseInt(document.getElementById('pu-filter-product')?.value) || null;
+  const fCountry = document.getElementById('pu-filter-country')?.value || '';
 
   const filtered = purchases.filter(p => {
     if (fFrom && p.date < fFrom) return false;
@@ -2560,6 +2590,7 @@ function renderPurchases() {
     if (fW && p.warehouseId !== fW) return false;
     if (fS && p.supplierId !== fS) return false;
     if (fP && p.productId !== fP) return false;
+    if (fCountry && (p.country || '') !== fCountry) return false;
     return true;
   });
   const sorted = filtered.sort((a,b) => b.date.localeCompare(a.date));
@@ -2575,7 +2606,7 @@ function renderPurchases() {
   }
 
   if (sorted.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="11" class="empty">沒有符合篩選條件的進貨紀錄</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="empty">沒有符合篩選條件的進貨紀錄</td></tr>';
     renderPagination('pu-pagination', 0, 1, 'purchase');
     return;
   }
@@ -2603,6 +2634,7 @@ function renderPurchases() {
         <td data-label="倉庫"><select id="ep-warehouse-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts}</select></td>
         <td data-label="供應商"><select id="ep-supplier-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${sOpts}</select></td>
         <td data-label="商品"><select id="ep-product-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${prodOpts}</select></td>
+        <td data-label="🌍 國家"><input id="ep-country-${p.id}" type="text" value="${p.country || ''}" placeholder="例如：挪威" style="width:110px;padding:6px;border:1.5px solid #088395;border-radius:6px" list="pu-country-list"></td>
         <td data-label="箱×包">
           <input id="ep-boxes-${p.id}" type="number" step="0.01" value="${boxes}" style="width:60px;padding:6px;border:1.5px solid #088395;border-radius:6px" placeholder="箱">
           ×
@@ -2626,6 +2658,7 @@ function renderPurchases() {
       <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(p.warehouseId)}</td>
       <td data-label="供應商">${supplier ? supplier.name : '-'}</td>
       <td data-label="商品">${product ? product.name : '已刪除'}</td>
+      <td data-label="🌍 國家" style="white-space:nowrap">${p.country ? `<span class="badge badge-info">${p.country}</span>` : '-'}</td>
       <td data-label="箱×包" style="white-space:nowrap">${boxInfo}</td>
       <td data-label="包數">${p.qty}</td>
       <td data-label="每包成本" style="white-space:nowrap">$${(p.price || 0).toFixed(2)}</td>
@@ -2639,6 +2672,7 @@ function renderPurchases() {
     </tr>`;
   }).join('');
 
+  refreshCountryDatalist();
   renderPagination('pu-pagination', sorted.length, recPagination.purchase, 'purchase');
 }
 
@@ -2675,6 +2709,7 @@ function savePurchaseEdit(id) {
   const packsPerBox = parseFloat(document.getElementById('ep-packs-' + id).value) || 0;
   const costPerBox = parseFloat(document.getElementById('ep-costbox-' + id).value) || 0;
   const expiry = document.getElementById('ep-expiry-' + id).value;
+  const country = (document.getElementById('ep-country-' + id)?.value || '').trim();
 
   if (!date || !warehouseId || !productId || boxes <= 0 || packsPerBox <= 0 || costPerBox <= 0) {
     alert('請完整填寫日期、倉庫、商品、箱數、每箱包數、整箱成本');
@@ -2691,6 +2726,7 @@ function savePurchaseEdit(id) {
   p.qty = boxes * packsPerBox;
   p.price = costPerBox / packsPerBox;
   p.expiry = expiry;
+  p.country = country;
 
   DB.save('purchases', purchases);
   editingPurchaseId = null;
@@ -3309,6 +3345,9 @@ function rebuildRecordFilterSelects() {
   setSel('pu-filter-warehouse', wOpts);
   setSel('pu-filter-supplier', sOpts);
   setSel('pu-filter-product', pOpts);
+  const countries = getUsedCountries();
+  const countryOpts = '<option value="">全部國家</option>' + countries.map(c => `<option value="${c}">${c}</option>`).join('');
+  setSel('pu-filter-country', countryOpts);
   setSel('sa-filter-warehouse', wOpts);
   setSel('sa-filter-customer', cOpts);
   setSel('sa-filter-product', pOpts);
@@ -3318,7 +3357,7 @@ function rebuildRecordFilterSelects() {
 }
 
 function clearPurchaseFilters() {
-  ['pu-filter-from','pu-filter-to','pu-filter-warehouse','pu-filter-supplier','pu-filter-product'].forEach(id => {
+  ['pu-filter-from','pu-filter-to','pu-filter-warehouse','pu-filter-supplier','pu-filter-product','pu-filter-country'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   recPagination.purchase = 1;
