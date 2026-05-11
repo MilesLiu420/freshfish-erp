@@ -111,6 +111,48 @@
   td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
   tr:hover { background: #f8fafc; }
 
+  /* ===== 紀錄篩選工具列 + 分頁 ===== */
+  .rec-toolbar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px; margin-bottom: 14px; padding: 14px; background: #f8fafc;
+    border-radius: 10px; border: 1px solid #e2e8f0;
+  }
+  .rec-toolbar .rec-field { display: flex; flex-direction: column; gap: 4px; }
+  .rec-toolbar .rec-field label { font-size: 12px; color: #64748b; font-weight: 600; }
+  .rec-toolbar .rec-field input,
+  .rec-toolbar .rec-field select {
+    padding: 8px 10px; border: 1.5px solid #cbd5e1; border-radius: 8px;
+    font-size: 14px; background: white;
+  }
+  .rec-toolbar .rec-field input:focus,
+  .rec-toolbar .rec-field select:focus {
+    outline: none; border-color: #088395; box-shadow: 0 0 0 3px rgba(8,131,149,0.1);
+  }
+  .rec-toolbar .rec-clear-btn {
+    padding: 8px 14px; background: #e2e8f0; color: #475569;
+    border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;
+    align-self: flex-end; height: 36px;
+  }
+  .rec-toolbar .rec-clear-btn:hover { background: #cbd5e1; }
+  .rec-result-info {
+    font-size: 13px; color: #64748b; margin-bottom: 10px;
+  }
+  .rec-result-info strong { color: #088395; }
+  .rec-pagination {
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8f0;
+    flex-wrap: wrap;
+  }
+  .rec-page-btn {
+    padding: 8px 14px; background: white; border: 1.5px solid #cbd5e1;
+    border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
+    color: #475569; transition: 0.15s; min-width: 44px;
+  }
+  .rec-page-btn:hover:not(:disabled) { background: #088395; color: white; border-color: #088395; }
+  .rec-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .rec-page-info { font-size: 14px; color: #475569; margin: 0 8px; font-weight: 600; }
+
   /* ===== 單位切換按鈕（箱/包） ===== */
   .unit-toggle {
     display: inline-flex; gap: 0; border: 1.5px solid #cbd5e1; border-radius: 10px;
@@ -816,10 +858,20 @@
       </div>
       <div class="card">
         <div class="card-title">最近進貨紀錄</div>
+        <div class="rec-toolbar">
+          <div class="rec-field"><label>📅 起始日期</label><input id="pu-filter-from" type="date" oninput="renderPurchases()"></div>
+          <div class="rec-field"><label>📅 結束日期</label><input id="pu-filter-to" type="date" oninput="renderPurchases()"></div>
+          <div class="rec-field"><label>📦 倉庫</label><select id="pu-filter-warehouse" onchange="renderPurchases()"><option value="">全部倉庫</option></select></div>
+          <div class="rec-field"><label>🏭 供應商</label><select id="pu-filter-supplier" onchange="renderPurchases()"><option value="">全部供應商</option></select></div>
+          <div class="rec-field"><label>🐟 商品</label><select id="pu-filter-product" onchange="renderPurchases()"><option value="">全部商品</option></select></div>
+          <button class="rec-clear-btn" onclick="clearPurchaseFilters()">🔄 清除篩選</button>
+        </div>
+        <div class="rec-result-info" id="pu-result-info"></div>
         <table>
           <thead><tr><th>日期</th><th>倉庫</th><th>供應商</th><th>商品</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>到期日</th><th>記錄者</th><th>操作</th></tr></thead>
           <tbody id="purchase-tbody"></tbody>
         </table>
+        <div class="rec-pagination" id="pu-pagination"></div>
       </div>
     </div>
 
@@ -875,10 +927,20 @@
       </div>
       <div class="card">
         <div class="card-title">最近銷貨紀錄</div>
+        <div class="rec-toolbar">
+          <div class="rec-field"><label>📅 起始日期</label><input id="sa-filter-from" type="date" oninput="renderSales()"></div>
+          <div class="rec-field"><label>📅 結束日期</label><input id="sa-filter-to" type="date" oninput="renderSales()"></div>
+          <div class="rec-field"><label>📦 倉庫</label><select id="sa-filter-warehouse" onchange="renderSales()"><option value="">全部倉庫</option></select></div>
+          <div class="rec-field"><label>👤 客戶</label><select id="sa-filter-customer" onchange="renderSales()"><option value="">全部客戶</option></select></div>
+          <div class="rec-field"><label>🐟 商品</label><select id="sa-filter-product" onchange="renderSales()"><option value="">全部商品</option></select></div>
+          <button class="rec-clear-btn" onclick="clearSaleFilters()">🔄 清除篩選</button>
+        </div>
+        <div class="rec-result-info" id="sa-result-info"></div>
         <table>
           <thead><tr><th>日期</th><th>倉庫</th><th>客戶</th><th>類型</th><th>商品</th><th>數量</th><th>單價</th><th>金額</th><th>記錄者</th><th>操作</th></tr></thead>
           <tbody id="sale-tbody"></tbody>
         </table>
+        <div class="rec-pagination" id="sa-pagination"></div>
       </div>
     </div>
 
@@ -916,10 +978,20 @@
 
       <div class="card">
         <div class="card-title">📋 最近轉倉紀錄</div>
+        <div class="rec-toolbar">
+          <div class="rec-field"><label>📅 起始日期</label><input id="tr-filter-from" type="date" oninput="renderTransfers()"></div>
+          <div class="rec-field"><label>📅 結束日期</label><input id="tr-filter-to" type="date" oninput="renderTransfers()"></div>
+          <div class="rec-field"><label>📤 來源倉庫</label><select id="tr-filter-from-w" onchange="renderTransfers()"><option value="">全部</option></select></div>
+          <div class="rec-field"><label>📥 目的倉庫</label><select id="tr-filter-to-w" onchange="renderTransfers()"><option value="">全部</option></select></div>
+          <div class="rec-field"><label>🐟 商品</label><select id="tr-filter-product" onchange="renderTransfers()"><option value="">全部商品</option></select></div>
+          <button class="rec-clear-btn" onclick="clearTransferFilters()">🔄 清除篩選</button>
+        </div>
+        <div class="rec-result-info" id="tr-result-info"></div>
         <table>
-          <thead><tr><th>日期</th><th>來源</th><th>→</th><th>目的</th><th>商品</th><th>數量</th><th>備註</th><th>記錄者</th><th></th></tr></thead>
+          <thead><tr><th>日期</th><th>來源</th><th>→</th><th>目的</th><th>商品</th><th>數量</th><th>備註</th><th>記錄者</th><th>操作</th></tr></thead>
           <tbody id="transfer-tbody"></tbody>
         </table>
+        <div class="rec-pagination" id="tr-pagination"></div>
       </div>
     </div>
 
@@ -950,6 +1022,11 @@
         <div class="inv-toolbar">
           <div class="inv-search-wrap">
             <input id="inv-search" placeholder="🔍 搜尋商品名稱/規格" oninput="renderInventory()">
+          </div>
+          <div class="inv-search-wrap" style="flex:0 0 200px; min-width:160px">
+            <select id="inv-category" onchange="renderInventory()" style="width:100%;padding:12px 16px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:15px;background:white">
+              <option value="">🏷️ 全部分類</option>
+            </select>
           </div>
           <div class="inv-filter-pills">
             <button class="inv-pill active" data-filter="all" onclick="setInvFilter('all')">全部</button>
@@ -1540,9 +1617,9 @@ function showPage(pageId, el) {
 
   if (pageId === 'dashboard') { renderWarehouseSelects(); renderDashboard(); }
   if (pageId === 'products') { renderProductCategories(); renderProducts(); }
-  if (pageId === 'purchase') { renderPurchaseSelects(); renderPurchases(); }
-  if (pageId === 'sale') { renderSaleSelects(); renderSales(); }
-  if (pageId === 'transfer') { renderTransferSelects(); renderTransfers(); }
+  if (pageId === 'purchase') { renderPurchaseSelects(); rebuildRecordFilterSelects(); renderPurchases(); }
+  if (pageId === 'sale') { renderSaleSelects(); rebuildRecordFilterSelects(); renderSales(); }
+  if (pageId === 'transfer') { renderTransferSelects(); rebuildRecordFilterSelects(); renderTransfers(); }
   if (pageId === 'inventory') { renderWarehouseSelects(); renderInventory(); }
   if (pageId === 'report') { renderWarehouseSelects(); renderReport(); }
   if (pageId === 'contacts') {
@@ -2016,25 +2093,121 @@ function deleteTransfer(id) {
 function renderTransfers() {
   const tbody = document.getElementById('transfer-tbody');
   if (!tbody) return;
+  const infoEl = document.getElementById('tr-result-info');
   if (transfers.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" class="empty"><div class="icon">🔄</div>還沒有轉倉紀錄</td></tr>';
+    if (infoEl) infoEl.innerHTML = '';
+    renderPagination('tr-pagination', 0, 1, 'transfer');
     return;
   }
-  const sorted = [...transfers].sort((a, b) => b.id - a.id).slice(0, 50);
-  tbody.innerHTML = sorted.map(t => {
+  // 篩選
+  const fFrom = document.getElementById('tr-filter-from')?.value || '';
+  const fTo = document.getElementById('tr-filter-to')?.value || '';
+  const fFromW = parseInt(document.getElementById('tr-filter-from-w')?.value) || null;
+  const fToW = parseInt(document.getElementById('tr-filter-to-w')?.value) || null;
+  const fP = parseInt(document.getElementById('tr-filter-product')?.value) || null;
+  const filtered = transfers.filter(t => {
+    if (fFrom && t.date < fFrom) return false;
+    if (fTo && t.date > fTo) return false;
+    if (fFromW && t.fromWarehouseId !== fFromW) return false;
+    if (fToW && t.toWarehouseId !== fToW) return false;
+    if (fP && t.productId !== fP) return false;
+    return true;
+  });
+  const sorted = filtered.sort((a, b) => b.id - a.id);
+
+  if (infoEl) {
+    if (filtered.length !== transfers.length) {
+      infoEl.innerHTML = `🔍 篩選後共 <strong>${filtered.length}</strong> 筆 / 全部 ${transfers.length} 筆`;
+    } else {
+      infoEl.innerHTML = `共 <strong>${transfers.length}</strong> 筆`;
+    }
+  }
+
+  if (sorted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">沒有符合篩選條件的轉倉紀錄</td></tr>';
+    renderPagination('tr-pagination', 0, 1, 'transfer');
+    return;
+  }
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  if (recPagination.transfer > totalPages) recPagination.transfer = totalPages;
+  const start = (recPagination.transfer - 1) * PAGE_SIZE;
+  const pageItems = sorted.slice(start, start + PAGE_SIZE);
+
+  tbody.innerHTML = pageItems.map(t => {
     const product = products.find(x => x.id === t.productId);
+
+    // 編輯模式
+    if (editingTransferId === t.id) {
+      const wOpts = warehouses.map(w => `<option value="${w.id}" ${t.fromWarehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
+      const wOpts2 = warehouses.map(w => `<option value="${w.id}" ${t.toWarehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
+      const prodOpts = products.map(x => `<option value="${x.id}" ${t.productId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
+      return `<tr style="background:#fef9c3">
+        <td data-label="日期"><input id="et-date-${t.id}" type="date" value="${t.date}" style="width:140px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="來源"><select id="et-from-${t.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts}</select></td>
+        <td style="text-align:center; font-size:18px; color:#088395">→</td>
+        <td data-label="目的"><select id="et-to-${t.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts2}</select></td>
+        <td data-label="商品"><select id="et-product-${t.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${prodOpts}</select></td>
+        <td data-label="數量"><input id="et-qty-${t.id}" type="number" step="0.01" value="${t.qty}" style="width:80px;padding:6px;border:1.5px solid #088395;border-radius:6px"> 包</td>
+        <td data-label="備註"><input id="et-note-${t.id}" value="${t.note || ''}" style="width:100%;padding:6px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="記錄者">${recorderBadge(t.recorder)}</td>
+        <td data-label="操作">
+          <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="saveTransferEdit(${t.id})">💾 儲存</button>
+          <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:4px" onclick="cancelTransferEdit()">取消</button>
+        </td>
+      </tr>`;
+    }
+
     return `<tr>
-      <td>${t.date}</td>
-      <td>${warehouseBadgeHTML(t.fromWarehouseId)}</td>
+      <td data-label="日期" style="white-space:nowrap">${t.date}</td>
+      <td data-label="來源" style="white-space:nowrap">${warehouseBadgeHTML(t.fromWarehouseId)}</td>
       <td style="text-align:center; font-size:18px; color:#088395">→</td>
-      <td>${warehouseBadgeHTML(t.toWarehouseId)}</td>
-      <td>${product ? product.name : '已刪除'}</td>
-      <td><strong>${t.qty} 包</strong></td>
-      <td style="font-size:12px">${t.note || '-'}</td>
-      <td>${recorderBadge(t.recorder)}</td>
-      <td><button class="btn btn-danger" onclick="deleteTransfer(${t.id})">刪除</button></td>
+      <td data-label="目的" style="white-space:nowrap">${warehouseBadgeHTML(t.toWarehouseId)}</td>
+      <td data-label="商品">${product ? product.name : '已刪除'}</td>
+      <td data-label="數量"><strong>${t.qty} 包</strong></td>
+      <td data-label="備註" style="font-size:12px">${t.note || '-'}</td>
+      <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(t.recorder)}</td>
+      <td data-label="操作" style="white-space:nowrap">
+        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startTransferEdit(${t.id})">✏️ 編輯</button>
+        <button class="btn btn-danger" style="margin-left:4px" onclick="deleteTransfer(${t.id})">刪除</button>
+      </td>
     </tr>`;
   }).join('');
+
+  renderPagination('tr-pagination', sorted.length, recPagination.transfer, 'transfer');
+}
+
+let editingTransferId = null;
+function startTransferEdit(id) { editingTransferId = id; renderTransfers(); }
+function cancelTransferEdit() { editingTransferId = null; renderTransfers(); }
+function saveTransferEdit(id) {
+  const t = transfers.find(x => x.id === id);
+  if (!t) return;
+  const date = document.getElementById('et-date-' + id).value;
+  const fromW = parseInt(document.getElementById('et-from-' + id).value);
+  const toW = parseInt(document.getElementById('et-to-' + id).value);
+  const productId = parseInt(document.getElementById('et-product-' + id).value);
+  const qty = parseFloat(document.getElementById('et-qty-' + id).value) || 0;
+  const note = document.getElementById('et-note-' + id).value;
+
+  if (!date || !fromW || !toW || !productId || qty <= 0) {
+    alert('請完整填寫日期、來源/目的倉庫、商品、數量');
+    return;
+  }
+  if (fromW === toW) { alert('來源倉庫與目的倉庫不能相同'); return; }
+
+  t.date = date;
+  t.fromWarehouseId = fromW;
+  t.toWarehouseId = toW;
+  t.productId = productId;
+  t.qty = qty;
+  t.note = note;
+
+  DB.save('transfers', transfers);
+  editingTransferId = null;
+  renderTransfers();
+  if (typeof renderInventory === 'function') renderInventory();
+  alert('✅ 轉倉紀錄已更新');
 }
 
 // ============ 通用商品選擇器 ============
@@ -2347,12 +2520,53 @@ function deletePurchase(id) {
 
 function renderPurchases() {
   const tbody = document.getElementById('purchase-tbody');
+  const infoEl = document.getElementById('pu-result-info');
   if (purchases.length === 0) {
     tbody.innerHTML = '<tr><td colspan="11" class="empty"><div class="icon">🚚</div>還沒有進貨紀錄</td></tr>';
+    if (infoEl) infoEl.innerHTML = '';
+    renderPagination('pu-pagination', 0, 1, 'purchase');
     return;
   }
-  const sorted = [...purchases].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 50);
-  tbody.innerHTML = sorted.map(p => {
+  // 套用篩選
+  const fFrom = document.getElementById('pu-filter-from')?.value || '';
+  const fTo = document.getElementById('pu-filter-to')?.value || '';
+  const fW = parseInt(document.getElementById('pu-filter-warehouse')?.value) || null;
+  const fS = parseInt(document.getElementById('pu-filter-supplier')?.value) || null;
+  const fP = parseInt(document.getElementById('pu-filter-product')?.value) || null;
+
+  const filtered = purchases.filter(p => {
+    if (fFrom && p.date < fFrom) return false;
+    if (fTo && p.date > fTo) return false;
+    if (fW && p.warehouseId !== fW) return false;
+    if (fS && p.supplierId !== fS) return false;
+    if (fP && p.productId !== fP) return false;
+    return true;
+  });
+  const sorted = filtered.sort((a,b) => b.date.localeCompare(a.date));
+
+  // 結果統計
+  if (infoEl) {
+    if (filtered.length !== purchases.length) {
+      const totalAmt = filtered.reduce((s, p) => s + (p.qty || 0) * (p.price || 0), 0);
+      infoEl.innerHTML = `🔍 篩選後共 <strong>${filtered.length}</strong> 筆 / 全部 ${purchases.length} 筆 ｜ 篩選總金額：<strong>$${totalAmt.toLocaleString()}</strong>`;
+    } else {
+      infoEl.innerHTML = `共 <strong>${purchases.length}</strong> 筆`;
+    }
+  }
+
+  if (sorted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" class="empty">沒有符合篩選條件的進貨紀錄</td></tr>';
+    renderPagination('pu-pagination', 0, 1, 'purchase');
+    return;
+  }
+
+  // 分頁
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  if (recPagination.purchase > totalPages) recPagination.purchase = totalPages;
+  const start = (recPagination.purchase - 1) * PAGE_SIZE;
+  const pageItems = sorted.slice(start, start + PAGE_SIZE);
+
+  tbody.innerHTML = pageItems.map(p => {
     const product = products.find(x => x.id === p.productId);
     const supplier = suppliers.find(x => x.id === p.supplierId);
 
@@ -2404,6 +2618,8 @@ function renderPurchases() {
       </td>
     </tr>`;
   }).join('');
+
+  renderPagination('pu-pagination', sorted.length, recPagination.purchase, 'purchase');
 }
 
 let editingPurchaseId = null;
@@ -2857,12 +3073,55 @@ function formatSalePrice(s) {
 
 function renderSales() {
   const tbody = document.getElementById('sale-tbody');
+  const infoEl = document.getElementById('sa-result-info');
   if (sales.length === 0) {
     tbody.innerHTML = '<tr><td colspan="10" class="empty"><div class="icon">💰</div>還沒有銷貨紀錄</td></tr>';
+    if (infoEl) infoEl.innerHTML = '';
+    renderPagination('sa-pagination', 0, 1, 'sale');
     return;
   }
-  const sorted = [...sales].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 50);
-  tbody.innerHTML = sorted.map(s => {
+  // 篩選
+  const fFrom = document.getElementById('sa-filter-from')?.value || '';
+  const fTo = document.getElementById('sa-filter-to')?.value || '';
+  const fW = parseInt(document.getElementById('sa-filter-warehouse')?.value) || null;
+  const fC = parseInt(document.getElementById('sa-filter-customer')?.value) || null;
+  const fP = parseInt(document.getElementById('sa-filter-product')?.value) || null;
+
+  const filtered = sales.filter(s => {
+    if (fFrom && s.date < fFrom) return false;
+    if (fTo && s.date > fTo) return false;
+    if (fW && s.warehouseId !== fW) return false;
+    if (fC && s.customerId !== fC) return false;
+    if (fP && s.productId !== fP) return false;
+    return true;
+  });
+  const sorted = filtered.sort((a,b) => b.date.localeCompare(a.date));
+
+  if (infoEl) {
+    if (filtered.length !== sales.length) {
+      const totalAmt = filtered.reduce((acc, s) => {
+        const dq = s.displayQty != null ? s.displayQty : s.qty;
+        const dp = s.displayPrice != null ? s.displayPrice : s.price;
+        return acc + dq * dp;
+      }, 0);
+      infoEl.innerHTML = `🔍 篩選後共 <strong>${filtered.length}</strong> 筆 / 全部 ${sales.length} 筆 ｜ 篩選總金額：<strong>$${totalAmt.toLocaleString()}</strong>`;
+    } else {
+      infoEl.innerHTML = `共 <strong>${sales.length}</strong> 筆`;
+    }
+  }
+
+  if (sorted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">沒有符合篩選條件的銷貨紀錄</td></tr>';
+    renderPagination('sa-pagination', 0, 1, 'sale');
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  if (recPagination.sale > totalPages) recPagination.sale = totalPages;
+  const start = (recPagination.sale - 1) * PAGE_SIZE;
+  const pageItems = sorted.slice(start, start + PAGE_SIZE);
+
+  tbody.innerHTML = pageItems.map(s => {
     const product = products.find(x => x.id === s.productId);
     const customer = customers.find(x => x.id === s.customerId);
     const ppb = product ? (product.packsPerBox || 1) : 1;
@@ -2930,6 +3189,8 @@ function renderSales() {
       </td>
     </tr>`;
   }).join('');
+
+  renderPagination('sa-pagination', sorted.length, recPagination.sale, 'sale');
 }
 
 function toggleSaleEditUnit(saleId, mode) {
@@ -3008,6 +3269,77 @@ function saveSaleEdit(id) {
   alert('✅ 銷貨紀錄已更新');
 }
 
+// ============ 紀錄篩選/分頁 共用工具 ============
+const PAGE_SIZE = 50;
+const recPagination = { purchase: 1, sale: 1, transfer: 1 };
+
+function rebuildRecordFilterSelects() {
+  // 共用：把所有篩選器的下拉選項重建（每次資料變動時呼叫）
+  const wOpts = '<option value="">全部倉庫</option>' + warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+  const sOpts = '<option value="">全部供應商</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  const cOpts = '<option value="">全部客戶</option>' + customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  const pOpts = '<option value="">全部商品</option>' + products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  const setSel = (id, html) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = html;
+    el.value = cur;
+  };
+  setSel('pu-filter-warehouse', wOpts);
+  setSel('pu-filter-supplier', sOpts);
+  setSel('pu-filter-product', pOpts);
+  setSel('sa-filter-warehouse', wOpts);
+  setSel('sa-filter-customer', cOpts);
+  setSel('sa-filter-product', pOpts);
+  setSel('tr-filter-from-w', wOpts.replace('全部倉庫', '全部'));
+  setSel('tr-filter-to-w', wOpts.replace('全部倉庫', '全部'));
+  setSel('tr-filter-product', pOpts);
+}
+
+function clearPurchaseFilters() {
+  ['pu-filter-from','pu-filter-to','pu-filter-warehouse','pu-filter-supplier','pu-filter-product'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  recPagination.purchase = 1;
+  renderPurchases();
+}
+function clearSaleFilters() {
+  ['sa-filter-from','sa-filter-to','sa-filter-warehouse','sa-filter-customer','sa-filter-product'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  recPagination.sale = 1;
+  renderSales();
+}
+function clearTransferFilters() {
+  ['tr-filter-from','tr-filter-to','tr-filter-from-w','tr-filter-to-w','tr-filter-product'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  recPagination.transfer = 1;
+  renderTransfers();
+}
+
+function renderPagination(containerId, totalItems, currentPage, kind) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const cur = Math.min(currentPage, totalPages);
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+  const fn = kind === 'purchase' ? 'goPurchasePage' :
+             kind === 'sale' ? 'goSalePage' :
+             'goTransferPage';
+  el.innerHTML = `
+    <button class="rec-page-btn" ${cur === 1 ? 'disabled' : ''} onclick="${fn}(1)">⏮ 最初頁</button>
+    <button class="rec-page-btn" ${cur === 1 ? 'disabled' : ''} onclick="${fn}(${cur - 1})">◀ 上一頁</button>
+    <span class="rec-page-info">第 ${cur} / ${totalPages} 頁 (共 ${totalItems} 筆)</span>
+    <button class="rec-page-btn" ${cur === totalPages ? 'disabled' : ''} onclick="${fn}(${cur + 1})">下一頁 ▶</button>
+    <button class="rec-page-btn" ${cur === totalPages ? 'disabled' : ''} onclick="${fn}(${totalPages})">最終頁 ⏭</button>
+  `;
+}
+function goPurchasePage(p) { recPagination.purchase = p; renderPurchases(); }
+function goSalePage(p) { recPagination.sale = p; renderSales(); }
+function goTransferPage(p) { recPagination.transfer = p; renderTransfers(); }
+
 // ============ 庫存計算 ============
 // warehouseId: null 或 'all' 表示不分倉庫
 function calcStock(productId, warehouseId = null) {
@@ -3083,6 +3415,15 @@ function renderInventory() {
   const wFilter = wSelEl ? wSelEl.value : 'all';
   const wId = wFilter === 'all' ? 'all' : parseInt(wFilter);
 
+  // 重建分類下拉（保留目前選擇）
+  const catSel = document.getElementById('inv-category');
+  if (catSel) {
+    const cur = catSel.value;
+    catSel.innerHTML = '<option value="">🏷️ 全部分類</option><option value="none">未分類</option>' +
+      productCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    catSel.value = cur;
+  }
+
   // 更新表頭文字
   const header = document.getElementById('inv-stock-header');
   if (header) {
@@ -3124,9 +3465,12 @@ function renderInventory() {
   // 更新統計卡
   updateInventorySummary(enriched);
 
-  // 套用搜尋與篩選
+  // 套用搜尋、分類、狀態篩選
+  const catFilter = document.getElementById('inv-category')?.value || '';
   let filtered = enriched.filter(r => {
     if (search && !((r.p.name + (r.p.spec||'')).toLowerCase().includes(search))) return false;
+    if (catFilter === 'none' && r.p.categoryId) return false;
+    if (catFilter && catFilter !== 'none' && r.p.categoryId !== parseInt(catFilter)) return false;
     if (inventoryFilter === 'all') return true;
     if (inventoryFilter === 'exp') return r.hasExpiringBatch;
     return r.statusType === inventoryFilter;
@@ -4016,6 +4360,24 @@ function toggleFavorite(id) {
   if (c) { c.favorite = !c.favorite; DB.save('customers', customers); renderContacts(); }
 }
 
+let editingSupplierId = null;
+function startSupplierEdit(id) { editingSupplierId = id; renderContacts(); }
+function cancelSupplierEdit() { editingSupplierId = null; renderContacts(); }
+function saveSupplierEdit(id) {
+  const s = suppliers.find(x => x.id === id);
+  if (!s) return;
+  const name = document.getElementById('esup-name-' + id).value.trim();
+  if (!name) { alert('供應商名稱不能空白'); return; }
+  s.name = name;
+  s.contact = document.getElementById('esup-contact-' + id).value.trim();
+  s.phone = document.getElementById('esup-phone-' + id).value.trim();
+  s.note = document.getElementById('esup-note-' + id).value.trim();
+  DB.save('suppliers', suppliers);
+  editingSupplierId = null;
+  renderContacts();
+  alert('✅ 供應商資料已更新');
+}
+
 function renderContacts() {
   const tbody = document.getElementById('contacts-tbody');
   if (currentContactType === 'supplier') {
@@ -4023,18 +4385,36 @@ function renderContacts() {
       tbody.innerHTML = '<tr><td colspan="8" class="empty"><div class="icon">👥</div>還沒有供應商</td></tr>';
       return;
     }
-    tbody.innerHTML = suppliers.map(c => `
-      <tr>
-        <td>-</td>
-        <td><strong>${c.name}</strong></td>
-        <td>-</td>
-        <td>${c.contact || '-'}</td>
-        <td>${c.phone || '-'}</td>
-        <td>-</td>
-        <td>${c.note || '-'}</td>
-        <td><button class="btn btn-danger" onclick="deleteContact(${c.id})">刪除</button></td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = suppliers.map(c => {
+      if (editingSupplierId === c.id) {
+        return `<tr style="background:#fef9c3">
+          <td data-label="">-</td>
+          <td data-label="名稱"><input id="esup-name-${c.id}" value="${c.name || ''}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+          <td data-label="">-</td>
+          <td data-label="聯絡人"><input id="esup-contact-${c.id}" value="${c.contact || ''}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+          <td data-label="電話"><input id="esup-phone-${c.id}" value="${c.phone || ''}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+          <td data-label="">-</td>
+          <td data-label="備註"><input id="esup-note-${c.id}" value="${c.note || ''}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+          <td data-label="操作">
+            <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="saveSupplierEdit(${c.id})">💾 儲存</button>
+            <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:4px" onclick="cancelSupplierEdit()">取消</button>
+          </td>
+        </tr>`;
+      }
+      return `<tr>
+        <td data-label="">-</td>
+        <td data-label="名稱"><strong>${c.name}</strong></td>
+        <td data-label="">-</td>
+        <td data-label="聯絡人">${c.contact || '-'}</td>
+        <td data-label="電話">${c.phone || '-'}</td>
+        <td data-label="">-</td>
+        <td data-label="備註">${c.note || '-'}</td>
+        <td data-label="操作" style="white-space:nowrap">
+          <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startSupplierEdit(${c.id})">✏️ 編輯</button>
+          <button class="btn btn-danger" style="margin-left:4px" onclick="deleteContact(${c.id})">刪除</button>
+        </td>
+      </tr>`;
+    }).join('');
     return;
   }
 
