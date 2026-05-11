@@ -111,6 +111,20 @@
   td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
   tr:hover { background: #f8fafc; }
 
+  /* ===== 單位切換按鈕（箱/包） ===== */
+  .unit-toggle {
+    display: inline-flex; gap: 0; border: 1.5px solid #cbd5e1; border-radius: 10px;
+    overflow: hidden; background: white;
+  }
+  .unit-btn {
+    padding: 10px 16px; border: none; background: white; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: #64748b; transition: 0.2s;
+    border-right: 1.5px solid #cbd5e1;
+  }
+  .unit-btn:last-child { border-right: none; }
+  .unit-btn:hover { background: #f1f5f9; }
+  .unit-btn.active { background: #088395; color: white; }
+
   /* ===== 庫存查詢 — 簡潔精緻表格 ===== */
   .inv-summary-card { padding: 18px 20px; }
   .inv-summary-row {
@@ -158,6 +172,9 @@
   .inv-table .stock-num { font-size: 22px; font-weight: 700; color: #0a4d68; }
   .inv-table .stock-num.warn { color: #d97706; }
   .inv-table .stock-num.danger { color: #dc2626; }
+  .inv-table .stock-conv {
+    font-size: 12px; color: #088395; margin-top: 2px; font-weight: 600;
+  }
   .inv-table .product-name { font-weight: 700; font-size: 16px; color: #0a4d68; }
   .inv-table .product-spec { font-size: 12px; color: #64748b; margin-top: 2px; }
   .inv-table .warehouse-line {
@@ -734,13 +751,18 @@
         <div class="form-row">
           <div class="form-group"><label>商品名稱 *</label><input id="p-name" placeholder="例如：白蝦 16/20"></div>
           <div class="form-group"><label>規格</label><input id="p-spec" placeholder="例如：1kg/盒"></div>
-          <div class="form-group"><label>單位</label><input id="p-unit" placeholder="例如：盒/kg"></div>
+          <div class="form-group"><label>單位（最小單位）</label><input id="p-unit" placeholder="例如：包/盒/kg" value="包"></div>
           <div class="form-group"><label>分類</label>
             <select id="p-category"><option value="">未分類</option></select>
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>安全庫存</label><input id="p-safestock" type="number" placeholder="0" value="10"></div>
+          <div class="form-group">
+            <label>1 箱 = 幾包？</label>
+            <input id="p-packsperbox" type="number" min="1" step="1" value="1" placeholder="散裝填 1，整箱賣的填實際包數">
+            <div style="font-size:12px;color:#64748b;margin-top:4px">例如冷凍栗子 1 箱 = 10 包就填 10。散裝商品填 1 即可</div>
+          </div>
+          <div class="form-group"><label>安全庫存（包）</label><input id="p-safestock" type="number" placeholder="0" value="10"></div>
         </div>
         <button class="btn btn-primary" onclick="addProduct()">新增商品</button>
       </div>
@@ -755,7 +777,7 @@
           </div>
         </div>
         <table>
-          <thead><tr><th>名稱</th><th>分類</th><th>規格</th><th>單位</th><th>安全庫存</th><th>操作</th></tr></thead>
+          <thead><tr><th>名稱</th><th>分類</th><th>規格</th><th>單位</th><th>1箱=N包</th><th>安全庫存</th><th>操作</th></tr></thead>
           <tbody id="products-tbody"></tbody>
         </table>
       </div>
@@ -1713,18 +1735,23 @@ function addProduct() {
   const name = document.getElementById('p-name').value.trim();
   if (!name) { alert('請填寫商品名稱'); return; }
 
+  const packsPerBox = Math.max(1, parseInt(document.getElementById('p-packsperbox').value) || 1);
+
   products.push({
     id: Date.now(),
     name,
     spec: document.getElementById('p-spec').value,
-    unit: document.getElementById('p-unit').value || '個',
+    unit: document.getElementById('p-unit').value || '包',
     categoryId: parseInt(document.getElementById('p-category').value) || null,
     retail: 0,
     wholesale: 0,
+    packsPerBox,
     safestock: parseFloat(document.getElementById('p-safestock').value) || 10
   });
   DB.save('products', products);
-  ['p-name','p-spec','p-unit'].forEach(id => document.getElementById(id).value = '');
+  ['p-name','p-spec'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('p-unit').value = '包';
+  document.getElementById('p-packsperbox').value = 1;
   document.getElementById('p-safestock').value = 10;
   document.getElementById('p-category').selectedIndex = 0;
   renderProductCategories();
@@ -1742,7 +1769,7 @@ function deleteProduct(id) {
 function renderProducts() {
   const tbody = document.getElementById('products-tbody');
   if (products.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty"><div class="icon">📦</div>還沒有商品，請先新增</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty"><div class="icon">📦</div>還沒有商品，請先新增</td></tr>';
     return;
   }
 
@@ -1757,12 +1784,13 @@ function renderProducts() {
   });
 
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">沒有符合的商品</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">沒有符合的商品</td></tr>';
     return;
   }
 
   tbody.innerHTML = list.map(p => {
     const cat = productCategories.find(c => c.id === p.categoryId);
+    const ppb = p.packsPerBox || 1;
     if (editingProductId === p.id) {
       // 編輯模式：欄位變成輸入框
       const catOptions = '<option value="">未分類</option>' + productCategories.map(c => `<option value="${c.id}" ${p.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
@@ -1771,6 +1799,7 @@ function renderProducts() {
         <td data-label="分類"><select id="edit-category-${p.id}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${catOptions}</select></td>
         <td data-label="規格"><input id="edit-spec-${p.id}" value="${p.spec || ''}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="單位"><input id="edit-unit-${p.id}" value="${p.unit}" style="width:80px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="1箱=N包"><input id="edit-ppb-${p.id}" type="number" min="1" step="1" value="${ppb}" style="width:70px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="安全庫存"><input id="edit-safestock-${p.id}" type="number" value="${p.safestock}" style="width:70px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="操作">
           <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="saveProductEdit(${p.id})">💾 儲存</button>
@@ -1779,11 +1808,15 @@ function renderProducts() {
       </tr>`;
     }
     // 顯示模式
+    const ppbDisplay = ppb >= 2
+      ? `<strong style="color:#088395">1箱 = ${ppb} ${p.unit}</strong>`
+      : '<span style="color:#94a3b8">散裝</span>';
     return `<tr>
       <td data-label="名稱"><strong>${p.name}</strong></td>
       <td data-label="分類">${cat ? '<span class="cat-pill">'+cat.name+'</span>' : '-'}</td>
       <td data-label="規格">${p.spec || '-'}</td>
       <td data-label="單位">${p.unit}</td>
+      <td data-label="1箱=N包">${ppbDisplay}</td>
       <td data-label="安全庫存">${p.safestock}</td>
       <td data-label="操作">
         <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startProductEdit(${p.id})">✏️ 編輯</button>
@@ -1808,14 +1841,16 @@ function saveProductEdit(id) {
   const spec = document.getElementById('edit-spec-' + id).value.trim();
   const unit = document.getElementById('edit-unit-' + id).value.trim();
   const categoryId = parseInt(document.getElementById('edit-category-' + id).value) || null;
+  const ppb = Math.max(1, parseInt(document.getElementById('edit-ppb-' + id).value) || 1);
   const safestock = parseFloat(document.getElementById('edit-safestock-' + id).value);
 
   if (!name) { alert('商品名稱不能空白'); return; }
 
   const p = products.find(x => x.id === id);
   if (!p) return;
-  p.name = name; p.spec = spec; p.unit = unit || '個';
+  p.name = name; p.spec = spec; p.unit = unit || '包';
   p.categoryId = categoryId;
+  p.packsPerBox = ppb;
   p.safestock = isNaN(safestock) ? 10 : safestock;
 
   DB.save('products', products);
@@ -2171,8 +2206,13 @@ function updatePurchaseLine(lineId, field, value) {
   } else {
     line[field] = value;
   }
-  // 商品變動時要重新渲染整列（更新選擇器顯示的商品名稱）
+  // 商品變動時：自動帶入該商品的「每箱包數」設定
   if (field === 'productId') {
+    const product = products.find(p => p.id === line.productId);
+    if (product) {
+      const ppb = product.packsPerBox || 1;
+      line.packsPerBox = ppb;
+    }
     renderPurchaseLines();
     return;
   }
@@ -2208,7 +2248,12 @@ function updatePurchaseTotals() {
 
 function renderPurchaseLines() {
   const wrap = document.getElementById('pu-lines');
-  wrap.innerHTML = currentPurchaseLines.map((l, idx) => `
+  wrap.innerHTML = currentPurchaseLines.map((l, idx) => {
+    const prod = products.find(p => p.id === l.productId);
+    const ppbHint = prod && prod.packsPerBox >= 2
+      ? `<div style="font-size:12px;color:#088395;margin-top:4px">📦 此商品設定為 1箱 = ${prod.packsPerBox} ${prod.unit}（已自動帶入，可手改）</div>`
+      : '';
+    return `
     <div class="line-item">
       <div class="line-header">
         <div><span class="line-num">${idx + 1}</span><strong>進貨品項</strong></div>
@@ -2217,6 +2262,7 @@ function renderPurchaseLines() {
       <div class="form-row">
         <div class="form-group" style="grid-column: 1 / -1;"><label>商品 *</label>
           ${buildProductPickerHTML('pu-prod-' + l.lineId, l.productId)}
+          ${ppbHint}
         </div>
       </div>
       <div class="form-row">
@@ -2236,8 +2282,8 @@ function renderPurchaseLines() {
           <input type="date" value="${l.expiry}" oninput="updatePurchaseLine(${l.lineId}, 'expiry', this.value)">
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   // 渲染後更新所有計算顯示
   currentPurchaseLines.forEach(l => updatePurchaseLineCalc(l.lineId));
   updatePurchaseTotals();
@@ -2449,8 +2495,9 @@ function addSaleLine(productId = '') {
     lineId: lineIdCounter++,
     productId: productId || '',
     type,
-    qty: 1,
-    price
+    qty: 1,            // 顯示用：使用者輸入的數量
+    unitMode: 'pack',  // 'box' 或 'pack' — 使用者選的單位
+    price              // 對應「unitMode」單位的價錢（若 box，就是每箱價）
   });
   renderSaleLines();
 }
@@ -2473,8 +2520,17 @@ function updateSaleLine(lineId, field, value) {
   if (field === 'productId') {
     const customerId = parseInt(document.getElementById('sa-customer').value);
     const customer = customers.find(c => c.id === customerId);
+    const product = products.find(p => p.id === line.productId);
+    // 商品改變時重設單位：若該商品 packsPerBox >= 2，預設用「箱」（你比較常整箱賣）
+    if (product && (product.packsPerBox || 1) >= 2) {
+      line.unitMode = 'box';
+    } else {
+      line.unitMode = 'pack';
+    }
+    // 客戶專屬價是以「包」為基準的單價，切到箱時要 ×packsPerBox
     if (customer && customer.customPrices && customer.customPrices[line.productId]) {
-      line.price = customer.customPrices[line.productId];
+      const packPrice = customer.customPrices[line.productId];
+      line.price = line.unitMode === 'box' ? packPrice * (product.packsPerBox || 1) : packPrice;
     } else {
       line.price = 0;
     }
@@ -2486,6 +2542,12 @@ function updateSaleLine(lineId, field, value) {
     renderSaleLines();
     return;
   }
+  // 單位（箱/包）變動：清空價格讓使用者重新輸入（因為箱價/包價不同）
+  if (field === 'unitMode') {
+    line.price = 0;
+    renderSaleLines();
+    return;
+  }
   updateSaleLineCalc(lineId);
   updateSaleTotals();
 }
@@ -2494,10 +2556,19 @@ function updateSaleLineCalc(lineId) {
   const line = currentSaleLines.find(l => l.lineId === lineId);
   if (!line) return;
   const subtotal = (line.qty || 0) * (line.price || 0);
+  const product = products.find(p => p.id === line.productId);
+  const ppb = (product && product.packsPerBox) ? product.packsPerBox : 1;
+  // 真正出庫的「包數」
+  const packsOut = line.unitMode === 'box' ? (line.qty || 0) * ppb : (line.qty || 0);
+  const unitLabel = line.unitMode === 'box' ? '箱' : (product ? product.unit : '包');
   const calcEl = document.getElementById('sa-calc-' + lineId);
   if (calcEl) {
+    let extra = '';
+    if (line.unitMode === 'box' && ppb >= 2) {
+      extra = ` ｜ <span class="calc-label">出貨：${packsOut} ${product ? product.unit : '包'}</span>`;
+    }
     calcEl.innerHTML = `<span class="calc-label">小計：</span><strong style="color:#16a34a; font-size:18px">$${subtotal.toLocaleString()}</strong>` +
-      ` ｜ <span class="calc-label">${line.qty || 0} × $${line.price || 0}</span>`;
+      ` ｜ <span class="calc-label">${line.qty || 0} ${unitLabel} × $${line.price || 0}</span>` + extra;
   }
   // 同步更新單價輸入框（避免類型切換後 UI 不同步）
   const priceInput = document.getElementById('sa-price-' + lineId);
@@ -2512,7 +2583,21 @@ function updateSaleTotals() {
 
 function renderSaleLines() {
   const wrap = document.getElementById('sa-lines');
-  wrap.innerHTML = currentSaleLines.map((l, idx) => `
+  wrap.innerHTML = currentSaleLines.map((l, idx) => {
+    const product = products.find(p => p.id === l.productId);
+    const ppb = product ? (product.packsPerBox || 1) : 1;
+    const hasBoxOption = ppb >= 2;
+    const unitLabel = l.unitMode === 'box' ? '箱' : (product ? product.unit : '包');
+    // 單位切換按鈕（只在有 packsPerBox >= 2 時顯示）
+    const unitToggle = hasBoxOption ? `
+        <div class="form-group"><label>📦 單位</label>
+          <div class="unit-toggle">
+            <button type="button" class="unit-btn ${l.unitMode === 'box' ? 'active' : ''}" onclick="updateSaleLine(${l.lineId}, 'unitMode', 'box')">箱 (1箱=${ppb}${product.unit})</button>
+            <button type="button" class="unit-btn ${l.unitMode === 'pack' ? 'active' : ''}" onclick="updateSaleLine(${l.lineId}, 'unitMode', 'pack')">${product.unit}</button>
+          </div>
+        </div>
+    ` : '';
+    return `
     <div class="line-item">
       <div class="line-header">
         <div><span class="line-num">${idx + 1}</span><strong>銷貨品項</strong></div>
@@ -2523,6 +2608,7 @@ function renderSaleLines() {
           ${buildProductPickerHTML('sa-prod-' + l.lineId, l.productId)}
         </div>
       </div>
+      ${unitToggle}
       <div class="form-row">
         <div class="form-group"><label>銷售類型</label>
           <select onchange="updateSaleLine(${l.lineId}, 'type', this.value)">
@@ -2530,16 +2616,16 @@ function renderSaleLines() {
             <option value="wholesale" ${l.type === 'wholesale' ? 'selected' : ''}>批發</option>
           </select>
         </div>
-        <div class="form-group"><label>數量</label>
+        <div class="form-group"><label>數量（${unitLabel}）</label>
           <input type="number" min="0" step="0.01" value="${l.qty}" oninput="updateSaleLine(${l.lineId}, 'qty', this.value)">
         </div>
-        <div class="form-group"><label>單價 ($)</label>
+        <div class="form-group"><label>單價 ($/${unitLabel})</label>
           <input id="sa-price-${l.lineId}" type="number" min="0" step="0.01" value="${l.price}" oninput="updateSaleLine(${l.lineId}, 'price', this.value)">
         </div>
       </div>
       <div class="calc-display" id="sa-calc-${l.lineId}"></div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   currentSaleLines.forEach(l => updateSaleLineCalc(l.lineId));
   updateSaleTotals();
 }
@@ -2559,13 +2645,15 @@ function submitSale() {
     if (!confirm(`有 ${currentSaleLines.length - validLines.length} 筆明細未完整填寫，將自動跳過。要繼續送出嗎？`)) return;
   }
 
-  // 檢查每個品項的庫存
+  // 檢查每個品項的庫存（用實際出貨包數）
   const insufficientItems = [];
   validLines.forEach(l => {
+    const product = products.find(x => x.id === l.productId);
+    const ppb = product ? (product.packsPerBox || 1) : 1;
+    const packsOut = l.unitMode === 'box' ? l.qty * ppb : l.qty;
     const stock = calcStock(l.productId, warehouseId);
-    if (l.qty > stock) {
-      const p = products.find(x => x.id === l.productId);
-      insufficientItems.push(`${p ? p.name : '?'}：庫存 ${stock}，要賣 ${l.qty}`);
+    if (packsOut > stock) {
+      insufficientItems.push(`${product ? product.name : '?'}：庫存 ${stock} ${product ? product.unit : ''}，要賣 ${packsOut} ${product ? product.unit : ''}`);
     }
   });
   if (insufficientItems.length > 0) {
@@ -2573,16 +2661,23 @@ function submitSale() {
     if (!confirm(`「${wName}」以下品項庫存不足：\n\n${insufficientItems.join('\n')}\n\n要繼續送出嗎？（會出現負庫存）`)) return;
   }
 
-  // 寫入 sales
+  // 寫入 sales — 底層永遠存「包數」與「每包價」，但保留原始輸入方便顯示
   const baseId = Date.now();
   validLines.forEach((l, idx) => {
+    const product = products.find(x => x.id === l.productId);
+    const ppb = product ? (product.packsPerBox || 1) : 1;
+    const packsOut = l.unitMode === 'box' ? l.qty * ppb : l.qty;
+    const packPrice = l.unitMode === 'box' ? (l.price / ppb) : l.price;
     sales.push({
       id: baseId + idx,
       date, warehouseId, customerId,
       type: l.type,
       productId: l.productId,
-      qty: l.qty,
-      price: l.price,
+      qty: packsOut,            // 底層存「包數」（庫存計算用）
+      price: packPrice,         // 底層存「每包價」
+      unitMode: l.unitMode,     // 顯示用
+      displayQty: l.qty,        // 顯示用：使用者實際輸入的數量
+      displayPrice: l.price,    // 顯示用：使用者實際輸入的單價
       note,
       recorder: currentUserName()
     });
@@ -2740,6 +2835,26 @@ function deleteSale(id) {
   renderSales();
 }
 
+// 把銷貨紀錄的「數量」與「單價」格式化成顯示用文字
+// 兼容舊資料（沒有 unitMode/displayQty 欄位）
+function formatSaleQty(s) {
+  const product = products.find(x => x.id === s.productId);
+  const ppb = product ? (product.packsPerBox || 1) : 1;
+  const unit = product ? product.unit : '包';
+  if (s.unitMode === 'box' && s.displayQty != null) {
+    return `<strong>${s.displayQty} 箱</strong> <span style="color:#64748b;font-size:12px">(${s.qty} ${unit})</span>`;
+  }
+  return `${s.qty} ${unit}`;
+}
+function formatSalePrice(s) {
+  const product = products.find(x => x.id === s.productId);
+  const unit = product ? product.unit : '包';
+  if (s.unitMode === 'box' && s.displayPrice != null) {
+    return `<strong>$${s.displayPrice.toLocaleString()}</strong>/箱 <span style="color:#64748b;font-size:12px">($${s.price.toFixed(0)}/${unit})</span>`;
+  }
+  return `$${s.price.toLocaleString()}/${unit}`;
+}
+
 function renderSales() {
   const tbody = document.getElementById('sale-tbody');
   if (sales.length === 0) {
@@ -2750,12 +2865,24 @@ function renderSales() {
   tbody.innerHTML = sorted.map(s => {
     const product = products.find(x => x.id === s.productId);
     const customer = customers.find(x => x.id === s.customerId);
+    const ppb = product ? (product.packsPerBox || 1) : 1;
+    const hasBoxOption = ppb >= 2;
 
     // 編輯模式
     if (editingSaleId === s.id) {
       const wOpts = warehouses.map(w => `<option value="${w.id}" ${s.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
       const cOpts = '<option value="">無</option>' + customers.map(x => `<option value="${x.id}" ${s.customerId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
       const prodOpts = products.map(x => `<option value="${x.id}" ${s.productId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
+      // 編輯時用顯示值；舊資料沒有就用包數
+      const editUnitMode = s.unitMode || 'pack';
+      const editDispQty = (s.displayQty != null) ? s.displayQty : s.qty;
+      const editDispPrice = (s.displayPrice != null) ? s.displayPrice : s.price;
+      const unitToggle = hasBoxOption ? `
+          <div style="display:inline-flex;gap:0;border:1.5px solid #088395;border-radius:6px;overflow:hidden;margin-bottom:4px">
+            <button type="button" class="es-unit-btn ${editUnitMode === 'box' ? 'active' : ''}" data-mode="box" onclick="toggleSaleEditUnit(${s.id}, 'box')" style="padding:4px 10px;border:none;background:${editUnitMode === 'box' ? '#088395' : 'white'};color:${editUnitMode === 'box' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:600">箱</button>
+            <button type="button" class="es-unit-btn ${editUnitMode === 'pack' ? 'active' : ''}" data-mode="pack" onclick="toggleSaleEditUnit(${s.id}, 'pack')" style="padding:4px 10px;border:none;background:${editUnitMode === 'pack' ? '#088395' : 'white'};color:${editUnitMode === 'pack' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:600">${product ? product.unit : '包'}</button>
+          </div>
+      ` : '';
       return `<tr style="background:#fef9c3">
         <td data-label="日期"><input id="es-date-${s.id}" type="date" value="${s.date}" style="width:140px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="倉庫"><select id="es-warehouse-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts}</select></td>
@@ -2767,9 +2894,13 @@ function renderSales() {
           </select>
         </td>
         <td data-label="商品"><select id="es-product-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${prodOpts}</select></td>
-        <td data-label="數量"><input id="es-qty-${s.id}" type="number" step="0.01" value="${s.qty}" style="width:70px;padding:6px;border:1.5px solid #088395;border-radius:6px" oninput="updateSaleEditCalc(${s.id})"></td>
-        <td data-label="單價"><input id="es-price-${s.id}" type="number" step="0.01" value="${s.price}" style="width:90px;padding:6px;border:1.5px solid #088395;border-radius:6px" oninput="updateSaleEditCalc(${s.id})"></td>
-        <td data-label="金額"><strong id="es-amt-display-${s.id}" style="color:#16a34a">$${(s.qty * s.price).toLocaleString()}</strong></td>
+        <td data-label="數量">
+          ${unitToggle}
+          <input id="es-qty-${s.id}" type="number" step="0.01" value="${editDispQty}" style="width:70px;padding:6px;border:1.5px solid #088395;border-radius:6px" oninput="updateSaleEditCalc(${s.id})">
+          <input type="hidden" id="es-unitmode-${s.id}" value="${editUnitMode}">
+        </td>
+        <td data-label="單價"><input id="es-price-${s.id}" type="number" step="0.01" value="${editDispPrice}" style="width:90px;padding:6px;border:1.5px solid #088395;border-radius:6px" oninput="updateSaleEditCalc(${s.id})"></td>
+        <td data-label="金額"><strong id="es-amt-display-${s.id}" style="color:#16a34a">$${(editDispQty * editDispPrice).toLocaleString()}</strong></td>
         <td data-label="記錄者">${recorderBadge(s.recorder)}</td>
         <td data-label="操作">
           <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="saveSaleEdit(${s.id})">💾 儲存</button>
@@ -2778,15 +2909,20 @@ function renderSales() {
       </tr>`;
     }
 
+    // 顯示模式：金額用實際輸入計算（如果有 displayQty/displayPrice）
+    const displayQty = (s.displayQty != null) ? s.displayQty : s.qty;
+    const displayPrice = (s.displayPrice != null) ? s.displayPrice : s.price;
+    const totalAmt = displayQty * displayPrice;
+
     return `<tr>
       <td data-label="日期" style="white-space:nowrap">${s.date}</td>
       <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(s.warehouseId)}</td>
       <td data-label="客戶">${customer ? customer.name : '-'}</td>
       <td data-label="類型"><span class="badge ${s.type === 'wholesale' ? 'badge-info' : 'badge-success'}">${s.type === 'wholesale' ? '批發' : '零售'}</span></td>
       <td data-label="商品">${product ? product.name : '已刪除'}</td>
-      <td data-label="數量">${s.qty}</td>
-      <td data-label="單價" style="white-space:nowrap">$${s.price.toLocaleString()}</td>
-      <td data-label="金額" style="white-space:nowrap"><strong>$${(s.qty * s.price).toLocaleString()}</strong></td>
+      <td data-label="數量" style="white-space:nowrap">${formatSaleQty(s)}</td>
+      <td data-label="單價" style="white-space:nowrap">${formatSalePrice(s)}</td>
+      <td data-label="金額" style="white-space:nowrap"><strong>$${totalAmt.toLocaleString()}</strong></td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(s.recorder)}</td>
       <td data-label="操作" style="white-space:nowrap">
         <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startSaleEdit(${s.id})">✏️ 編輯</button>
@@ -2794,6 +2930,21 @@ function renderSales() {
       </td>
     </tr>`;
   }).join('');
+}
+
+function toggleSaleEditUnit(saleId, mode) {
+  // 切換按鈕視覺 + hidden input
+  const hidden = document.getElementById('es-unitmode-' + saleId);
+  if (hidden) hidden.value = mode;
+  // 重新整理顯示（會重渲染整個列）
+  // 為了不破壞使用者已輸入但未存的內容，用直接更新 button 樣式即可
+  document.querySelectorAll(`.es-unit-btn`).forEach(btn => {
+    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`(${saleId},`)) {
+      const isActive = btn.dataset.mode === mode;
+      btn.style.background = isActive ? '#088395' : 'white';
+      btn.style.color = isActive ? 'white' : '#64748b';
+    }
+  });
 }
 
 let editingSaleId = null;
@@ -2823,21 +2974,32 @@ function saveSaleEdit(id) {
   const customerId = parseInt(document.getElementById('es-customer-' + id).value) || null;
   const type = document.getElementById('es-type-' + id).value;
   const productId = parseInt(document.getElementById('es-product-' + id).value);
-  const qty = parseFloat(document.getElementById('es-qty-' + id).value) || 0;
-  const price = parseFloat(document.getElementById('es-price-' + id).value) || 0;
+  const inputQty = parseFloat(document.getElementById('es-qty-' + id).value) || 0;
+  const inputPrice = parseFloat(document.getElementById('es-price-' + id).value) || 0;
+  const unitModeEl = document.getElementById('es-unitmode-' + id);
+  const unitMode = unitModeEl ? unitModeEl.value : (s.unitMode || 'pack');
 
-  if (!date || !warehouseId || !productId || qty <= 0 || price <= 0) {
+  if (!date || !warehouseId || !productId || inputQty <= 0 || inputPrice <= 0) {
     alert('請完整填寫日期、倉庫、商品、數量、單價');
     return;
   }
+
+  // 換算成底層的 qty(包數) 與 price(每包價)
+  const product = products.find(x => x.id === productId);
+  const ppb = product ? (product.packsPerBox || 1) : 1;
+  const packsOut = unitMode === 'box' ? inputQty * ppb : inputQty;
+  const packPrice = unitMode === 'box' ? (inputPrice / ppb) : inputPrice;
 
   s.date = date;
   s.warehouseId = warehouseId;
   s.customerId = customerId;
   s.type = type;
   s.productId = productId;
-  s.qty = qty;
-  s.price = price;
+  s.qty = packsOut;
+  s.price = packPrice;
+  s.unitMode = unitMode;
+  s.displayQty = inputQty;
+  s.displayPrice = inputPrice;
 
   DB.save('sales', sales);
   editingSaleId = null;
@@ -2988,11 +3150,31 @@ function renderInventory() {
 
     // 庫存數字（顏色依狀態）
     const stockClass = statusType === 'out' ? 'danger' : (statusType === 'low' ? 'warn' : '');
-    let stockDisplay = `<div class="stock-num ${stockClass}">${stock} <span style="font-size:13px;color:#94a3b8;font-weight:500">${p.unit}</span></div>`;
+    const ppb = p.packsPerBox || 1;
+    // 換算說明：所有商品都顯示
+    const boxConv = (() => {
+      if (ppb >= 2 && stock > 0) {
+        const boxes = Math.floor(stock / ppb);
+        const remainPacks = stock % ppb;
+        if (boxes > 0 && remainPacks > 0) return `<div class="stock-conv">≈ ${boxes} 箱 + ${remainPacks} ${p.unit}</div>`;
+        if (boxes > 0) return `<div class="stock-conv">= ${boxes} 箱（整箱）</div>`;
+        if (remainPacks > 0) return `<div class="stock-conv">不足一箱（${remainPacks} ${p.unit}）</div>`;
+      }
+      if (ppb >= 2 && stock <= 0) return `<div class="stock-conv">1箱=${ppb} ${p.unit}</div>`;
+      return `<div class="stock-conv">散裝商品</div>`;
+    })();
+    let stockDisplay = `<div class="stock-num ${stockClass}">${stock} <span style="font-size:13px;color:#94a3b8;font-weight:500">${p.unit}</span></div>${boxConv}`;
     if (wId === 'all' && warehouses.length > 0) {
       const breakdown = warehouses.map(w => {
         const s = calcStock(p.id, w.id);
-        return `<div class="warehouse-line">${warehouseLogoHTML(w.id)}${w.name}: <strong style="color:#0a4d68">${s}</strong></div>`;
+        let convText = '';
+        if (ppb >= 2 && s > 0) {
+          const b = Math.floor(s / ppb);
+          const r = s % ppb;
+          if (b > 0 && r > 0) convText = ` <span style="color:#94a3b8;font-size:12px">(${b}箱+${r}${p.unit})</span>`;
+          else if (b > 0) convText = ` <span style="color:#94a3b8;font-size:12px">(${b}箱)</span>`;
+        }
+        return `<div class="warehouse-line">${warehouseLogoHTML(w.id)}${w.name}: <strong style="color:#0a4d68">${s}</strong>${convText}</div>`;
       }).join('');
       stockDisplay += breakdown;
     }
