@@ -1,0 +1,9 @@
+# 一鍵上傳腳本（本機用，不上傳到 GitHub）
+一鍵上傳.command
+
+# macOS 系統檔
+.DS_Store
+
+# 編輯器暫存
+*.swp
+*~
