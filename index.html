@@ -1928,7 +1928,7 @@ function renderProducts() {
       <td data-label="1箱=N包">${ppbDisplay}</td>
       <td data-label="安全庫存">${p.safestock}</td>
       <td data-label="操作">
-        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startProductEdit(${p.id})">✏️ 編輯</button>
+        <button class="btn btn-primary" onclick="startProductEdit(${p.id})">編輯</button>
         <button class="btn btn-danger" style="margin-left:4px" onclick="deleteProduct(${p.id})">刪除</button>
       </td>
     </tr>`;
@@ -2200,7 +2200,7 @@ function renderTransfers() {
       <td data-label="備註" style="font-size:12px">${t.note || '-'}</td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(t.recorder)}</td>
       <td data-label="操作" style="white-space:nowrap">
-        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startTransferEdit(${t.id})">✏️ 編輯</button>
+        <button class="btn btn-primary" onclick="startTransferEdit(${t.id})">編輯</button>
         <button class="btn btn-danger" style="margin-left:4px" onclick="deleteTransfer(${t.id})">刪除</button>
       </td>
     </tr>`;
@@ -2770,7 +2770,7 @@ function renderPurchases() {
       <td data-label="到期日" style="white-space:nowrap">${p.expiry || '-'}</td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(p.recorder)}</td>
       <td data-label="操作" style="white-space:nowrap">
-        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startPurchaseEdit(${p.id})">✏️ 編輯</button>
+        <button class="btn btn-primary" onclick="startPurchaseEdit(${p.id})">編輯</button>
         <button class="btn btn-danger" style="margin-left:4px" onclick="deletePurchase(${p.id})">刪除</button>
       </td>
     </tr>`;
@@ -3347,7 +3347,7 @@ function renderSales() {
       <td data-label="金額" style="white-space:nowrap"><strong>$${totalAmt.toLocaleString()}</strong></td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(s.recorder)}</td>
       <td data-label="操作" style="white-space:nowrap">
-        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startSaleEdit(${s.id})">✏️ 編輯</button>
+        <button class="btn btn-primary" onclick="startSaleEdit(${s.id})">編輯</button>
         <button class="btn btn-danger" style="margin-left:4px" onclick="deleteSale(${s.id})">刪除</button>
       </td>
     </tr>`;
@@ -4659,7 +4659,7 @@ function renderContacts() {
         <td data-label="">-</td>
         <td data-label="備註">${c.note || '-'}</td>
         <td data-label="操作" style="white-space:nowrap">
-          <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="startSupplierEdit(${c.id})">✏️ 編輯</button>
+          <button class="btn btn-primary" onclick="startSupplierEdit(${c.id})">編輯</button>
           <button class="btn btn-danger" style="margin-left:4px" onclick="deleteContact(${c.id})">刪除</button>
         </td>
       </tr>`;
