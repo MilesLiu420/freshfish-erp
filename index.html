@@ -869,8 +869,13 @@
           <datalist id="pu-country-list"></datalist>
         </div>
         <div class="rec-result-info" id="pu-result-info"></div>
+        <div id="pu-batch-bar" style="display:none;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px">
+          <span id="pu-checked-count" style="font-weight:600;color:#dc2626">已選 0 筆</span>
+          <button class="btn btn-danger" style="padding:5px 14px;font-size:13px" onclick="deletePurchaseChecked()">🗑️ 刪除選取</button>
+          <button class="btn btn-secondary" style="padding:5px 14px;font-size:13px" onclick="clearPurchaseChecked()">取消</button>
+        </div>
         <table>
-          <thead><tr><th>日期</th><th>倉庫</th><th>供應商</th><th>商品</th><th>產地</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>到期日</th><th>記錄者</th><th>操作</th></tr></thead>
+          <thead><tr><th style="width:36px"><input type="checkbox" id="pu-check-all" onchange="toggleAllPurchaseChecked(this.checked)" title="全選"></th><th>日期</th><th>倉庫</th><th>供應商</th><th>商品</th><th>產地</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>到期日</th><th>記錄者</th><th>操作</th></tr></thead>
           <tbody id="purchase-tbody"></tbody>
         </table>
         <div class="rec-pagination" id="pu-pagination"></div>
@@ -938,8 +943,13 @@
           <button class="rec-clear-btn" onclick="clearSaleFilters()">🔄 清除篩選</button>
         </div>
         <div class="rec-result-info" id="sa-result-info"></div>
+        <div id="sa-batch-bar" style="display:none;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px">
+          <span id="sa-checked-count" style="font-weight:600;color:#dc2626">已選 0 筆</span>
+          <button class="btn btn-danger" style="padding:5px 14px;font-size:13px" onclick="deleteSaleChecked()">🗑️ 刪除選取</button>
+          <button class="btn btn-secondary" style="padding:5px 14px;font-size:13px" onclick="clearSaleChecked()">取消</button>
+        </div>
         <table>
-          <thead><tr><th>日期</th><th>倉庫</th><th>客戶</th><th>類型</th><th>商品</th><th>數量</th><th>單價</th><th>金額</th><th>記錄者</th><th>操作</th></tr></thead>
+          <thead><tr><th style="width:36px"><input type="checkbox" id="sa-check-all" onchange="toggleAllSaleChecked(this.checked)" title="全選"></th><th>日期</th><th>倉庫</th><th>客戶</th><th>類型</th><th>商品</th><th>數量</th><th>單價</th><th>金額</th><th>記錄者</th><th>操作</th></tr></thead>
           <tbody id="sale-tbody"></tbody>
         </table>
         <div class="rec-pagination" id="sa-pagination"></div>
@@ -2567,6 +2577,97 @@ function deletePurchase(id) {
   renderPurchases();
 }
 
+// ===== 進貨批次勾選刪除 =====
+let purchaseCheckedIds = new Set();
+
+function onPurchaseCheckChange() {
+  purchaseCheckedIds = new Set(
+    [...document.querySelectorAll('.pu-row-check:checked')].map(el => parseInt(el.dataset.id))
+  );
+  const bar = document.getElementById('pu-batch-bar');
+  const cnt = document.getElementById('pu-checked-count');
+  if (purchaseCheckedIds.size > 0) {
+    bar.style.display = 'flex';
+    cnt.textContent = `已選 ${purchaseCheckedIds.size} 筆`;
+  } else {
+    bar.style.display = 'none';
+  }
+  // 同步全選框狀態
+  const allChecks = document.querySelectorAll('.pu-row-check');
+  const checkAll = document.getElementById('pu-check-all');
+  if (checkAll) checkAll.checked = allChecks.length > 0 && purchaseCheckedIds.size === allChecks.length;
+}
+
+function toggleAllPurchaseChecked(checked) {
+  document.querySelectorAll('.pu-row-check').forEach(el => {
+    el.checked = checked;
+  });
+  onPurchaseCheckChange();
+}
+
+function deletePurchaseChecked() {
+  if (purchaseCheckedIds.size === 0) return;
+  if (!confirm(`確定要刪除選取的 ${purchaseCheckedIds.size} 筆進貨紀錄嗎？此操作無法復原。`)) return;
+  purchases = purchases.filter(p => !purchaseCheckedIds.has(p.id));
+  DB.save('purchases', purchases);
+  purchaseCheckedIds = new Set();
+  renderPurchases();
+  if (typeof renderInventory === 'function') renderInventory();
+}
+
+function clearPurchaseChecked() {
+  purchaseCheckedIds = new Set();
+  document.querySelectorAll('.pu-row-check').forEach(el => el.checked = false);
+  const checkAll = document.getElementById('pu-check-all');
+  if (checkAll) checkAll.checked = false;
+  document.getElementById('pu-batch-bar').style.display = 'none';
+}
+
+// ===== 銷貨批次勾選刪除 =====
+let saleCheckedIds = new Set();
+
+function onSaleCheckChange() {
+  saleCheckedIds = new Set(
+    [...document.querySelectorAll('.sa-row-check:checked')].map(el => parseInt(el.dataset.id))
+  );
+  const bar = document.getElementById('sa-batch-bar');
+  const cnt = document.getElementById('sa-checked-count');
+  if (saleCheckedIds.size > 0) {
+    bar.style.display = 'flex';
+    cnt.textContent = `已選 ${saleCheckedIds.size} 筆`;
+  } else {
+    bar.style.display = 'none';
+  }
+  const allChecks = document.querySelectorAll('.sa-row-check');
+  const checkAll = document.getElementById('sa-check-all');
+  if (checkAll) checkAll.checked = allChecks.length > 0 && saleCheckedIds.size === allChecks.length;
+}
+
+function toggleAllSaleChecked(checked) {
+  document.querySelectorAll('.sa-row-check').forEach(el => {
+    el.checked = checked;
+  });
+  onSaleCheckChange();
+}
+
+function deleteSaleChecked() {
+  if (saleCheckedIds.size === 0) return;
+  if (!confirm(`確定要刪除選取的 ${saleCheckedIds.size} 筆銷貨紀錄嗎？此操作無法復原。`)) return;
+  sales = sales.filter(s => !saleCheckedIds.has(s.id));
+  DB.save('sales', sales);
+  saleCheckedIds = new Set();
+  renderSales();
+  if (typeof renderInventory === 'function') renderInventory();
+}
+
+function clearSaleChecked() {
+  saleCheckedIds = new Set();
+  document.querySelectorAll('.sa-row-check').forEach(el => el.checked = false);
+  const checkAll = document.getElementById('sa-check-all');
+  if (checkAll) checkAll.checked = false;
+  document.getElementById('sa-batch-bar').style.display = 'none';
+}
+
 function renderPurchases() {
   const tbody = document.getElementById('purchase-tbody');
   const infoEl = document.getElementById('pu-result-info');
@@ -2630,6 +2731,7 @@ function renderPurchases() {
       const packsPerBox = p.packsPerBox || p.qty || 1;
       const costPerBox = p.costPerBox || ((p.price || 0) * (p.packsPerBox || p.qty || 1));
       return `<tr style="background:#fef9c3">
+        <td></td>
         <td data-label="日期"><input id="ep-date-${p.id}" type="date" value="${p.date}" style="width:140px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="倉庫"><select id="ep-warehouse-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts}</select></td>
         <td data-label="供應商"><select id="ep-supplier-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${sOpts}</select></td>
@@ -2653,7 +2755,9 @@ function renderPurchases() {
     }
 
     const boxInfo = (p.boxes && p.packsPerBox) ? `${p.boxes} × ${p.packsPerBox}` : '-';
+    const puChecked = purchaseCheckedIds.has(p.id);
     return `<tr>
+      <td style="text-align:center"><input type="checkbox" class="pu-row-check" data-id="${p.id}" ${puChecked ? 'checked' : ''} onchange="onPurchaseCheckChange()"></td>
       <td data-label="日期" style="white-space:nowrap">${p.date}</td>
       <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(p.warehouseId)}</td>
       <td data-label="供應商">${supplier ? supplier.name : '-'}</td>
@@ -3199,6 +3303,7 @@ function renderSales() {
           </div>
       ` : '';
       return `<tr style="background:#fef9c3">
+        <td></td>
         <td data-label="日期"><input id="es-date-${s.id}" type="date" value="${s.date}" style="width:140px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="倉庫"><select id="es-warehouse-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts}</select></td>
         <td data-label="客戶"><select id="es-customer-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${cOpts}</select></td>
@@ -3229,7 +3334,9 @@ function renderSales() {
     const displayPrice = (s.displayPrice != null) ? s.displayPrice : s.price;
     const totalAmt = displayQty * displayPrice;
 
+    const saChecked = saleCheckedIds.has(s.id);
     return `<tr>
+      <td style="text-align:center"><input type="checkbox" class="sa-row-check" data-id="${s.id}" ${saChecked ? 'checked' : ''} onchange="onSaleCheckChange()"></td>
       <td data-label="日期" style="white-space:nowrap">${s.date}</td>
       <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(s.warehouseId)}</td>
       <td data-label="客戶">${customer ? customer.name : '-'}</td>
