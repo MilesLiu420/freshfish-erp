@@ -1399,6 +1399,7 @@
 
     <div class="card" style="background:#f8fafc; box-shadow:none; margin-bottom:12px">
       <div class="card-title">📋 基本資料</div>
+      <div class="form-group"><label>名稱</label><input id="cd-name" placeholder="客戶名稱"></div>
       <div class="form-row">
         <div class="form-group"><label>聯絡人</label><input id="cd-contact" placeholder="例如：陳老闆"></div>
         <div class="form-group"><label>電話</label><input id="cd-phone" placeholder="例如：0912-345-678"></div>
@@ -4741,6 +4742,7 @@ function openCustomerDetail(id) {
   document.getElementById('cd-title').textContent = '⚙️ 設定：' + c.name;
 
   // 填入基本資料
+  document.getElementById('cd-name').value = c.name || '';
   document.getElementById('cd-contact').value = c.contact || '';
   document.getElementById('cd-phone').value = c.phone || '';
   document.getElementById('cd-note').value = c.note || '';
@@ -4765,6 +4767,9 @@ function openCustomerDetail(id) {
 function saveCustomerBasic() {
   const c = customers.find(x => x.id === editingCustomerId);
   if (!c) return;
+  const newName = document.getElementById('cd-name').value.trim();
+  if (!newName) { alert('名稱不能空白'); return; }
+  c.name = newName;
   c.contact = document.getElementById('cd-contact').value.trim();
   c.phone = document.getElementById('cd-phone').value.trim();
   c.note = document.getElementById('cd-note').value.trim();
