@@ -1397,6 +1397,27 @@
     <button class="modal-close" onclick="closeCustomerDetail()">×</button>
     <h3 id="cd-title">客戶詳情</h3>
 
+    <div class="card" style="background:#f8fafc; box-shadow:none; margin-bottom:12px">
+      <div class="card-title">📋 基本資料</div>
+      <div class="form-row">
+        <div class="form-group"><label>聯絡人</label><input id="cd-contact" placeholder="例如：陳老闆"></div>
+        <div class="form-group"><label>電話</label><input id="cd-phone" placeholder="例如：0912-345-678"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>分類</label><select id="cd-category"><option value="">未分類</option></select></div>
+        <div class="form-group"><label>付款方式</label>
+          <select id="cd-payment">
+            <option value="">未指定</option>
+            <option value="現金">現金</option>
+            <option value="月結">月結</option>
+            <option value="轉帳">轉帳</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>備註</label><input id="cd-note" placeholder="可選"></div>
+      <button class="btn btn-success" style="margin-top:4px" onclick="saveCustomerBasic()">💾 儲存基本資料</button>
+    </div>
+
     <div class="card" style="background:#f8fafc; box-shadow:none">
       <div class="card-title">⭐ 常訂商品（銷貨時可一鍵加入）</div>
       <div class="form-row">
@@ -4719,6 +4740,19 @@ function openCustomerDetail(id) {
   if (!c.customPrices) c.customPrices = {};
   document.getElementById('cd-title').textContent = '⚙️ 設定：' + c.name;
 
+  // 填入基本資料
+  document.getElementById('cd-contact').value = c.contact || '';
+  document.getElementById('cd-phone').value = c.phone || '';
+  document.getElementById('cd-note').value = c.note || '';
+
+  // 分類下拉
+  const catOpts = '<option value="">未分類</option>' + categories.map(cat => `<option value="${cat.id}" ${c.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('');
+  document.getElementById('cd-category').innerHTML = catOpts;
+
+  // 付款方式
+  const payEl = document.getElementById('cd-payment');
+  payEl.value = c.payment || '';
+
   // 商品下拉
   const prodOpts = '<option value="">請選擇商品</option>' + products.map(p => `<option value="${p.id}">${p.name} ${p.spec ? '('+p.spec+')' : ''}</option>`).join('');
   document.getElementById('cd-fav-product').innerHTML = prodOpts;
@@ -4726,6 +4760,19 @@ function openCustomerDetail(id) {
 
   renderCustomerDetailLists();
   document.getElementById('customer-detail-modal').classList.add('show');
+}
+
+function saveCustomerBasic() {
+  const c = customers.find(x => x.id === editingCustomerId);
+  if (!c) return;
+  c.contact = document.getElementById('cd-contact').value.trim();
+  c.phone = document.getElementById('cd-phone').value.trim();
+  c.note = document.getElementById('cd-note').value.trim();
+  c.categoryId = parseInt(document.getElementById('cd-category').value) || null;
+  c.payment = document.getElementById('cd-payment').value;
+  DB.save('customers', customers);
+  renderContacts();
+  alert('✅ 基本資料已更新');
 }
 
 function closeCustomerDetail() {
