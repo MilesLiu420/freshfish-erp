@@ -4777,7 +4777,7 @@ function saveCustomerBasic() {
   c.payment = document.getElementById('cd-payment').value;
   DB.save('customers', customers);
   renderContacts();
-  alert('✅ 基本資料已更新');
+  closeCustomerDetail();
 }
 
 function closeCustomerDetail() {
