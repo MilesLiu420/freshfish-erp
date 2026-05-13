@@ -3,7 +3,22 @@ const fs = require('fs');
 const path = require('path');
 
 // 從環境變數讀取金鑰
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+if (!raw) {
+  console.error('❌ 找不到 FIREBASE_SERVICE_ACCOUNT 環境變數');
+  process.exit(1);
+}
+console.log('🔍 Secret 長度：', raw.length);
+console.log('🔍 前20字元：', raw.slice(0, 20));
+
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(raw);
+} catch (e) {
+  console.error('❌ JSON 解析失敗：', e.message);
+  console.error('原始內容前100字：', raw.slice(0, 100));
+  process.exit(1);
+}
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
