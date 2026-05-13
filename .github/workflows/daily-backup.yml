@@ -8,14 +8,9 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
 
       - name: 安裝 Node.js
         uses: actions/setup-node@v4
@@ -25,23 +20,7 @@ jobs:
       - name: 安裝 Firebase Admin SDK
         run: npm install firebase-admin
 
-      - name: 執行備份腳本
+      - name: 執行備份腳本（存到 Firebase Storage）
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: node .github/scripts/backup.js
-
-      - name: 提交備份檔案
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/MilesLiu420/freshfish-erp.git
-          git add backups/
-          if git diff --staged --quiet; then
-            echo "沒有新備份需要提交"
-          else
-            git commit -m "🗄️ 自動備份 $(date +'%Y-%m-%d')"
-            git pull --rebase origin main
-            git push origin main
-          fi
