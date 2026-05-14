@@ -2,9 +2,9 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 
-const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+const raw = process.env.FIREBASE_SERVICE_ACCOUNT_NEW;
 if (!raw) {
-  console.error('❌ 找不到 FIREBASE_SERVICE_ACCOUNT 環境變數');
+  console.error('❌ 找不到 FIREBASE_SERVICE_ACCOUNT_NEW 環境變數');
   process.exit(1);
 }
 

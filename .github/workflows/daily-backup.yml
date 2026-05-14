@@ -22,5 +22,5 @@ jobs:
 
       - name: 執行備份腳本（存到 Firebase Storage）
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_NEW }}
         run: node .github/scripts/backup.js
