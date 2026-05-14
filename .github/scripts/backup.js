@@ -12,11 +12,10 @@ const serviceAccount = JSON.parse(raw);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'freshfish-erp.firebasestorage.app'
+  projectId: 'freshfish-erp'
 });
 
 const db = admin.firestore();
-const bucket = admin.storage().bucket();
 
 const COLLECTIONS = [
   'purchases', 'sales', 'products', 'customers',
@@ -36,17 +35,14 @@ async function backup() {
     console.log(`✅ ${col}：${Object.keys(data).length} 筆`);
   }
 
-  // 上傳到 Firebase Storage
-  const fileName = `backups/${today}.json`;
-  const tmpFile = '/tmp/backup.json';
-  fs.writeFileSync(tmpFile, JSON.stringify(allData, null, 2), 'utf8');
+  // 存到 repo 的 backups 資料夾
+  const backupDir = path.join('backups');
+  if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
 
-  await bucket.upload(tmpFile, {
-    destination: fileName,
-    metadata: { contentType: 'application/json' }
-  });
+  const filePath = path.join(backupDir, `${today}.json`);
+  fs.writeFileSync(filePath, JSON.stringify(allData, null, 2), 'utf8');
 
-  console.log(`\n🎉 備份完成！已上傳到 Firebase Storage：${fileName}`);
+  console.log(`\n🎉 備份完成！已儲存到 ${filePath}`);
 }
 
 backup().catch(err => {
