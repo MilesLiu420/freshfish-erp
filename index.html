@@ -1296,12 +1296,15 @@
         <div id="ragic-import-log" style="margin-top:14px; padding:12px; background:#f8fafc; border-radius:8px; max-height:400px; overflow-y:auto; font-size:13px; font-family:monospace; display:none"></div>
       </div>
 
-      <div class="card">
-        <div class="card-title">資料備份</div>
-        <p style="margin-bottom:16px; color:#475569;">為了避免資料遺失，建議定期備份。點擊下方按鈕將所有資料存成檔案。</p>
-        <button class="btn btn-primary" onclick="exportData()">📥 匯出全部資料（備份）</button>
-        <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">📤 匯入備份檔</button>
+      <div class="card" style="border: 2px solid #f59e0b; background: #fffbeb;">
+        <div class="card-title" style="color:#b45309;">🛡️ 資料備份（強烈建議每天備份）</div>
+        <div id="last-backup-info" style="margin-bottom:14px; padding:10px; background:#fef3c7; border-radius:8px; font-size:14px; color:#92400e;"></div>
+        <button class="btn btn-primary" onclick="exportDataWithTime()" style="background:#f59e0b; border-color:#f59e0b; font-size:16px; padding:14px 28px;">
+          📥 立即備份所有資料
+        </button>
+        <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()" style="margin-top:10px;">📤 從備份檔還原資料</button>
         <input id="import-file" type="file" accept=".json" style="display:none" onchange="importData(event)">
+        <p style="margin-top:14px; color:#92400e; font-size:13px;">⚠️ 備份檔會下載到你的電腦，請存放在固定資料夾方便尋找。</p>
       </div>
       <div class="card">
         <div class="card-title">⚠️ 危險操作</div>
@@ -1698,6 +1701,7 @@ function showPage(pageId, el) {
     renderContacts();
   }
   if (pageId === 'settings') {
+    updateLastBackupInfo();
     renderWarehouses();
     // 帶入身分姓名
     const adminInput = document.getElementById('setting-admin-name');
@@ -4861,6 +4865,38 @@ function removeCustomPrice(productId) {
 }
 
 // ============ 備份/匯入 ============
+function updateLastBackupInfo() {
+  const el = document.getElementById('last-backup-info');
+  if (!el) return;
+  const last = localStorage.getItem('lastBackupTime');
+  if (!last) {
+    el.innerHTML = '⚠️ <strong>尚未備份過！</strong>請立即備份。';
+    el.style.background = '#fee2e2';
+    el.style.color = '#991b1b';
+  } else {
+    const d = new Date(last);
+    const now = new Date();
+    const diffDays = Math.floor((now - d) / 86400000);
+    const timeStr = d.toLocaleString('zh-TW');
+    if (diffDays >= 1) {
+      el.innerHTML = `⚠️ 上次備份：<strong>${timeStr}</strong>（${diffDays} 天前）— 建議今天再備份一次！`;
+      el.style.background = '#fee2e2';
+      el.style.color = '#991b1b';
+    } else {
+      el.innerHTML = `✅ 上次備份：<strong>${timeStr}</strong>（今天已備份）`;
+      el.style.background = '#d1fae5';
+      el.style.color = '#065f46';
+    }
+  }
+}
+
+function exportDataWithTime() {
+  exportData();
+  localStorage.setItem('lastBackupTime', new Date().toISOString());
+  updateLastBackupInfo();
+  alert('✅ 備份完成！檔案已下載到你的電腦。\n\n請把它存到固定的資料夾，方便以後還原。');
+}
+
 function exportData() {
   const data = { products, customers, suppliers, purchases, sales, warehouses, categories, productCategories, adjustments, transfers, recentCustomers, recentProducts, userSettings, dashboardOrder, exportDate: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
