@@ -41,8 +41,21 @@ async function backup() {
 
   const filePath = path.join(backupDir, `${today}.json`);
   fs.writeFileSync(filePath, JSON.stringify(allData, null, 2), 'utf8');
+  console.log(`✅ 備份儲存到 ${filePath}`);
 
-  console.log(`\n🎉 備份完成！已儲存到 ${filePath}`);
+  // 只保留最近 3 天，刪除更舊的備份
+  const files = fs.readdirSync(backupDir)
+    .filter(f => f.endsWith('.json'))
+    .sort()
+    .reverse(); // 由新到舊排列
+
+  const toDelete = files.slice(3); // 保留前3個，刪除其餘
+  for (const f of toDelete) {
+    fs.unlinkSync(path.join(backupDir, f));
+    console.log(`🗑️ 刪除舊備份：${f}`);
+  }
+
+  console.log(`\n🎉 備份完成！目前保留最近 ${Math.min(files.length, 3)} 天的備份。`);
 }
 
 backup().catch(err => {
