@@ -100,10 +100,11 @@
   .btn-primary:hover { background: #0a4d68; }
   .btn-success { background: #22c55e; color: white; }
   .btn-success:hover { background: #16a34a; }
-  .btn-danger { background: #ef4444; color: white; padding: 6px 12px; font-size: 12px; }
+  .btn-danger { background: #ef4444; color: white; }
   .btn-danger:hover { background: #dc2626; }
   .btn-secondary { background: #e2e8f0; color: #475569; }
   .btn-secondary:hover { background: #cbd5e1; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
 
   /* 表格 */
   table { width: 100%; border-collapse: collapse; }
@@ -854,7 +855,7 @@
           </div>
         </div>
 
-        <button class="btn btn-primary" onclick="submitPurchase()" style="margin-top:16px; padding:14px 32px; font-size:16px">💾 全部送出</button>
+        <button class="btn btn-primary" onclick="submitPurchase()" style="margin-top:16px;">💾 全部送出</button>
       </div>
       <div class="card">
         <div class="card-title">最近進貨紀錄</div>
@@ -871,8 +872,8 @@
         <div class="rec-result-info" id="pu-result-info"></div>
         <div id="pu-batch-bar" style="display:none;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px">
           <span id="pu-checked-count" style="font-weight:600;color:#dc2626">已選 0 筆</span>
-          <button class="btn btn-danger" style="padding:5px 14px;font-size:13px" onclick="deletePurchaseChecked()">🗑️ 刪除選取</button>
-          <button class="btn btn-secondary" style="padding:5px 14px;font-size:13px" onclick="clearPurchaseChecked()">取消</button>
+          <button class="btn btn-danger" onclick="deletePurchaseChecked()">🗑️ 刪除選取</button>
+          <button class="btn btn-secondary" onclick="clearPurchaseChecked()">取消</button>
         </div>
         <table>
           <thead><tr><th style="width:36px"><input type="checkbox" id="pu-check-all" onchange="toggleAllPurchaseChecked(this.checked)" title="全選"></th><th>日期</th><th>倉庫</th><th>供應商</th><th>商品</th><th>產地</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>到期日</th><th>記錄者</th><th>操作</th></tr></thead>
@@ -930,7 +931,7 @@
           </div>
         </div>
 
-        <button class="btn btn-success" onclick="submitSale()" style="margin-top:16px; padding:14px 32px; font-size:16px">💾 全部送出</button>
+        <button class="btn btn-success" onclick="submitSale()" style="margin-top:16px;">💾 全部送出</button>
       </div>
       <div class="card">
         <div class="card-title">最近銷貨紀錄</div>
@@ -945,8 +946,8 @@
         <div class="rec-result-info" id="sa-result-info"></div>
         <div id="sa-batch-bar" style="display:none;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px">
           <span id="sa-checked-count" style="font-weight:600;color:#dc2626">已選 0 筆</span>
-          <button class="btn btn-danger" style="padding:5px 14px;font-size:13px" onclick="deleteSaleChecked()">🗑️ 刪除選取</button>
-          <button class="btn btn-secondary" style="padding:5px 14px;font-size:13px" onclick="clearSaleChecked()">取消</button>
+          <button class="btn btn-danger" onclick="deleteSaleChecked()">🗑️ 刪除選取</button>
+          <button class="btn btn-secondary" onclick="clearSaleChecked()">取消</button>
         </div>
         <table>
           <thead><tr><th style="width:36px"><input type="checkbox" id="sa-check-all" onchange="toggleAllSaleChecked(this.checked)" title="全選"></th><th>日期</th><th>倉庫</th><th>客戶</th><th>類型</th><th>商品</th><th>數量</th><th>單價</th><th>金額</th><th>記錄者</th><th>操作</th></tr></thead>
@@ -985,7 +986,7 @@
           </div>
         </div>
 
-        <button class="btn btn-primary" onclick="submitTransfer()" style="margin-top:16px; padding:14px 32px; font-size:16px">💾 全部送出（立即轉倉）</button>
+        <button class="btn btn-primary" onclick="submitTransfer()" style="margin-top:16px;">💾 全部送出（立即轉倉）</button>
       </div>
 
       <div class="card">
@@ -1299,7 +1300,7 @@
       <div class="card" style="border: 2px solid #f59e0b; background: #fffbeb;">
         <div class="card-title" style="color:#b45309;">🛡️ 資料備份（強烈建議每天備份）</div>
         <div id="last-backup-info" style="margin-bottom:14px; padding:10px; background:#fef3c7; border-radius:8px; font-size:14px; color:#92400e;"></div>
-        <button class="btn btn-primary" onclick="exportDataWithTime()" style="background:#f59e0b; border-color:#f59e0b; font-size:16px; padding:14px 28px;">
+        <button class="btn btn-primary" onclick="exportDataWithTime()" style="background:#f59e0b; border-color:#f59e0b;">
           📥 立即備份所有資料
         </button>
         <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()" style="margin-top:10px;">📤 從備份檔還原資料</button>
@@ -1388,7 +1389,7 @@
     </div>
 
     <div style="display:flex; gap:8px; margin-top:8px">
-      <button class="btn btn-success" onclick="confirmAdjust()" style="flex:1; padding:12px">💾 確認調整</button>
+      <button class="btn btn-success" onclick="confirmAdjust()" style="flex:1;">💾 確認調整</button>
       <button class="btn btn-secondary" onclick="closeAdjustModal()">取消</button>
     </div>
   </div>
@@ -1937,8 +1938,8 @@ function renderProducts() {
         <td data-label="1箱=N包"><input id="edit-ppb-${p.id}" type="number" min="1" step="1" value="${ppb}" style="width:70px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="安全庫存"><input id="edit-safestock-${p.id}" type="number" value="${p.safestock}" style="width:70px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="操作">
-          <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="saveProductEdit(${p.id})">💾 儲存</button>
-          <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:4px" onclick="cancelProductEdit()">取消</button>
+          <button class="btn btn-success btn-sm" onclick="saveProductEdit(${p.id})">💾 儲存</button>
+          <button class="btn btn-secondary btn-sm" style="margin-left:4px" onclick="cancelProductEdit()">取消</button>
         </td>
       </tr>`;
     }
@@ -2210,8 +2211,8 @@ function renderTransfers() {
         <td data-label="備註"><input id="et-note-${t.id}" value="${t.note || ''}" style="width:100%;padding:6px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="記錄者">${recorderBadge(t.recorder)}</td>
         <td data-label="操作">
-          <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="saveTransferEdit(${t.id})">💾 儲存</button>
-          <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:4px" onclick="cancelTransferEdit()">取消</button>
+          <button class="btn btn-success btn-sm" onclick="saveTransferEdit(${t.id})">💾 儲存</button>
+          <button class="btn btn-secondary btn-sm" style="margin-left:4px" onclick="cancelTransferEdit()">取消</button>
         </td>
       </tr>`;
     }
@@ -2774,8 +2775,8 @@ function renderPurchases() {
         <td data-label="到期日"><input id="ep-expiry-${p.id}" type="date" value="${p.expiry || ''}" style="width:140px;padding:6px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="記錄者">${recorderBadge(p.recorder)}</td>
         <td data-label="操作">
-          <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="savePurchaseEdit(${p.id})">💾 儲存</button>
-          <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:4px" onclick="cancelPurchaseEdit()">取消</button>
+          <button class="btn btn-success btn-sm" onclick="savePurchaseEdit(${p.id})">💾 儲存</button>
+          <button class="btn btn-secondary btn-sm" style="margin-left:4px" onclick="cancelPurchaseEdit()">取消</button>
         </td>
       </tr>`;
     }
