@@ -2721,7 +2721,7 @@ function renderPurchases() {
     if (fCountry && (p.country || '') !== fCountry) return false;
     return true;
   });
-  const sorted = filtered.sort((a,b) => b.date.localeCompare(a.date));
+  const sorted = filtered.sort((a,b) => b.date.localeCompare(a.date) || b.id - a.id);
 
   // 結果統計
   if (infoEl) {
@@ -3282,7 +3282,7 @@ function renderSales() {
     if (fP && s.productId !== fP) return false;
     return true;
   });
-  const sorted = filtered.sort((a,b) => b.date.localeCompare(a.date));
+  const sorted = filtered.sort((a,b) => b.date.localeCompare(a.date) || b.id - a.id);
 
   if (infoEl) {
     if (filtered.length !== sales.length) {
