@@ -17,23 +17,23 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-const COLLECTIONS = [
-  'purchases', 'sales', 'products', 'customers',
-  'suppliers', 'warehouses', 'categories', 'transfers'
-];
-
 async function backup() {
   const today = new Date().toISOString().slice(0, 10);
   console.log(`📦 開始備份 ${today}...`);
 
+  // 網站資料存在 erpData collection，每個 doc 是一個資料 key
+  const snapshot = await db.collection('erpData').get();
   const allData = {};
-  for (const col of COLLECTIONS) {
-    const snapshot = await db.collection(col).get();
-    const data = {};
-    snapshot.forEach(doc => { data[doc.id] = doc.data(); });
-    allData[col] = data;
-    console.log(`✅ ${col}：${Object.keys(data).length} 筆`);
-  }
+  snapshot.forEach(doc => {
+    const payload = doc.data();
+    try {
+      allData[doc.id] = JSON.parse(payload.data);
+    } catch (e) {
+      allData[doc.id] = payload;
+    }
+    console.log(`✅ ${doc.id}：備份完成`);
+  });
+  console.log(`📊 共備份 ${Object.keys(allData).length} 個資料集`);
 
   // 存到 repo 的 backups 資料夾
   const backupDir = path.join('backups');
