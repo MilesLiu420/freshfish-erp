@@ -1151,6 +1151,19 @@
       "favorite": false,
       "favoriteProducts": [],
       "customPrices": {}
+    },
+    {
+      "id": 1779084796612,
+      "name": "億泰",
+      "contact": "",
+      "phone": "",
+      "note": "",
+      "categoryId": 802,
+      "email": "",
+      "payment": "",
+      "favorite": false,
+      "favoriteProducts": [],
+      "customPrices": {}
     }
   ],
   "dashboardOrder": [],
@@ -2060,6 +2073,7 @@
     }
   ],
   "recentCustomers": [
+    1779084796612,
     1778807654888,
     1778818699198,
     1778807334246,
@@ -2068,18 +2082,17 @@
     1778342985889,
     1778654146273,
     1778342519073,
-    1778342386017,
-    1778342847508
+    1778342386017
   ],
   "recentProducts": [
+    1778807152130,
     1778807688233,
     1778807178352,
     1778807822786,
     1778342879388,
     1778342773211,
     1778342306408,
-    1778342748815,
-    1778323918603
+    1778342748815
   ],
   "sales": [
     {
@@ -3080,6 +3093,36 @@
       "displayPrice": 1300,
       "note": "",
       "recorder": "春華"
+    },
+    {
+      "id": 1779078114407,
+      "date": "2026-05-18",
+      "warehouseId": 902,
+      "customerId": 1778807654888,
+      "type": "retail",
+      "productId": 1778807688233,
+      "qty": 30,
+      "price": 130,
+      "unitMode": "box",
+      "displayQty": 3,
+      "displayPrice": 1300,
+      "note": "",
+      "recorder": "春華"
+    },
+    {
+      "id": 1779084820770,
+      "date": "2026-05-18",
+      "warehouseId": 901,
+      "customerId": 1779084796612,
+      "type": "retail",
+      "productId": 1778807152130,
+      "qty": 6,
+      "price": 350,
+      "unitMode": "pack",
+      "displayQty": 6,
+      "displayPrice": 350,
+      "note": "",
+      "recorder": "韋成"
     }
   ],
   "suppliers": [
