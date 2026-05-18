@@ -1,14 +1,1 @@
-<<<<<<< HEAD
-404: Not Found
-=======
-{
-  "purchases": {},
-  "sales": {},
-  "products": {},
-  "customers": {},
-  "suppliers": {},
-  "warehouses": {},
-  "categories": {},
-  "transfers": {}
-}
->>>>>>> 3a7a482a3948bb5cca800aafa1d6d5ef8786f53e
+{}
