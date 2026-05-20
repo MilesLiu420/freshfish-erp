@@ -1,6 +1,9 @@
 # 一鍵上傳腳本（本機用，不上傳到 GitHub）
 一鍵上傳.command
 
+# 備份資料夾由 GitHub Actions 管理，本機不追蹤避免衝突
+backups/
+
 # macOS 系統檔
 .DS_Store
 
