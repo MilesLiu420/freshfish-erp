@@ -683,6 +683,23 @@
 <body>
 <!-- 手機漢堡選單按鈕 -->
 <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobile-menu-btn">☰</button>
+<!-- 載入畫面 -->
+<div id="loading-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#f0f9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;">
+  <div style="font-size:48px;margin-bottom:16px;">🐟</div>
+  <div style="font-size:20px;font-weight:700;color:#0a4d68;margin-bottom:8px;">漁健客進銷存系統</div>
+  <div style="font-size:14px;color:#475569;margin-bottom:24px;">正在從雲端載入資料...</div>
+  <div style="width:200px;height:4px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+    <div style="height:100%;background:#088395;border-radius:4px;animation:loadingAnim 1.5s ease-in-out infinite;"></div>
+  </div>
+</div>
+<style>
+@keyframes loadingAnim {
+  0% { width:0%;margin-left:0; }
+  50% { width:60%;margin-left:20%; }
+  100% { width:0%;margin-left:100%; }
+}
+</style>
+
 <div class="mobile-menu-overlay" id="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
 
 <div class="app">
@@ -5172,7 +5189,16 @@ function clearAll() {
 }
 
 // ============ 初始化 ============
-window.addEventListener('DOMContentLoaded', () => {
+function hideLoadingScreen() {
+  const screen = document.getElementById('loading-screen');
+  if (screen) {
+    screen.style.transition = 'opacity 0.4s';
+    screen.style.opacity = '0';
+    setTimeout(() => screen.remove(), 400);
+  }
+}
+
+function initAfterData() {
   // 預設倉庫（如果沒有）
   if (warehouses.length === 0) {
     warehouses = [
@@ -5188,40 +5214,6 @@ window.addEventListener('DOMContentLoaded', () => {
     DB.save('warehouses', warehouses);
   }
 
-  // 如果是首次使用，加入示範資料
-  if (products.length === 0 && customers.length === 0 && suppliers.length === 0) {
-    categories = [
-      { id: 801, name: '餐廳' },
-      { id: 802, name: '批發商' },
-      { id: 803, name: '散客' }
-    ];
-    suppliers = [
-      { id: 1, name: '東港漁港直送', contact: '林老闆', phone: '08-832-XXXX', note: '蝦類專長' },
-      { id: 2, name: '蘇澳冷凍廠', contact: '張經理', phone: '03-997-XXXX', note: '魚類批發' }
-    ];
-    customers = [
-      { id: 11, name: '海鮮王餐廳', contact: '陳老闆', phone: '0912-345-678', note: '每週二訂貨', categoryId: 801, payment: '月結', favorite: true, favoriteProducts: [], customPrices: {} },
-      { id: 12, name: '林媽媽（散客）', contact: '', phone: '0922-111-222', note: '', categoryId: 803, payment: '現金', favorite: false, favoriteProducts: [], customPrices: {} }
-    ];
-    productCategories = [
-      { id: 701, name: '魚類' },
-      { id: 702, name: '蝦類' },
-      { id: 703, name: '蟹類' },
-      { id: 704, name: '頭足類' },
-      { id: 705, name: '貝類' }
-    ];
-    products = [
-      { id: 101, name: '白蝦 16/20', spec: '1kg/盒', unit: '盒', categoryId: 702, retail: 480, wholesale: 380, safestock: 10 },
-      { id: 102, name: '挪威鯖魚片', spec: '500g/包', unit: '包', categoryId: 701, retail: 180, wholesale: 130, safestock: 20 },
-      { id: 103, name: '阿根廷魷魚', spec: '1kg/包', unit: '包', categoryId: 704, retail: 320, wholesale: 250, safestock: 15 }
-    ];
-    DB.save('categories', categories);
-    DB.save('productCategories', productCategories);
-    DB.save('suppliers', suppliers);
-    DB.save('customers', customers);
-    DB.save('products', products);
-  }
-
   // 舊資料相容：為已存在的客戶補上預設欄位
   let needSave = false;
   customers.forEach(c => {
@@ -5235,21 +5227,24 @@ window.addEventListener('DOMContentLoaded', () => {
   renderWarehouseSelects();
   renderDashboard();
   startTableLabelObserver();
+  hideLoadingScreen();
+}
 
-  // ========== Firebase 同步啟動 ==========
+window.addEventListener('DOMContentLoaded', () => {
+  // ========== Firebase 優先啟動：先從雲端拉資料再渲染 ==========
   if (firebaseEnabled) {
-    // 1. 先從雲端拉一次最新資料
     syncFromCloud().then(success => {
       if (success) {
-        // 2. 重新載入記憶體變數
         reloadAllFromLocalStorage();
-        // 3. 重新渲染儀表板
-        renderWarehouseSelects();
-        renderDashboard();
       }
-      // 4. 啟動即時監聽（其他裝置變動會自動推過來）
+      initAfterData();
+      startCloudListener();
+    }).catch(() => {
+      initAfterData();
       startCloudListener();
     });
+  } else {
+    initAfterData();
   }
 });
 </script>
