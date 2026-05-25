@@ -2051,7 +2051,7 @@ function updateTransferLine(lineId, field, value) {
     renderTransferLines();
     return;
   }
-  if (field === 'qty') line.qty = parseFloat(value) || 0;
+  if (field === 'qty') line.qty = parseInt(value) || 0;
   updateTransferLineCalc(lineId);
   updateTransferTotals();
 }
@@ -2096,7 +2096,7 @@ function renderTransferLines() {
       </div>
       <div class="form-row">
         <div class="form-group"><label>轉移數量（包）</label>
-          <input type="number" min="0" step="0.01" value="${l.qty}" oninput="updateTransferLine(${l.lineId}, 'qty', this.value)">
+          <input type="number" min="0" step="1" value="${l.qty}" oninput="updateTransferLine(${l.lineId}, 'qty', this.value)">
         </div>
       </div>
       <div class="calc-display" id="tr-calc-${l.lineId}"></div>
@@ -2224,7 +2224,7 @@ function renderTransfers() {
         <td style="text-align:center; font-size:18px; color:#088395">→</td>
         <td data-label="目的"><select id="et-to-${t.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts2}</select></td>
         <td data-label="商品"><select id="et-product-${t.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${prodOpts}</select></td>
-        <td data-label="數量"><input id="et-qty-${t.id}" type="number" step="0.01" value="${t.qty}" style="width:80px;padding:6px;border:1.5px solid #088395;border-radius:6px"> 包</td>
+        <td data-label="數量"><input id="et-qty-${t.id}" type="number" step="1" value="${t.qty}" style="width:80px;padding:6px;border:1.5px solid #088395;border-radius:6px"> 包</td>
         <td data-label="備註"><input id="et-note-${t.id}" value="${t.note || ''}" style="width:100%;padding:6px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="記錄者">${recorderBadge(t.recorder)}</td>
         <td data-label="操作">
@@ -2263,7 +2263,7 @@ function saveTransferEdit(id) {
   const fromW = parseInt(document.getElementById('et-from-' + id).value);
   const toW = parseInt(document.getElementById('et-to-' + id).value);
   const productId = parseInt(document.getElementById('et-product-' + id).value);
-  const qty = parseFloat(document.getElementById('et-qty-' + id).value) || 0;
+  const qty = parseInt(document.getElementById('et-qty-' + id).value) || 0;
   const note = document.getElementById('et-note-' + id).value;
 
   if (!date || !fromW || !toW || !productId || qty <= 0) {
@@ -2452,7 +2452,7 @@ function updatePurchaseLine(lineId, field, value) {
   const line = currentPurchaseLines.find(l => l.lineId === lineId);
   if (!line) return;
   if (['boxes', 'packsPerBox', 'costPerBox', 'productId'].includes(field)) {
-    line[field] = field === 'productId' ? (parseInt(value) || '') : (parseFloat(value) || 0);
+    line[field] = field === 'productId' ? (parseInt(value) || '') : (field === 'boxes' ? (parseInt(value) || 0) : (parseFloat(value) || 0));
   } else {
     line[field] = value;
   }
@@ -2932,7 +2932,7 @@ function updateSaleLine(lineId, field, value) {
   const line = currentSaleLines.find(l => l.lineId === lineId);
   if (!line) return;
   if (['qty', 'price', 'productId'].includes(field)) {
-    line[field] = field === 'productId' ? (parseInt(value) || '') : (parseFloat(value) || 0);
+    line[field] = field === 'productId' ? (parseInt(value) || '') : (field === 'qty' ? (parseInt(value) || 0) : (parseFloat(value) || 0));
   } else {
     line[field] = value;
   }
@@ -3037,7 +3037,7 @@ function renderSaleLines() {
           </select>
         </div>
         <div class="form-group"><label>數量（${unitLabel}）</label>
-          <input type="number" min="0" step="0.01" value="${l.qty}" oninput="updateSaleLine(${l.lineId}, 'qty', this.value)">
+          <input type="number" min="0" step="1" value="${l.qty}" oninput="updateSaleLine(${l.lineId}, 'qty', this.value)">
         </div>
         <div class="form-group"><label>單價 ($/${unitLabel})</label>
           <input id="sa-price-${l.lineId}" type="number" min="0" step="0.01" value="${l.price}" oninput="updateSaleLine(${l.lineId}, 'price', this.value)">
