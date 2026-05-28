@@ -913,7 +913,7 @@
         <!-- 客戶選擇器 -->
         <div class="form-row">
           <div class="form-group" style="grid-column: 1 / -1;">
-            <label>👤 選擇客戶 *</label>
+            <label style="display:flex;align-items:center;gap:10px;">👤 選擇客戶 * <button type="button" onclick="openQuickAddCustomer()" style="font-size:12px;padding:3px 10px;background:#088395;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">＋ 新增客戶</button></label>
             <div class="customer-picker">
               <input id="sa-customer-search" placeholder="🔍 輸入名稱/電話搜尋，或從下方點選" oninput="renderCustomerPicker()" autocomplete="off">
               <input type="hidden" id="sa-customer">
@@ -1408,6 +1408,32 @@
     <div style="display:flex; gap:8px; margin-top:8px">
       <button class="btn btn-success" onclick="confirmAdjust()" style="flex:1;">💾 確認調整</button>
       <button class="btn btn-secondary" onclick="closeAdjustModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 快速新增客戶 Modal（在銷貨登記頁使用） -->
+<div class="modal-overlay" id="quick-add-customer-modal">
+  <div class="modal" style="max-width:420px">
+    <button class="modal-close" onclick="closeQuickAddCustomer()">×</button>
+    <h3 style="margin:0 0 20px;color:#0a4d68;">＋ 快速新增客戶</h3>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>姓名 *</label>
+      <input id="qac-name" placeholder="客戶姓名（必填）" autocomplete="off">
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>電話</label>
+      <input id="qac-phone" placeholder="可選" autocomplete="off">
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>分類</label>
+      <select id="qac-category">
+        <option value="">-- 不分類 --</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button type="button" class="btn btn-primary" style="flex:1" onclick="submitQuickAddCustomer()">新增並選取</button>
+      <button type="button" class="btn btn-secondary" style="flex:1" onclick="closeQuickAddCustomer()">取消</button>
     </div>
   </div>
 </div>
@@ -3127,6 +3153,51 @@ function submitSale() {
 }
 
 // ---- 客戶選擇器 ----
+function openQuickAddCustomer() {
+  // 填入分類選項
+  const sel = document.getElementById('qac-category');
+  sel.innerHTML = '<option value="">-- 不分類 --</option>' +
+    categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  // 清空欄位
+  document.getElementById('qac-name').value = '';
+  document.getElementById('qac-phone').value = '';
+  sel.value = '';
+  document.getElementById('quick-add-customer-modal').classList.add('show');
+  setTimeout(() => document.getElementById('qac-name').focus(), 100);
+}
+
+function closeQuickAddCustomer() {
+  document.getElementById('quick-add-customer-modal').classList.remove('show');
+}
+
+function submitQuickAddCustomer() {
+  const name = document.getElementById('qac-name').value.trim();
+  if (!name) { alert('請填寫客戶姓名'); return; }
+  const phone = document.getElementById('qac-phone').value.trim();
+  const categoryId = parseInt(document.getElementById('qac-category').value) || null;
+
+  // 建立新客戶
+  const newCustomer = {
+    id: Date.now(),
+    name,
+    phone,
+    categoryId,
+    contact: '',
+    address: '',
+    payment: '',
+    note: '',
+    favorite: false,
+    favoriteProducts: [],
+    customPrices: {}
+  };
+  customers.push(newCustomer);
+  DB.save('customers', customers);
+
+  closeQuickAddCustomer();
+  // 直接選取這位新客戶
+  selectCustomer(newCustomer.id);
+}
+
 function renderCustomerPicker() {
   const search = document.getElementById('sa-customer-search').value.toLowerCase().trim();
   const listEl = document.getElementById('sa-customer-list');
