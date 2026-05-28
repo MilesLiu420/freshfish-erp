@@ -3034,6 +3034,7 @@ function renderSaleLines() {
           <select onchange="updateSaleLine(${l.lineId}, 'type', this.value)">
             <option value="retail" ${l.type === 'retail' ? 'selected' : ''}>零售</option>
             <option value="wholesale" ${l.type === 'wholesale' ? 'selected' : ''}>批發</option>
+            <option value="sample" ${l.type === 'sample' ? 'selected' : ''}>樣品</option>
           </select>
         </div>
         <div class="form-group"><label>數量（${unitLabel}）</label>
@@ -3059,7 +3060,7 @@ function submitSale() {
   if (!customerId) { alert('請選擇客戶'); return; }
   if (!date) { alert('請填寫銷貨日期'); return; }
 
-  const validLines = currentSaleLines.filter(l => l.productId && l.qty > 0 && l.price > 0);
+  const validLines = currentSaleLines.filter(l => l.productId && l.qty > 0 && (l.price > 0 || l.type === 'sample'));
   if (validLines.length === 0) { alert('請至少完整填寫一筆明細'); return; }
   if (validLines.length !== currentSaleLines.length) {
     if (!confirm(`有 ${currentSaleLines.length - validLines.length} 筆明細未完整填寫，將自動跳過。要繼續送出嗎？`)) return;
@@ -3355,6 +3356,7 @@ function renderSales() {
           <select id="es-type-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">
             <option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option>
             <option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option>
+            <option value="sample" ${s.type === 'sample' ? 'selected' : ''}>樣品</option>
           </select>
         </td>
         <td data-label="商品"><select id="es-product-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${prodOpts}</select></td>
@@ -3384,7 +3386,7 @@ function renderSales() {
       <td data-label="日期" style="white-space:nowrap">${s.date}</td>
       <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(s.warehouseId)}</td>
       <td data-label="客戶">${customer ? customer.name : '-'}</td>
-      <td data-label="類型"><span class="badge ${s.type === 'wholesale' ? 'badge-info' : 'badge-success'}">${s.type === 'wholesale' ? '批發' : '零售'}</span></td>
+      <td data-label="類型"><span class="badge ${s.type === 'wholesale' ? 'badge-info' : s.type === 'sample' ? 'badge-warning' : 'badge-success'}">${s.type === 'wholesale' ? '批發' : s.type === 'sample' ? '樣品' : '零售'}</span></td>
       <td data-label="商品">${product ? product.name : '已刪除'}</td>
       <td data-label="數量" style="white-space:nowrap">${formatSaleQty(s)}</td>
       <td data-label="單價" style="white-space:nowrap">${formatSalePrice(s)}</td>
@@ -4312,18 +4314,24 @@ function renderReport() {
   document.getElementById('r-customers-delta').innerHTML = deltaHTML(cur.customers, prv.customers);
   document.getElementById('r-avg-delta').innerHTML = deltaHTML(cur.avg, prv.avg);
 
-  // ─── 圖表：零售 vs 批發 ───
-  let retailAmt = 0, wholesaleAmt = 0;
+  // ─── 圖表：零售 vs 批發 vs 樣品 ───
+  let retailAmt = 0, wholesaleAmt = 0, sampleAmt = 0;
   monthSales.forEach(s => {
     const amt = s.qty * s.price;
-    if (s.type === 'wholesale') wholesaleAmt += amt; else retailAmt += amt;
+    if (s.type === 'wholesale') wholesaleAmt += amt;
+    else if (s.type === 'sample') sampleAmt += amt;
+    else retailAmt += amt;
   });
   if (retailWholesaleChart) retailWholesaleChart.destroy();
+  const rwLabels = ['零售', '批發'];
+  const rwData = [retailAmt, wholesaleAmt];
+  const rwColors = ['#22c55e', '#3b82f6'];
+  if (sampleAmt > 0) { rwLabels.push('樣品'); rwData.push(sampleAmt); rwColors.push('#f59e0b'); }
   retailWholesaleChart = new Chart(document.getElementById('retailWholesaleChart'), {
     type: 'doughnut',
     data: {
-      labels: ['零售', '批發'],
-      datasets: [{ data: [retailAmt, wholesaleAmt], backgroundColor: ['#22c55e', '#3b82f6'] }]
+      labels: rwLabels,
+      datasets: [{ data: rwData, backgroundColor: rwColors }]
     },
     options: { responsive: true, maintainAspectRatio: false }
   });
@@ -5152,7 +5160,7 @@ async function importFromRagic() {
         const product = findOrCreateProduct(productName);
         const customer = customerName ? findOrCreateCustomer(customerName) : null;
         const typeStr = (row['批發/零售'] || '').toString();
-        const type = typeStr.includes('批發') ? 'wholesale' : 'retail';
+        const type = typeStr.includes('批發') ? 'wholesale' : typeStr.includes('樣品') ? 'sample' : 'retail';
 
         sales.push({
           id: baseId + idx,
