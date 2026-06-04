@@ -3520,7 +3520,7 @@ function saveSaleEdit(id) {
   const unitModeEl = document.getElementById('es-unitmode-' + id);
   const unitMode = unitModeEl ? unitModeEl.value : (s.unitMode || 'pack');
 
-  if (!date || !warehouseId || !productId || inputQty <= 0 || inputPrice <= 0) {
+  if (!date || !warehouseId || !productId || inputQty <= 0 || (inputPrice <= 0 && type !== 'sample')) {
     alert('請完整填寫日期、倉庫、商品、數量、單價');
     return;
   }
