@@ -906,7 +906,7 @@
       <div class="card">
         <div class="card-title">登記新銷貨單</div>
         <div class="form-row">
-          <div class="form-group"><label>銷貨日期</label><input id="sa-date" type="date"></div>
+          <div class="form-group"><label>銷貨日期</label><input id="sa-date" type="date" onchange="updateSaleTotals()"></div>
           <div class="form-group"><label>📦 出貨倉庫 *</label><select id="sa-warehouse"></select></div>
         </div>
 
@@ -934,7 +934,8 @@
         <button type="button" class="add-line-btn" onclick="addSaleLine()">+ 加入下一個品項</button>
 
         <div class="form-row" style="margin-top:16px">
-          <div class="form-group" style="grid-column: 1 / -1;"><label>整單備註</label><input id="sa-note" placeholder="可選"></div>
+          <div class="form-group"><label>運費金額</label><input id="sa-shipping" type="number" min="0" step="1" value="0" oninput="updateSaleTotals()" placeholder="0"></div>
+          <div class="form-group"><label>整單備註</label><input id="sa-note" placeholder="可選"></div>
         </div>
 
         <div class="total-bar">
@@ -943,8 +944,21 @@
             <div style="font-size:20px; font-weight:700;" id="sa-total-count">0 項</div>
           </div>
           <div>
-            <div class="total-label">💰 本單總金額</div>
+            <div class="total-label">💰 商品金額</div>
             <div class="total-value" id="sa-total-amount">$0</div>
+          </div>
+          <div>
+            <div class="total-label">🚚 運費</div>
+            <div class="total-value" id="sa-shipping-display">$0</div>
+          </div>
+          <div>
+            <div class="total-label">📦 成本</div>
+            <div class="total-value" id="sa-total-cost">$0</div>
+          </div>
+          <div>
+            <div class="total-label">📈 預估利潤</div>
+            <div class="total-value" id="sa-total-profit">$0</div>
+            <div style="font-size:13px;opacity:.85" id="sa-profit-rate">0%</div>
           </div>
         </div>
 
@@ -2911,9 +2925,22 @@ function savePurchaseEdit(id) {
 }
 
 // ============ 銷貨（多品項） ============
+function todayLocalDateString() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function setSaleDateToday() {
+  const el = document.getElementById('sa-date');
+  if (el) el.value = todayLocalDateString();
+}
+
 function renderSaleSelects() {
   renderWarehouseSelects();
-  if (!document.getElementById('sa-date').value) document.getElementById('sa-date').value = new Date().toISOString().split('T')[0];
+  setSaleDateToday();
   const wEl = document.getElementById('sa-warehouse');
   if (wEl && !wEl.value && warehouses.length > 0) wEl.value = warehouses[0].id;
   // 重置客戶選擇
@@ -3021,10 +3048,37 @@ function updateSaleLineCalc(lineId) {
   if (priceInput && parseFloat(priceInput.value) !== line.price) priceInput.value = line.price;
 }
 
+function saleLinePacksOut(line) {
+  const product = products.find(p => p.id === line.productId);
+  const ppb = product ? (product.packsPerBox || 1) : 1;
+  return line.unitMode === 'box' ? (line.qty || 0) * ppb : (line.qty || 0);
+}
+
+function estimateSaleLineCost(line) {
+  if (!line.productId) return 0;
+  const saleDate = document.getElementById('sa-date')?.value || todayLocalDateString();
+  return saleLinePacksOut(line) * avgCost(line.productId, saleDate);
+}
+
 function updateSaleTotals() {
   const total = currentSaleLines.reduce((s, l) => s + (l.qty || 0) * (l.price || 0), 0);
+  const cost = currentSaleLines.reduce((s, l) => s + estimateSaleLineCost(l), 0);
+  const shipping = parseInt(document.getElementById('sa-shipping')?.value, 10) || 0;
+  const profit = total - cost - shipping;
+  const rate = total > 0 ? (profit / total * 100) : 0;
   document.getElementById('sa-total-count').textContent = currentSaleLines.filter(l => l.productId).length + ' 項';
   document.getElementById('sa-total-amount').textContent = '$' + total.toLocaleString();
+  const shippingEl = document.getElementById('sa-shipping-display');
+  const costEl = document.getElementById('sa-total-cost');
+  const profitEl = document.getElementById('sa-total-profit');
+  const rateEl = document.getElementById('sa-profit-rate');
+  if (shippingEl) shippingEl.textContent = '$' + shipping.toLocaleString();
+  if (costEl) costEl.textContent = '$' + Math.round(cost).toLocaleString();
+  if (profitEl) {
+    profitEl.textContent = '$' + Math.round(profit).toLocaleString();
+    profitEl.style.color = profit >= 0 ? '' : '#fecaca';
+  }
+  if (rateEl) rateEl.textContent = rate.toFixed(1) + '%';
 }
 
 function renderSaleLines() {
@@ -3082,6 +3136,7 @@ function submitSale() {
   const customerId = parseInt(document.getElementById('sa-customer').value);
   const date = document.getElementById('sa-date').value;
   const note = document.getElementById('sa-note').value;
+  const shipping = parseInt(document.getElementById('sa-shipping')?.value, 10) || 0;
   if (!warehouseId) { alert('請選擇出貨倉庫'); return; }
   if (!customerId) { alert('請選擇客戶'); return; }
   if (!date) { alert('請填寫銷貨日期'); return; }
@@ -3125,6 +3180,7 @@ function submitSale() {
       unitMode: l.unitMode,     // 顯示用
       displayQty: l.qty,        // 顯示用：使用者實際輸入的數量
       displayPrice: l.price,    // 顯示用：使用者實際輸入的單價
+      shipping: idx === 0 ? shipping : 0, // 整單運費只記在第一筆，避免重複計算
       note,
       recorder: currentUserName()
     });
@@ -3138,7 +3194,10 @@ function submitSale() {
   const cName = (customers.find(c => c.id === customerId) || {}).name || '';
   const wName = (warehouses.find(w => w.id === warehouseId) || {}).name || '';
   const total = validLines.reduce((s, l) => s + l.qty * l.price, 0);
-  alert(`✅ 銷貨單送出成功！\n客戶：${cName}\n倉庫：${wName}\n品項數：${validLines.length}\n💰 總金額：$${total.toLocaleString()}`);
+  const cost = validLines.reduce((s, l) => s + estimateSaleLineCost(l), 0);
+  const profit = total - cost - shipping;
+  const rate = total > 0 ? (profit / total * 100) : 0;
+  alert(`✅ 銷貨單送出成功！\n客戶：${cName}\n倉庫：${wName}\n品項數：${validLines.length}\n💰 商品金額：$${total.toLocaleString()}\n🚚 運費：$${shipping.toLocaleString()}\n📈 預估利潤：$${Math.round(profit).toLocaleString()}（${rate.toFixed(1)}%）`);
 
   // 清空，準備下一張單
   currentSaleLines = [];
@@ -3147,6 +3206,9 @@ function submitSale() {
   document.getElementById('sa-customer-selected').style.display = 'none';
   document.getElementById('sa-favorites-row').style.display = 'none';
   document.getElementById('sa-note').value = '';
+  const shippingEl = document.getElementById('sa-shipping');
+  if (shippingEl) shippingEl.value = 0;
+  setSaleDateToday();
   addSaleLine();
   renderCustomerPicker();
   renderSales();
@@ -4228,6 +4290,7 @@ function calcSummary(salesList) {
   let cost = 0;
   salesList.forEach(s => {
     cost += s.qty * avgCost(s.productId, s.date);
+    cost += s.shipping || 0;
   });
   const profit = total - cost;
   // 訂單數：以「日期+客戶+倉庫」為一筆訂單（同一張單寫入多筆 sales 共用 baseId 但不易追，用日期+客戶判定）
