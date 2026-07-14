@@ -907,7 +907,7 @@
         <div class="card-title">登記新銷貨單</div>
         <div class="form-row">
           <div class="form-group"><label>銷貨日期</label><input id="sa-date" type="date" onchange="updateSaleTotals()"></div>
-          <div class="form-group"><label>📦 出貨倉庫 *</label><select id="sa-warehouse"></select></div>
+          <div class="form-group"><label>📦 出貨倉庫 *</label><select id="sa-warehouse" onchange="if(activeProductPicker && activeProductPicker.startsWith('sa-prod-')) renderProductPickerList(activeProductPicker); updateSaleTotals();"></select></div>
         </div>
 
         <!-- 客戶選擇器 -->
@@ -2355,6 +2355,8 @@ function renderProductPickerList(pickerId) {
   const filterCat = document.getElementById(pickerId + '-cat')?.value || '';
   const listEl = document.getElementById(pickerId + '-list');
   if (!listEl) return;
+  const pickerType = pickerId.split('-')[0];
+  const saleWarehouseId = parseInt(document.getElementById('sa-warehouse')?.value) || 'all';
 
   const matchSearch = (p) => !search || (p.name + (p.spec || '')).toLowerCase().includes(search);
   const matchCat = (p) => !filterCat || (filterCat === 'none' ? !p.categoryId : p.categoryId === parseInt(filterCat));
@@ -2391,16 +2393,32 @@ function renderProductPickerList(pickerId) {
       html += '<div class="picker-section-title">📂 全部商品</div>';
       hasOtherSection = true;
     }
+    const stockInfo = pickerType === 'sa' ? productPickerStockHTML(p, saleWarehouseId) : '';
     html += `<div class="product-item" onclick="selectProduct('${pickerId}', ${p.id})">
       <div>
         <div class="name">${p.name}</div>
-        <div class="meta">${cat ? '🏷️ '+cat.name+' · ' : ''}${p.spec || ''}${p.unit ? ' · '+p.unit : ''}</div>
+        <div class="meta">${cat ? '🏷️ '+cat.name+' · ' : ''}${p.spec || ''}${p.unit ? ' · '+p.unit : ''}${stockInfo}</div>
       </div>
       <div style="color:#088395; font-size:13px">選 →</div>
     </div>`;
   });
 
   listEl.innerHTML = html;
+}
+
+function productPickerStockHTML(product, warehouseId) {
+  const stock = calcStock(product.id, warehouseId);
+  const unit = product.unit || '包';
+  let color = '#16a34a';
+  let bg = '#dcfce7';
+  if (stock <= 0) {
+    color = '#dc2626';
+    bg = '#fee2e2';
+  } else if (product.safestock && stock <= product.safestock) {
+    color = '#d97706';
+    bg = '#fef3c7';
+  }
+  return ` · <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:999px;background:${bg};color:${color};font-weight:700;white-space:nowrap">庫存 ${stock} ${unit}</span>`;
 }
 
 function selectProduct(pickerId, productId) {
