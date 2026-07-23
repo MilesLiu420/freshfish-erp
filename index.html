@@ -105,6 +105,12 @@
   .btn-secondary { background: #e2e8f0; color: #475569; }
   .btn-secondary:hover { background: #cbd5e1; }
   .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .record-product-cell { min-width: 150px; word-break: keep-all; writing-mode: horizontal-tb; }
+  .record-product-name { font-weight: 700; color: #1f2937; white-space: normal; line-height: 1.35; word-break: keep-all; overflow-wrap: normal; }
+  .record-product-spec { margin-top: 4px; color: #64748b; font-size: 12px; line-height: 1.25; white-space: normal; word-break: keep-all; overflow-wrap: normal; }
+  .record-nowrap { white-space: nowrap; word-break: keep-all; writing-mode: horizontal-tb; }
+  .record-actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 72px; }
+  .record-actions .btn { padding: 7px 12px; font-size: 13px; border-radius: 7px; }
 
   /* 表格 */
   table { width: 100%; border-collapse: collapse; }
@@ -2279,7 +2285,7 @@ function renderTransfers() {
       <td data-label="來源" style="white-space:nowrap">${warehouseBadgeHTML(t.fromWarehouseId)}</td>
       <td style="text-align:center; font-size:18px; color:#088395">→</td>
       <td data-label="目的" style="white-space:nowrap">${warehouseBadgeHTML(t.toWarehouseId)}</td>
-      <td data-label="商品">${product ? product.name : '已刪除'}</td>
+      <td data-label="商品">${saleProductCellHTML(product)}</td>
       <td data-label="數量"><strong>${t.qty} 包</strong></td>
       <td data-label="備註" style="font-size:12px">${t.note || '-'}</td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(t.recorder)}</td>
@@ -2770,6 +2776,22 @@ function clearSaleChecked() {
   document.getElementById('sa-batch-bar').style.display = 'none';
 }
 
+function purchaseProductCellHTML(product) {
+  if (!product) return '<span class="record-product-name">已刪除</span>';
+  return `<div class="record-product-cell">
+    <div class="record-product-name">${product.name}</div>
+    ${product.spec ? `<div class="record-product-spec">規格：${product.spec}</div>` : ''}
+  </div>`;
+}
+
+function saleProductCellHTML(product) {
+  if (!product) return '<span class="record-product-name">已刪除</span>';
+  return `<div class="record-product-cell">
+    <div class="record-product-name">${product.name}</div>
+    ${product.spec ? `<div class="record-product-spec">規格：${product.spec}</div>` : ''}
+  </div>`;
+}
+
 function renderPurchases() {
   const tbody = document.getElementById('purchase-tbody');
   const infoEl = document.getElementById('pu-result-info');
@@ -2828,7 +2850,7 @@ function renderPurchases() {
     if (editingPurchaseId === p.id) {
       const wOpts = warehouses.map(w => `<option value="${w.id}" ${p.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
       const sOpts = '<option value="">無</option>' + suppliers.map(s => `<option value="${s.id}" ${p.supplierId === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
-      const prodOpts = products.map(x => `<option value="${x.id}" ${p.productId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
+      const prodOpts = products.map(x => `<option value="${x.id}" ${p.productId === x.id ? 'selected' : ''}>${x.name}${x.spec ? ' (' + x.spec + ')' : ''}</option>`).join('');
       const boxes = p.boxes || 1;
       const packsPerBox = p.packsPerBox || p.qty || 1;
       const costPerBox = p.costPerBox || ((p.price || 0) * (p.packsPerBox || p.qty || 1));
@@ -2850,8 +2872,10 @@ function renderPurchases() {
         <td data-label="到期日"><input id="ep-expiry-${p.id}" type="date" value="${p.expiry || ''}" style="width:140px;padding:6px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="記錄者">${recorderBadge(p.recorder)}</td>
         <td data-label="操作">
-          <button class="btn btn-success btn-sm" onclick="savePurchaseEdit(${p.id})">💾 儲存</button>
-          <button class="btn btn-secondary btn-sm" style="margin-left:4px" onclick="cancelPurchaseEdit()">取消</button>
+          <div class="record-actions">
+            <button class="btn btn-success btn-sm" onclick="savePurchaseEdit(${p.id})">💾 儲存</button>
+            <button class="btn btn-secondary btn-sm" onclick="cancelPurchaseEdit()">取消</button>
+          </div>
         </td>
       </tr>`;
     }
@@ -2862,8 +2886,8 @@ function renderPurchases() {
       <td style="text-align:center"><input type="checkbox" class="pu-row-check" data-id="${p.id}" ${puChecked ? 'checked' : ''} onchange="onPurchaseCheckChange()"></td>
       <td data-label="日期" style="white-space:nowrap">${p.date}</td>
       <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(p.warehouseId)}</td>
-      <td data-label="供應商">${supplier ? supplier.name : '-'}</td>
-      <td data-label="商品">${product ? product.name : '已刪除'}</td>
+      <td data-label="供應商" class="record-nowrap">${supplier ? supplier.name : '-'}</td>
+      <td data-label="商品">${purchaseProductCellHTML(product)}</td>
       <td data-label="產地" style="white-space:nowrap">${p.country ? `<span class="badge badge-info">${p.country}</span>` : '-'}</td>
       <td data-label="箱×包" style="white-space:nowrap">${boxInfo}</td>
       <td data-label="包數">${p.qty}</td>
@@ -2871,9 +2895,11 @@ function renderPurchases() {
       <td data-label="金額" style="white-space:nowrap"><strong>$${(p.qty * p.price).toLocaleString()}</strong></td>
       <td data-label="到期日" style="white-space:nowrap">${p.expiry || '-'}</td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(p.recorder)}</td>
-      <td data-label="操作" style="white-space:nowrap">
-        <button class="btn btn-primary" onclick="startPurchaseEdit(${p.id})">編輯</button>
-        <button class="btn btn-danger" style="margin-left:4px" onclick="deletePurchase(${p.id})">刪除</button>
+      <td data-label="操作">
+        <div class="record-actions">
+          <button class="btn btn-primary" onclick="startPurchaseEdit(${p.id})">編輯</button>
+          <button class="btn btn-danger" onclick="deletePurchase(${p.id})">刪除</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -3487,7 +3513,7 @@ function renderSales() {
     if (editingSaleId === s.id) {
       const wOpts = warehouses.map(w => `<option value="${w.id}" ${s.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
       const cOpts = '<option value="">無</option>' + customers.map(x => `<option value="${x.id}" ${s.customerId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
-      const prodOpts = products.map(x => `<option value="${x.id}" ${s.productId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
+      const prodOpts = products.map(x => `<option value="${x.id}" ${s.productId === x.id ? 'selected' : ''}>${x.name}${x.spec ? ' (' + x.spec + ')' : ''}</option>`).join('');
       // 編輯時用顯示值；舊資料沒有就用包數
       const editUnitMode = s.unitMode || 'pack';
       const editDispQty = (s.displayQty != null) ? s.displayQty : s.qty;
@@ -3520,8 +3546,10 @@ function renderSales() {
         <td data-label="金額"><strong id="es-amt-display-${s.id}" style="color:#16a34a">$${(editDispQty * editDispPrice).toLocaleString()}</strong></td>
         <td data-label="記錄者">${recorderBadge(s.recorder)}</td>
         <td data-label="操作">
-          <button class="btn btn-success" style="padding:6px 12px;font-size:12px" onclick="saveSaleEdit(${s.id})">💾 儲存</button>
-          <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:4px" onclick="cancelSaleEdit()">取消</button>
+          <div class="record-actions">
+            <button class="btn btn-success btn-sm" onclick="saveSaleEdit(${s.id})">💾 儲存</button>
+            <button class="btn btn-secondary btn-sm" onclick="cancelSaleEdit()">取消</button>
+          </div>
         </td>
       </tr>`;
     }
@@ -3536,16 +3564,18 @@ function renderSales() {
       <td style="text-align:center"><input type="checkbox" class="sa-row-check" data-id="${s.id}" ${saChecked ? 'checked' : ''} onchange="onSaleCheckChange()"></td>
       <td data-label="日期" style="white-space:nowrap">${s.date}</td>
       <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(s.warehouseId)}</td>
-      <td data-label="客戶">${customer ? customer.name : '-'}</td>
+      <td data-label="客戶" class="record-nowrap">${customer ? customer.name : '-'}</td>
       <td data-label="類型"><span class="badge ${s.type === 'wholesale' ? 'badge-info' : s.type === 'sample' ? 'badge-warning' : 'badge-success'}">${s.type === 'wholesale' ? '批發' : s.type === 'sample' ? '樣品' : '零售'}</span></td>
-      <td data-label="商品">${product ? product.name : '已刪除'}</td>
+      <td data-label="商品">${saleProductCellHTML(product)}</td>
       <td data-label="數量" style="white-space:nowrap">${formatSaleQty(s)}</td>
       <td data-label="單價" style="white-space:nowrap">${formatSalePrice(s)}</td>
       <td data-label="金額" style="white-space:nowrap"><strong>$${totalAmt.toLocaleString()}</strong></td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(s.recorder)}</td>
-      <td data-label="操作" style="white-space:nowrap">
-        <button class="btn btn-primary" onclick="startSaleEdit(${s.id})">編輯</button>
-        <button class="btn btn-danger" style="margin-left:4px" onclick="deleteSale(${s.id})">刪除</button>
+      <td data-label="操作">
+        <div class="record-actions">
+          <button class="btn btn-primary" onclick="startSaleEdit(${s.id})">編輯</button>
+          <button class="btn btn-danger" onclick="deleteSale(${s.id})">刪除</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
