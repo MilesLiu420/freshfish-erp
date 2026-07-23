@@ -899,7 +899,7 @@
           <button class="btn btn-secondary" onclick="clearPurchaseChecked()">取消</button>
         </div>
         <table>
-          <thead><tr><th style="width:36px"><input type="checkbox" id="pu-check-all" onchange="toggleAllPurchaseChecked(this.checked)" title="全選"></th><th>日期</th><th>倉庫</th><th>供應商</th><th>商品</th><th>產地</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>到期日</th><th>記錄者</th><th>操作</th></tr></thead>
+          <thead><tr><th style="width:36px"><input type="checkbox" id="pu-check-all" onchange="toggleAllPurchaseChecked(this.checked)" title="全選"></th><th>日期</th><th>倉庫</th><th>供應商</th><th>商品 / 規格</th><th>產地</th><th>箱×包</th><th>包數</th><th>每包成本</th><th>金額</th><th>到期日</th><th>記錄者</th><th>操作</th></tr></thead>
           <tbody id="purchase-tbody"></tbody>
         </table>
         <div class="rec-pagination" id="pu-pagination"></div>
@@ -987,7 +987,7 @@
           <button class="btn btn-secondary" onclick="clearSaleChecked()">取消</button>
         </div>
         <table>
-          <thead><tr><th style="width:36px"><input type="checkbox" id="sa-check-all" onchange="toggleAllSaleChecked(this.checked)" title="全選"></th><th>日期</th><th>倉庫</th><th>客戶</th><th>類型</th><th>商品</th><th>數量</th><th>單價</th><th>金額</th><th>記錄者</th><th>操作</th></tr></thead>
+          <thead><tr><th style="width:36px"><input type="checkbox" id="sa-check-all" onchange="toggleAllSaleChecked(this.checked)" title="全選"></th><th>日期</th><th>倉庫</th><th>客戶</th><th>類型</th><th>商品 / 規格</th><th>數量</th><th>單價</th><th>金額</th><th>記錄者</th><th>操作</th></tr></thead>
           <tbody id="sale-tbody"></tbody>
         </table>
         <div class="rec-pagination" id="sa-pagination"></div>
@@ -2776,20 +2776,21 @@ function clearSaleChecked() {
   document.getElementById('sa-batch-bar').style.display = 'none';
 }
 
-function purchaseProductCellHTML(product) {
+function recordProductCellHTML(product) {
   if (!product) return '<span class="record-product-name">已刪除</span>';
+  const specText = product.spec ? product.spec : '未填';
   return `<div class="record-product-cell">
     <div class="record-product-name">${product.name}</div>
-    ${product.spec ? `<div class="record-product-spec">規格：${product.spec}</div>` : ''}
+    <div class="record-product-spec">規格：${specText}</div>
   </div>`;
 }
 
+function purchaseProductCellHTML(product) {
+  return recordProductCellHTML(product);
+}
+
 function saleProductCellHTML(product) {
-  if (!product) return '<span class="record-product-name">已刪除</span>';
-  return `<div class="record-product-cell">
-    <div class="record-product-name">${product.name}</div>
-    ${product.spec ? `<div class="record-product-spec">規格：${product.spec}</div>` : ''}
-  </div>`;
+  return recordProductCellHTML(product);
 }
 
 function renderPurchases() {
