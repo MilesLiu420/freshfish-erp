@@ -115,17 +115,23 @@
   .record-table th, .record-table td { padding: 10px 8px; font-size: 13px; vertical-align: middle; }
   .record-table th { line-height: 1.25; }
   .record-table .badge, .record-table .badge-warehouse, .record-table .recorder-badge { white-space: nowrap; }
-  .record-table tr.record-edit-row td { padding: 12px 8px; overflow: visible; }
+  .record-table tr.record-edit-row { background: #f8fafc !important; }
+  .record-table tr.record-edit-row > td { padding: 10px 12px; overflow: visible; border-bottom: 1px solid #cbd5e1; }
   .record-table tr.record-edit-row input,
   .record-table tr.record-edit-row select { box-sizing: border-box; max-width: none; }
-  .record-edit-panel { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 10px; align-items: end; }
-  .record-edit-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-  .record-edit-field label { font-size: 12px; color: #64748b; font-weight: 700; }
+  .record-edit-card { background: white; border: 1.5px solid #cbd5e1; border-left: 4px solid #088395; border-radius: 8px; padding: 12px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06); }
+  .record-edit-title { color: #0a4d68; font-size: 13px; font-weight: 800; margin-bottom: 10px; }
+  .record-edit-panel { display: grid; grid-template-columns: repeat(6, minmax(112px, 1fr)); gap: 9px; align-items: end; }
+  .record-edit-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .record-edit-field label { font-size: 11px; color: #64748b; font-weight: 700; }
   .record-edit-field input,
-  .record-edit-field select { width: 100% !important; min-height: 38px; padding: 7px 9px !important; border: 1.5px solid #088395 !important; border-radius: 7px !important; background: white; }
+  .record-edit-field select { width: 100% !important; min-height: 34px; padding: 6px 8px !important; border: 1.5px solid #cbd5e1 !important; border-radius: 7px !important; background: white; font-size: 13px; }
+  .record-edit-field input:focus,
+  .record-edit-field select:focus { outline: none; border-color: #088395 !important; box-shadow: 0 0 0 3px rgba(8,131,149,0.1); }
   .record-edit-inline { display: flex; align-items: center; gap: 6px; }
   .record-edit-inline input { flex: 1; min-width: 0; }
-  .record-edit-actions { display: flex; flex-direction: column; gap: 6px; }
+  .record-edit-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; grid-column: span 2; }
+  .record-edit-actions .btn { min-width: 76px; min-height: 34px; padding: 6px 12px; }
   .purchase-record-table th:nth-child(1), .purchase-record-table td:nth-child(1),
   .sale-record-table th:nth-child(1), .sale-record-table td:nth-child(1) { width: 34px; text-align: center; }
   .purchase-record-table th:nth-child(2), .purchase-record-table td:nth-child(2),
@@ -2894,9 +2900,11 @@ function renderPurchases() {
       const boxes = p.boxes || 1;
       const packsPerBox = p.packsPerBox || p.qty || 1;
       const costPerBox = p.costPerBox || ((p.price || 0) * (p.packsPerBox || p.qty || 1));
-      return `<tr class="record-edit-row" style="background:#fef9c3">
+      return `<tr class="record-edit-row">
         <td colspan="13">
-          <div class="record-edit-panel">
+          <div class="record-edit-card">
+            <div class="record-edit-title">編輯進貨紀錄</div>
+            <div class="record-edit-panel">
             <div class="record-edit-field"><label>日期</label><input id="ep-date-${p.id}" type="date" value="${p.date}"></div>
             <div class="record-edit-field"><label>倉庫</label><select id="ep-warehouse-${p.id}">${wOpts}</select></div>
             <div class="record-edit-field"><label>供應商</label><select id="ep-supplier-${p.id}">${sOpts}</select></div>
@@ -2911,6 +2919,7 @@ function renderPurchases() {
             <div class="record-edit-actions">
               <button class="btn btn-success btn-sm" onclick="savePurchaseEdit(${p.id})">💾 儲存</button>
               <button class="btn btn-secondary btn-sm" onclick="cancelPurchaseEdit()">取消</button>
+            </div>
             </div>
           </div>
         </td>
@@ -3561,9 +3570,11 @@ function renderSales() {
             <button type="button" class="es-unit-btn ${editUnitMode === 'pack' ? 'active' : ''}" data-mode="pack" onclick="toggleSaleEditUnit(${s.id}, 'pack')" style="padding:4px 10px;border:none;background:${editUnitMode === 'pack' ? '#088395' : 'white'};color:${editUnitMode === 'pack' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:600">${product ? product.unit : '包'}</button>
           </div>
       ` : '';
-      return `<tr class="record-edit-row" style="background:#fef9c3">
+      return `<tr class="record-edit-row">
         <td colspan="11">
-          <div class="record-edit-panel">
+          <div class="record-edit-card">
+            <div class="record-edit-title">編輯銷貨紀錄</div>
+            <div class="record-edit-panel">
             <div class="record-edit-field"><label>日期</label><input id="es-date-${s.id}" type="date" value="${s.date}"></div>
             <div class="record-edit-field"><label>倉庫</label><select id="es-warehouse-${s.id}">${wOpts}</select></div>
             <div class="record-edit-field"><label>客戶</label><select id="es-customer-${s.id}">${cOpts}</select></div>
@@ -3576,6 +3587,7 @@ function renderSales() {
             <div class="record-edit-actions">
               <button class="btn btn-success btn-sm" onclick="saveSaleEdit(${s.id})">💾 儲存</button>
               <button class="btn btn-secondary btn-sm" onclick="cancelSaleEdit()">取消</button>
+            </div>
             </div>
           </div>
         </td>
