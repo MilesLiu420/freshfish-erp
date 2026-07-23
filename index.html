@@ -115,6 +115,17 @@
   .record-table th, .record-table td { padding: 10px 8px; font-size: 13px; vertical-align: middle; }
   .record-table th { line-height: 1.25; }
   .record-table .badge, .record-table .badge-warehouse, .record-table .recorder-badge { white-space: nowrap; }
+  .record-table tr.record-edit-row td { padding: 12px 8px; overflow: visible; }
+  .record-table tr.record-edit-row input,
+  .record-table tr.record-edit-row select { box-sizing: border-box; max-width: none; }
+  .record-edit-panel { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 10px; align-items: end; }
+  .record-edit-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .record-edit-field label { font-size: 12px; color: #64748b; font-weight: 700; }
+  .record-edit-field input,
+  .record-edit-field select { width: 100% !important; min-height: 38px; padding: 7px 9px !important; border: 1.5px solid #088395 !important; border-radius: 7px !important; background: white; }
+  .record-edit-inline { display: flex; align-items: center; gap: 6px; }
+  .record-edit-inline input { flex: 1; min-width: 0; }
+  .record-edit-actions { display: flex; flex-direction: column; gap: 6px; }
   .purchase-record-table th:nth-child(1), .purchase-record-table td:nth-child(1),
   .sale-record-table th:nth-child(1), .sale-record-table td:nth-child(1) { width: 34px; text-align: center; }
   .purchase-record-table th:nth-child(2), .purchase-record-table td:nth-child(2),
@@ -2883,27 +2894,24 @@ function renderPurchases() {
       const boxes = p.boxes || 1;
       const packsPerBox = p.packsPerBox || p.qty || 1;
       const costPerBox = p.costPerBox || ((p.price || 0) * (p.packsPerBox || p.qty || 1));
-      return `<tr style="background:#fef9c3">
-        <td></td>
-        <td data-label="日期"><input id="ep-date-${p.id}" type="date" value="${p.date}" style="width:140px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
-        <td data-label="倉庫"><select id="ep-warehouse-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts}</select></td>
-        <td data-label="供應商"><select id="ep-supplier-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${sOpts}</select></td>
-        <td data-label="商品"><select id="ep-product-${p.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${prodOpts}</select></td>
-        <td data-label="產地"><input id="ep-country-${p.id}" type="text" value="${p.country || ''}" placeholder="例如：挪威" style="width:110px;padding:6px;border:1.5px solid #088395;border-radius:6px" list="pu-country-list"></td>
-        <td data-label="箱×包">
-          <input id="ep-boxes-${p.id}" type="number" step="0.01" value="${boxes}" style="width:60px;padding:6px;border:1.5px solid #088395;border-radius:6px" placeholder="箱">
-          ×
-          <input id="ep-packs-${p.id}" type="number" step="1" value="${packsPerBox}" style="width:60px;padding:6px;border:1.5px solid #088395;border-radius:6px" placeholder="包">
-        </td>
-        <td data-label="包數"><span id="ep-qty-display-${p.id}" style="color:#0a4d68;font-weight:600">${(boxes * packsPerBox).toFixed(0)}</span></td>
-        <td data-label="每包成本"><span id="ep-price-display-${p.id}" style="color:#16a34a;font-weight:600">$${(costPerBox / packsPerBox).toFixed(2)}</span></td>
-        <td data-label="整箱成本($)"><input id="ep-costbox-${p.id}" type="number" step="0.01" value="${costPerBox}" style="width:90px;padding:6px;border:1.5px solid #088395;border-radius:6px" oninput="updatePurchaseEditCalc(${p.id})"></td>
-        <td data-label="到期日"><input id="ep-expiry-${p.id}" type="date" value="${p.expiry || ''}" style="width:140px;padding:6px;border:1.5px solid #088395;border-radius:6px"></td>
-        <td data-label="記錄者">${recorderBadge(p.recorder)}</td>
-        <td data-label="操作">
-          <div class="record-actions">
-            <button class="btn btn-success btn-sm" onclick="savePurchaseEdit(${p.id})">💾 儲存</button>
-            <button class="btn btn-secondary btn-sm" onclick="cancelPurchaseEdit()">取消</button>
+      return `<tr class="record-edit-row" style="background:#fef9c3">
+        <td colspan="13">
+          <div class="record-edit-panel">
+            <div class="record-edit-field"><label>日期</label><input id="ep-date-${p.id}" type="date" value="${p.date}"></div>
+            <div class="record-edit-field"><label>倉庫</label><select id="ep-warehouse-${p.id}">${wOpts}</select></div>
+            <div class="record-edit-field"><label>供應商</label><select id="ep-supplier-${p.id}">${sOpts}</select></div>
+            <div class="record-edit-field" style="grid-column:span 2"><label>商品</label><select id="ep-product-${p.id}">${prodOpts}</select></div>
+            <div class="record-edit-field"><label>產地</label><input id="ep-country-${p.id}" type="text" value="${p.country || ''}" placeholder="例如：挪威" list="pu-country-list"></div>
+            <div class="record-edit-field"><label>箱×包</label><div class="record-edit-inline"><input id="ep-boxes-${p.id}" type="number" step="0.01" value="${boxes}" placeholder="箱"><span>×</span><input id="ep-packs-${p.id}" type="number" step="1" value="${packsPerBox}" placeholder="包"></div></div>
+            <div class="record-edit-field"><label>包數</label><span id="ep-qty-display-${p.id}" style="color:#0a4d68;font-weight:700;min-height:38px;display:flex;align-items:center">${(boxes * packsPerBox).toFixed(0)}</span></div>
+            <div class="record-edit-field"><label>每包成本</label><span id="ep-price-display-${p.id}" style="color:#16a34a;font-weight:700;min-height:38px;display:flex;align-items:center">$${(costPerBox / packsPerBox).toFixed(2)}</span></div>
+            <div class="record-edit-field"><label>整箱成本($)</label><input id="ep-costbox-${p.id}" type="number" step="0.01" value="${costPerBox}" oninput="updatePurchaseEditCalc(${p.id})"></div>
+            <div class="record-edit-field"><label>到期日</label><input id="ep-expiry-${p.id}" type="date" value="${p.expiry || ''}"></div>
+            <div class="record-edit-field"><label>記錄者</label><div style="min-height:38px;display:flex;align-items:center">${recorderBadge(p.recorder)}</div></div>
+            <div class="record-edit-actions">
+              <button class="btn btn-success btn-sm" onclick="savePurchaseEdit(${p.id})">💾 儲存</button>
+              <button class="btn btn-secondary btn-sm" onclick="cancelPurchaseEdit()">取消</button>
+            </div>
           </div>
         </td>
       </tr>`;
@@ -3553,31 +3561,22 @@ function renderSales() {
             <button type="button" class="es-unit-btn ${editUnitMode === 'pack' ? 'active' : ''}" data-mode="pack" onclick="toggleSaleEditUnit(${s.id}, 'pack')" style="padding:4px 10px;border:none;background:${editUnitMode === 'pack' ? '#088395' : 'white'};color:${editUnitMode === 'pack' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:600">${product ? product.unit : '包'}</button>
           </div>
       ` : '';
-      return `<tr style="background:#fef9c3">
-        <td></td>
-        <td data-label="日期"><input id="es-date-${s.id}" type="date" value="${s.date}" style="width:140px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
-        <td data-label="倉庫"><select id="es-warehouse-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${wOpts}</select></td>
-        <td data-label="客戶"><select id="es-customer-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${cOpts}</select></td>
-        <td data-label="類型">
-          <select id="es-type-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">
-            <option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option>
-            <option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option>
-            <option value="sample" ${s.type === 'sample' ? 'selected' : ''}>樣品</option>
-          </select>
-        </td>
-        <td data-label="商品"><select id="es-product-${s.id}" style="padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${prodOpts}</select></td>
-        <td data-label="數量">
-          ${unitToggle}
-          <input id="es-qty-${s.id}" type="number" step="0.01" value="${editDispQty}" style="width:70px;padding:6px;border:1.5px solid #088395;border-radius:6px" oninput="updateSaleEditCalc(${s.id})">
-          <input type="hidden" id="es-unitmode-${s.id}" value="${editUnitMode}">
-        </td>
-        <td data-label="單價"><input id="es-price-${s.id}" type="number" step="0.01" value="${editDispPrice}" style="width:90px;padding:6px;border:1.5px solid #088395;border-radius:6px" oninput="updateSaleEditCalc(${s.id})"></td>
-        <td data-label="金額"><strong id="es-amt-display-${s.id}" style="color:#16a34a">$${(editDispQty * editDispPrice).toLocaleString()}</strong></td>
-        <td data-label="記錄者">${recorderBadge(s.recorder)}</td>
-        <td data-label="操作">
-          <div class="record-actions">
-            <button class="btn btn-success btn-sm" onclick="saveSaleEdit(${s.id})">💾 儲存</button>
-            <button class="btn btn-secondary btn-sm" onclick="cancelSaleEdit()">取消</button>
+      return `<tr class="record-edit-row" style="background:#fef9c3">
+        <td colspan="11">
+          <div class="record-edit-panel">
+            <div class="record-edit-field"><label>日期</label><input id="es-date-${s.id}" type="date" value="${s.date}"></div>
+            <div class="record-edit-field"><label>倉庫</label><select id="es-warehouse-${s.id}">${wOpts}</select></div>
+            <div class="record-edit-field"><label>客戶</label><select id="es-customer-${s.id}">${cOpts}</select></div>
+            <div class="record-edit-field"><label>類型</label><select id="es-type-${s.id}"><option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option><option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option><option value="sample" ${s.type === 'sample' ? 'selected' : ''}>樣品</option></select></div>
+            <div class="record-edit-field" style="grid-column:span 2"><label>商品</label><select id="es-product-${s.id}">${prodOpts}</select></div>
+            <div class="record-edit-field"><label>數量</label>${unitToggle}<input id="es-qty-${s.id}" type="number" step="0.01" value="${editDispQty}" oninput="updateSaleEditCalc(${s.id})"><input type="hidden" id="es-unitmode-${s.id}" value="${editUnitMode}"></div>
+            <div class="record-edit-field"><label>單價</label><input id="es-price-${s.id}" type="number" step="0.01" value="${editDispPrice}" oninput="updateSaleEditCalc(${s.id})"></div>
+            <div class="record-edit-field"><label>金額</label><strong id="es-amt-display-${s.id}" style="color:#16a34a;min-height:38px;display:flex;align-items:center">$${(editDispQty * editDispPrice).toLocaleString()}</strong></div>
+            <div class="record-edit-field"><label>記錄者</label><div style="min-height:38px;display:flex;align-items:center">${recorderBadge(s.recorder)}</div></div>
+            <div class="record-edit-actions">
+              <button class="btn btn-success btn-sm" onclick="saveSaleEdit(${s.id})">💾 儲存</button>
+              <button class="btn btn-secondary btn-sm" onclick="cancelSaleEdit()">取消</button>
+            </div>
           </div>
         </td>
       </tr>`;
