@@ -729,6 +729,12 @@
   .modal-close {
     float: right; background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;
   }
+  .record-modal { max-width: 860px; padding: 20px; }
+  .record-modal h3 { margin: 0 0 16px; }
+  .record-modal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .record-modal-grid .wide { grid-column: span 2; }
+  .record-modal-summary { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 11px 12px; min-height: 42px; display: flex; align-items: center; font-weight: 800; color: #0a4d68; }
+  .record-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px solid #e2e8f0; }
 </style>
 </head>
 <body>
@@ -1474,6 +1480,24 @@
       <button class="btn btn-success" onclick="confirmAdjust()" style="flex:1;">💾 確認調整</button>
       <button class="btn btn-secondary" onclick="closeAdjustModal()">取消</button>
     </div>
+  </div>
+</div>
+
+<!-- 進貨紀錄編輯 Modal -->
+<div class="modal-overlay" id="purchase-edit-modal">
+  <div class="modal record-modal">
+    <button class="modal-close" onclick="cancelPurchaseEdit()">×</button>
+    <h3>編輯進貨紀錄</h3>
+    <div id="purchase-edit-modal-body"></div>
+  </div>
+</div>
+
+<!-- 銷貨紀錄編輯 Modal -->
+<div class="modal-overlay" id="sale-edit-modal">
+  <div class="modal record-modal">
+    <button class="modal-close" onclick="cancelSaleEdit()">×</button>
+    <h3>編輯銷貨紀錄</h3>
+    <div id="sale-edit-modal-body"></div>
   </div>
 </div>
 
@@ -2957,13 +2981,39 @@ function renderPurchases() {
 let editingPurchaseId = null;
 
 function startPurchaseEdit(id) {
-  editingPurchaseId = id;
-  renderPurchases();
+  const p = purchases.find(x => x.id === id);
+  if (!p) return;
+  editingPurchaseId = null;
+  const wOpts = warehouses.map(w => `<option value="${w.id}" ${p.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
+  const sOpts = '<option value="">無</option>' + suppliers.map(s => `<option value="${s.id}" ${p.supplierId === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
+  const prodOpts = products.map(x => `<option value="${x.id}" ${p.productId === x.id ? 'selected' : ''}>${x.name}${x.spec ? ' (' + x.spec + ')' : ''}</option>`).join('');
+  const boxes = p.boxes || 1;
+  const packsPerBox = p.packsPerBox || p.qty || 1;
+  const costPerBox = p.costPerBox || ((p.price || 0) * (p.packsPerBox || p.qty || 1));
+  const body = document.getElementById('purchase-edit-modal-body');
+  body.innerHTML = `<div class="record-modal-grid">
+    <div class="form-group"><label>日期</label><input id="ep-date-${p.id}" type="date" value="${p.date}"></div>
+    <div class="form-group"><label>倉庫</label><select id="ep-warehouse-${p.id}">${wOpts}</select></div>
+    <div class="form-group"><label>供應商</label><select id="ep-supplier-${p.id}">${sOpts}</select></div>
+    <div class="form-group wide"><label>商品</label><select id="ep-product-${p.id}">${prodOpts}</select></div>
+    <div class="form-group"><label>產地</label><input id="ep-country-${p.id}" type="text" value="${p.country || ''}" placeholder="例如：挪威" list="pu-country-list"></div>
+    <div class="form-group"><label>箱</label><input id="ep-boxes-${p.id}" type="number" step="0.01" value="${boxes}" placeholder="箱" oninput="updatePurchaseEditCalc(${p.id})"></div>
+    <div class="form-group"><label>每箱包數</label><input id="ep-packs-${p.id}" type="number" step="1" value="${packsPerBox}" placeholder="包" oninput="updatePurchaseEditCalc(${p.id})"></div>
+    <div class="form-group"><label>整箱成本($)</label><input id="ep-costbox-${p.id}" type="number" step="0.01" value="${costPerBox}" oninput="updatePurchaseEditCalc(${p.id})"></div>
+    <div class="form-group"><label>包數</label><div class="record-modal-summary" id="ep-qty-display-${p.id}">${(boxes * packsPerBox).toFixed(0)}</div></div>
+    <div class="form-group"><label>每包成本</label><div class="record-modal-summary" id="ep-price-display-${p.id}">$${(costPerBox / packsPerBox).toFixed(2)}</div></div>
+    <div class="form-group"><label>到期日</label><input id="ep-expiry-${p.id}" type="date" value="${p.expiry || ''}"></div>
+  </div>
+  <div class="record-modal-actions">
+    <button class="btn btn-secondary" onclick="cancelPurchaseEdit()">取消</button>
+    <button class="btn btn-success" onclick="savePurchaseEdit(${p.id})">💾 儲存</button>
+  </div>`;
+  document.getElementById('purchase-edit-modal').classList.add('show');
 }
 
 function cancelPurchaseEdit() {
   editingPurchaseId = null;
-  renderPurchases();
+  document.getElementById('purchase-edit-modal')?.classList.remove('show');
 }
 
 function updatePurchaseEditCalc(id) {
@@ -3008,6 +3058,7 @@ function savePurchaseEdit(id) {
 
   DB.save('purchases', purchases);
   editingPurchaseId = null;
+  document.getElementById('purchase-edit-modal')?.classList.remove('show');
   renderPurchases();
   // 更新庫存頁（如果開著）
   if (typeof renderInventory === 'function') renderInventory();
@@ -3641,13 +3692,43 @@ function toggleSaleEditUnit(saleId, mode) {
 let editingSaleId = null;
 
 function startSaleEdit(id) {
-  editingSaleId = id;
-  renderSales();
+  const s = sales.find(x => x.id === id);
+  if (!s) return;
+  editingSaleId = null;
+  const product = products.find(x => x.id === s.productId);
+  const ppb = product ? (product.packsPerBox || 1) : 1;
+  const hasBoxOption = ppb >= 2;
+  const wOpts = warehouses.map(w => `<option value="${w.id}" ${s.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
+  const cOpts = '<option value="">無</option>' + customers.map(x => `<option value="${x.id}" ${s.customerId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
+  const prodOpts = products.map(x => `<option value="${x.id}" ${s.productId === x.id ? 'selected' : ''}>${x.name}${x.spec ? ' (' + x.spec + ')' : ''}</option>`).join('');
+  const editUnitMode = s.unitMode || 'pack';
+  const editDispQty = (s.displayQty != null) ? s.displayQty : s.qty;
+  const editDispPrice = (s.displayPrice != null) ? s.displayPrice : s.price;
+  const unitToggle = hasBoxOption ? `<div style="display:inline-flex;gap:0;border:1.5px solid #088395;border-radius:6px;overflow:hidden;margin-bottom:6px">
+    <button type="button" class="es-unit-btn ${editUnitMode === 'box' ? 'active' : ''}" data-mode="box" onclick="toggleSaleEditUnit(${s.id}, 'box')" style="padding:5px 12px;border:none;background:${editUnitMode === 'box' ? '#088395' : 'white'};color:${editUnitMode === 'box' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:700">箱</button>
+    <button type="button" class="es-unit-btn ${editUnitMode === 'pack' ? 'active' : ''}" data-mode="pack" onclick="toggleSaleEditUnit(${s.id}, 'pack')" style="padding:5px 12px;border:none;background:${editUnitMode === 'pack' ? '#088395' : 'white'};color:${editUnitMode === 'pack' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:700">${product ? product.unit : '包'}</button>
+  </div>` : '';
+  const body = document.getElementById('sale-edit-modal-body');
+  body.innerHTML = `<div class="record-modal-grid">
+    <div class="form-group"><label>日期</label><input id="es-date-${s.id}" type="date" value="${s.date}"></div>
+    <div class="form-group"><label>倉庫</label><select id="es-warehouse-${s.id}">${wOpts}</select></div>
+    <div class="form-group"><label>客戶</label><select id="es-customer-${s.id}">${cOpts}</select></div>
+    <div class="form-group"><label>類型</label><select id="es-type-${s.id}"><option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option><option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option><option value="sample" ${s.type === 'sample' ? 'selected' : ''}>樣品</option></select></div>
+    <div class="form-group wide"><label>商品</label><select id="es-product-${s.id}">${prodOpts}</select></div>
+    <div class="form-group"><label>數量</label>${unitToggle}<input id="es-qty-${s.id}" type="number" step="0.01" value="${editDispQty}" oninput="updateSaleEditCalc(${s.id})"><input type="hidden" id="es-unitmode-${s.id}" value="${editUnitMode}"></div>
+    <div class="form-group"><label>單價</label><input id="es-price-${s.id}" type="number" step="0.01" value="${editDispPrice}" oninput="updateSaleEditCalc(${s.id})"></div>
+    <div class="form-group"><label>金額</label><div class="record-modal-summary" id="es-amt-display-${s.id}">$${(editDispQty * editDispPrice).toLocaleString()}</div></div>
+  </div>
+  <div class="record-modal-actions">
+    <button class="btn btn-secondary" onclick="cancelSaleEdit()">取消</button>
+    <button class="btn btn-success" onclick="saveSaleEdit(${s.id})">💾 儲存</button>
+  </div>`;
+  document.getElementById('sale-edit-modal').classList.add('show');
 }
 
 function cancelSaleEdit() {
   editingSaleId = null;
-  renderSales();
+  document.getElementById('sale-edit-modal')?.classList.remove('show');
 }
 
 function updateSaleEditCalc(id) {
@@ -3694,6 +3775,7 @@ function saveSaleEdit(id) {
 
   DB.save('sales', sales);
   editingSaleId = null;
+  document.getElementById('sale-edit-modal')?.classList.remove('show');
   renderSales();
   if (typeof renderInventory === 'function') renderInventory();
   alert('✅ 銷貨紀錄已更新');
