@@ -3095,6 +3095,10 @@ function renderSaleSelects() {
   else renderSaleLines();
 }
 
+function wholeMoney(value) {
+  return Math.round(parseFloat(value) || 0);
+}
+
 function addSaleLine(productId = '') {
   const customerId = parseInt(document.getElementById('sa-customer').value);
   const customer = customers.find(c => c.id === customerId);
@@ -3102,7 +3106,7 @@ function addSaleLine(productId = '') {
   if (productId) {
     // 只有在客戶設定了專屬價時才自動帶入，否則保持 0 由使用者輸入
     if (customer && customer.customPrices && customer.customPrices[productId]) {
-      price = customer.customPrices[productId];
+      price = wholeMoney(customer.customPrices[productId]);
     }
   }
   currentSaleLines.push({
@@ -3126,7 +3130,7 @@ function updateSaleLine(lineId, field, value) {
   const line = currentSaleLines.find(l => l.lineId === lineId);
   if (!line) return;
   if (['qty', 'price', 'productId'].includes(field)) {
-    line[field] = field === 'productId' ? (parseInt(value) || '') : (field === 'qty' ? (parseInt(value) || 0) : (parseFloat(value) || 0));
+    line[field] = field === 'productId' ? (parseInt(value) || '') : (field === 'qty' ? (parseInt(value) || 0) : wholeMoney(value));
   } else {
     line[field] = value;
   }
@@ -3143,8 +3147,8 @@ function updateSaleLine(lineId, field, value) {
     }
     // 客戶專屬價是以「包」為基準的單價，切到箱時要 ×packsPerBox
     if (customer && customer.customPrices && customer.customPrices[line.productId]) {
-      const packPrice = customer.customPrices[line.productId];
-      line.price = line.unitMode === 'box' ? packPrice * (product.packsPerBox || 1) : packPrice;
+      const packPrice = wholeMoney(customer.customPrices[line.productId]);
+      line.price = line.unitMode === 'box' ? wholeMoney(packPrice * (product.packsPerBox || 1)) : packPrice;
     } else {
       line.price = 0;
     }
@@ -3186,7 +3190,7 @@ function updateSaleLineCalc(lineId) {
   }
   // 同步更新單價輸入框（避免類型切換後 UI 不同步）
   const priceInput = document.getElementById('sa-price-' + lineId);
-  if (priceInput && parseFloat(priceInput.value) !== line.price) priceInput.value = line.price;
+  if (priceInput && priceInput.value !== String(wholeMoney(line.price))) priceInput.value = wholeMoney(line.price);
 }
 
 function saleLinePacksOut(line) {
@@ -3262,7 +3266,7 @@ function renderSaleLines() {
           <input type="number" min="0" step="1" value="${l.qty}" oninput="updateSaleLine(${l.lineId}, 'qty', this.value)">
         </div>
         <div class="form-group"><label>單價 ($/${unitLabel})</label>
-          <input id="sa-price-${l.lineId}" type="number" min="0" step="0.01" value="${l.price}" oninput="updateSaleLine(${l.lineId}, 'price', this.value)">
+          <input id="sa-price-${l.lineId}" type="number" min="0" step="1" value="${wholeMoney(l.price)}" oninput="updateSaleLine(${l.lineId}, 'price', this.value)" onblur="this.value = wholeMoney(this.value)">
         </div>
       </div>
       <div class="calc-display" id="sa-calc-${l.lineId}"></div>
@@ -3310,7 +3314,8 @@ function submitSale() {
     const product = products.find(x => x.id === l.productId);
     const ppb = product ? (product.packsPerBox || 1) : 1;
     const packsOut = l.unitMode === 'box' ? l.qty * ppb : l.qty;
-    const packPrice = l.unitMode === 'box' ? (l.price / ppb) : l.price;
+    const displayPrice = wholeMoney(l.price);
+    const packPrice = l.unitMode === 'box' ? (displayPrice / ppb) : displayPrice;
     sales.push({
       id: baseId + idx,
       date, warehouseId, customerId,
@@ -3320,7 +3325,7 @@ function submitSale() {
       price: packPrice,         // 底層存「每包價」
       unitMode: l.unitMode,     // 顯示用
       displayQty: l.qty,        // 顯示用：使用者實際輸入的數量
-      displayPrice: l.price,    // 顯示用：使用者實際輸入的單價
+      displayPrice,            // 顯示用：使用者實際輸入的整數單價
       shipping: idx === 0 ? shipping : 0, // 整單運費只記在第一筆，避免重複計算
       note,
       recorder: currentUserName()
@@ -3334,7 +3339,7 @@ function submitSale() {
 
   const cName = (customers.find(c => c.id === customerId) || {}).name || '';
   const wName = (warehouses.find(w => w.id === warehouseId) || {}).name || '';
-  const total = validLines.reduce((s, l) => s + l.qty * l.price, 0);
+  const total = validLines.reduce((s, l) => s + l.qty * wholeMoney(l.price), 0);
   const cost = validLines.reduce((s, l) => s + estimateSaleLineCost(l), 0);
   const profit = total - cost - shipping;
   const rate = total > 0 ? (profit / total * 100) : 0;
@@ -3545,9 +3550,9 @@ function formatSalePrice(s) {
   const product = products.find(x => x.id === s.productId);
   const unit = product ? product.unit : '包';
   if (s.unitMode === 'box' && s.displayPrice != null) {
-    return `<strong>$${s.displayPrice.toLocaleString()}</strong>/箱 <span style="color:#64748b;font-size:12px">($${s.price.toFixed(0)}/${unit})</span>`;
+    return `<strong>$${wholeMoney(s.displayPrice).toLocaleString()}</strong>/箱 <span style="color:#64748b;font-size:12px">($${wholeMoney(s.price)}/${unit})</span>`;
   }
-  return `$${s.price.toLocaleString()}/${unit}`;
+  return `$${wholeMoney(s.price).toLocaleString()}/${unit}`;
 }
 
 function renderSales() {
@@ -3580,7 +3585,7 @@ function renderSales() {
     if (filtered.length !== sales.length) {
       const totalAmt = filtered.reduce((acc, s) => {
         const dq = s.displayQty != null ? s.displayQty : s.qty;
-        const dp = s.displayPrice != null ? s.displayPrice : s.price;
+        const dp = wholeMoney(s.displayPrice != null ? s.displayPrice : s.price);
         return acc + dq * dp;
       }, 0);
       infoEl.innerHTML = `🔍 篩選後共 <strong>${filtered.length}</strong> 筆 / 全部 ${sales.length} 筆 ｜ 篩選總金額：<strong>$${totalAmt.toLocaleString()}</strong>`;
@@ -3614,7 +3619,7 @@ function renderSales() {
       // 編輯時用顯示值；舊資料沒有就用包數
       const editUnitMode = s.unitMode || 'pack';
       const editDispQty = (s.displayQty != null) ? s.displayQty : s.qty;
-      const editDispPrice = (s.displayPrice != null) ? s.displayPrice : s.price;
+      const editDispPrice = wholeMoney((s.displayPrice != null) ? s.displayPrice : s.price);
       const unitToggle = hasBoxOption ? `
           <div style="display:inline-flex;gap:0;border:1.5px solid #088395;border-radius:6px;overflow:hidden;margin-bottom:4px">
             <button type="button" class="es-unit-btn ${editUnitMode === 'box' ? 'active' : ''}" data-mode="box" onclick="toggleSaleEditUnit(${s.id}, 'box')" style="padding:4px 10px;border:none;background:${editUnitMode === 'box' ? '#088395' : 'white'};color:${editUnitMode === 'box' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:600">箱</button>
@@ -3632,7 +3637,7 @@ function renderSales() {
             <div class="record-edit-field"><label>類型</label><select id="es-type-${s.id}"><option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option><option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option><option value="sample" ${s.type === 'sample' ? 'selected' : ''}>樣品</option></select></div>
             <div class="record-edit-field" style="grid-column:span 2"><label>商品</label><select id="es-product-${s.id}">${prodOpts}</select></div>
             <div class="record-edit-field"><label>數量</label>${unitToggle}<input id="es-qty-${s.id}" type="number" step="0.01" value="${editDispQty}" oninput="updateSaleEditCalc(${s.id})"><input type="hidden" id="es-unitmode-${s.id}" value="${editUnitMode}"></div>
-            <div class="record-edit-field"><label>單價</label><input id="es-price-${s.id}" type="number" step="0.01" value="${editDispPrice}" oninput="updateSaleEditCalc(${s.id})"></div>
+            <div class="record-edit-field"><label>單價</label><input id="es-price-${s.id}" type="number" step="1" value="${editDispPrice}" oninput="this.value = wholeMoney(this.value); updateSaleEditCalc(${s.id})"></div>
             <div class="record-edit-field"><label>金額</label><strong id="es-amt-display-${s.id}" style="color:#16a34a;min-height:38px;display:flex;align-items:center">$${(editDispQty * editDispPrice).toLocaleString()}</strong></div>
             <div class="record-edit-field"><label>記錄者</label><div style="min-height:38px;display:flex;align-items:center">${recorderBadge(s.recorder)}</div></div>
             <div class="record-edit-actions">
@@ -3647,7 +3652,7 @@ function renderSales() {
 
     // 顯示模式：金額用實際輸入計算（如果有 displayQty/displayPrice）
     const displayQty = (s.displayQty != null) ? s.displayQty : s.qty;
-    const displayPrice = (s.displayPrice != null) ? s.displayPrice : s.price;
+    const displayPrice = wholeMoney((s.displayPrice != null) ? s.displayPrice : s.price);
     const totalAmt = displayQty * displayPrice;
 
     const saChecked = saleCheckedIds.has(s.id);
@@ -3703,7 +3708,7 @@ function startSaleEdit(id) {
   const prodOpts = products.map(x => `<option value="${x.id}" ${s.productId === x.id ? 'selected' : ''}>${x.name}${x.spec ? ' (' + x.spec + ')' : ''}</option>`).join('');
   const editUnitMode = s.unitMode || 'pack';
   const editDispQty = (s.displayQty != null) ? s.displayQty : s.qty;
-  const editDispPrice = (s.displayPrice != null) ? s.displayPrice : s.price;
+  const editDispPrice = wholeMoney((s.displayPrice != null) ? s.displayPrice : s.price);
   const unitToggle = hasBoxOption ? `<div style="display:inline-flex;gap:0;border:1.5px solid #088395;border-radius:6px;overflow:hidden;margin-bottom:6px">
     <button type="button" class="es-unit-btn ${editUnitMode === 'box' ? 'active' : ''}" data-mode="box" onclick="toggleSaleEditUnit(${s.id}, 'box')" style="padding:5px 12px;border:none;background:${editUnitMode === 'box' ? '#088395' : 'white'};color:${editUnitMode === 'box' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:700">箱</button>
     <button type="button" class="es-unit-btn ${editUnitMode === 'pack' ? 'active' : ''}" data-mode="pack" onclick="toggleSaleEditUnit(${s.id}, 'pack')" style="padding:5px 12px;border:none;background:${editUnitMode === 'pack' ? '#088395' : 'white'};color:${editUnitMode === 'pack' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:700">${product ? product.unit : '包'}</button>
@@ -3716,7 +3721,7 @@ function startSaleEdit(id) {
     <div class="form-group"><label>類型</label><select id="es-type-${s.id}"><option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option><option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option><option value="sample" ${s.type === 'sample' ? 'selected' : ''}>樣品</option></select></div>
     <div class="form-group wide"><label>商品</label><select id="es-product-${s.id}">${prodOpts}</select></div>
     <div class="form-group"><label>數量</label>${unitToggle}<input id="es-qty-${s.id}" type="number" step="0.01" value="${editDispQty}" oninput="updateSaleEditCalc(${s.id})"><input type="hidden" id="es-unitmode-${s.id}" value="${editUnitMode}"></div>
-    <div class="form-group"><label>單價</label><input id="es-price-${s.id}" type="number" step="0.01" value="${editDispPrice}" oninput="updateSaleEditCalc(${s.id})"></div>
+    <div class="form-group"><label>單價</label><input id="es-price-${s.id}" type="number" step="1" value="${editDispPrice}" oninput="this.value = wholeMoney(this.value); updateSaleEditCalc(${s.id})"></div>
     <div class="form-group"><label>金額</label><div class="record-modal-summary" id="es-amt-display-${s.id}">$${(editDispQty * editDispPrice).toLocaleString()}</div></div>
   </div>
   <div class="record-modal-actions">
@@ -3733,7 +3738,7 @@ function cancelSaleEdit() {
 
 function updateSaleEditCalc(id) {
   const qty = parseFloat(document.getElementById('es-qty-' + id).value) || 0;
-  const price = parseFloat(document.getElementById('es-price-' + id).value) || 0;
+  const price = wholeMoney(document.getElementById('es-price-' + id).value);
   const el = document.getElementById('es-amt-display-' + id);
   if (el) el.textContent = '$' + (qty * price).toLocaleString();
 }
@@ -3747,7 +3752,7 @@ function saveSaleEdit(id) {
   const type = document.getElementById('es-type-' + id).value;
   const productId = parseInt(document.getElementById('es-product-' + id).value);
   const inputQty = parseFloat(document.getElementById('es-qty-' + id).value) || 0;
-  const inputPrice = parseFloat(document.getElementById('es-price-' + id).value) || 0;
+  const inputPrice = wholeMoney(document.getElementById('es-price-' + id).value);
   const unitModeEl = document.getElementById('es-unitmode-' + id);
   const unitMode = unitModeEl ? unitModeEl.value : (s.unitMode || 'pack');
 
