@@ -3570,12 +3570,13 @@ function renderSales() {
   const fW = parseInt(document.getElementById('sa-filter-warehouse')?.value) || null;
   const fC = parseInt(document.getElementById('sa-filter-customer')?.value) || null;
   const fP = parseInt(document.getElementById('sa-filter-product')?.value) || null;
+  const fCustomerIds = getCustomerFilterIds(fC);
 
   const filtered = sales.filter(s => {
     if (fFrom && s.date < fFrom) return false;
     if (fTo && s.date > fTo) return false;
     if (fW && s.warehouseId !== fW) return false;
-    if (fC && s.customerId !== fC) return false;
+    if (fCustomerIds && !fCustomerIds.has(s.customerId)) return false;
     if (fP && s.productId !== fP) return false;
     return true;
   });
@@ -3790,11 +3791,32 @@ function saveSaleEdit(id) {
 const PAGE_SIZE = 50;
 const recPagination = { purchase: 1, sale: 1, transfer: 1 };
 
+function customerFilterOptionsHTML() {
+  const seen = new Set();
+  const options = [];
+  customers.forEach(c => {
+    const key = (c.name || '').trim();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    options.push(`<option value="${c.id}">${key}</option>`);
+  });
+  return '<option value="">全部客戶</option>' + options.join('');
+}
+
+function getCustomerFilterIds(selectedCustomerId) {
+  if (!selectedCustomerId) return null;
+  const selected = customers.find(c => c.id === selectedCustomerId);
+  if (!selected) return new Set([selectedCustomerId]);
+  const selectedName = (selected.name || '').trim();
+  if (!selectedName) return new Set([selectedCustomerId]);
+  return new Set(customers.filter(c => (c.name || '').trim() === selectedName).map(c => c.id));
+}
+
 function rebuildRecordFilterSelects() {
   // 共用：把所有篩選器的下拉選項重建（每次資料變動時呼叫）
   const wOpts = '<option value="">全部倉庫</option>' + warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
   const sOpts = '<option value="">全部供應商</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-  const cOpts = '<option value="">全部客戶</option>' + customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  const cOpts = customerFilterOptionsHTML();
   const pOpts = '<option value="">全部商品</option>' + products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
   const setSel = (id, html) => {
     const el = document.getElementById(id);
