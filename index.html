@@ -1314,6 +1314,10 @@
             </select>
           </div>
         </div>
+        <div id="duplicate-customer-tools" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+          <button class="btn btn-secondary" onclick="mergeDuplicateCustomers()">合併同名客戶</button>
+          <span id="duplicate-customer-hint" style="font-size:13px;color:#64748b"></span>
+        </div>
         <table>
           <thead><tr><th>⭐</th><th>名稱</th><th>分類</th><th>聯絡人</th><th>電話</th><th>付款</th><th>備註</th><th>操作</th></tr></thead>
           <tbody id="contacts-tbody"></tbody>
@@ -1823,6 +1827,8 @@ function showPage(pageId, el) {
     if (extraRow) extraRow.style.display = '';
     const filterRow = document.getElementById('contact-filter-row');
     if (filterRow) filterRow.style.display = '';
+    const duplicateTools = document.getElementById('duplicate-customer-tools');
+    if (duplicateTools) duplicateTools.style.display = 'flex';
     document.querySelectorAll('#page-contacts .sub-tab').forEach(t => t.classList.remove('active'));
     const firstTab = document.querySelector('#page-contacts .sub-tab');
     if (firstTab) firstTab.classList.add('active');
@@ -4891,6 +4897,8 @@ function showContactTab(type, el) {
   document.getElementById('c-category-group').style.display = showOnlyForCustomer ? '' : 'none';
   document.getElementById('c-extra-row').style.display = showOnlyForCustomer ? '' : 'none';
   document.getElementById('contact-filter-row').style.display = showOnlyForCustomer ? '' : 'none';
+  const duplicateTools = document.getElementById('duplicate-customer-tools');
+  if (duplicateTools) duplicateTools.style.display = showOnlyForCustomer ? 'flex' : 'none';
   renderCategories();
   renderContacts();
 }
@@ -5010,6 +5018,99 @@ function saveSupplierEdit(id) {
   alert('✅ 供應商資料已更新');
 }
 
+function duplicateCustomerGroups() {
+  const groups = new Map();
+  customers.forEach(c => {
+    const name = (c.name || '').trim();
+    if (!name) return;
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(c);
+  });
+  return [...groups.entries()]
+    .map(([name, list]) => ({ name, list: list.slice().sort((a, b) => a.id - b.id) }))
+    .filter(g => g.list.length >= 2);
+}
+
+function mergeCustomerInto(target, source) {
+  if (!target.contact && source.contact) target.contact = source.contact;
+  if (!target.phone && source.phone) target.phone = source.phone;
+  if (!target.email && source.email) target.email = source.email;
+  if (!target.payment && source.payment) target.payment = source.payment;
+  if (!target.note && source.note) target.note = source.note;
+  if (!target.address && source.address) target.address = source.address;
+  if (!target.categoryId && source.categoryId) target.categoryId = source.categoryId;
+  target.favorite = !!(target.favorite || source.favorite);
+
+  const favMap = new Map((target.favoriteProducts || []).map(fp => [fp.productId, fp]));
+  (source.favoriteProducts || []).forEach(fp => {
+    if (!favMap.has(fp.productId)) favMap.set(fp.productId, fp);
+  });
+  target.favoriteProducts = [...favMap.values()];
+
+  target.customPrices = target.customPrices || {};
+  Object.entries(source.customPrices || {}).forEach(([productId, price]) => {
+    if (target.customPrices[productId] == null || target.customPrices[productId] === '') {
+      target.customPrices[productId] = price;
+    }
+  });
+}
+
+function refreshDuplicateCustomerHint() {
+  const el = document.getElementById('duplicate-customer-hint');
+  if (!el) return;
+  const groups = duplicateCustomerGroups();
+  if (groups.length === 0) {
+    el.textContent = '目前沒有同名客戶';
+    return;
+  }
+  const duplicateCount = groups.reduce((sum, g) => sum + g.list.length - 1, 0);
+  el.textContent = `偵測到 ${groups.length} 組同名客戶，共 ${duplicateCount} 筆可合併`;
+}
+
+function mergeDuplicateCustomers() {
+  const groups = duplicateCustomerGroups();
+  if (groups.length === 0) {
+    alert('目前沒有同名客戶可以合併');
+    return;
+  }
+
+  const lines = groups.map(g => {
+    const ids = new Set(g.list.map(c => c.id));
+    const saleCount = sales.filter(s => ids.has(s.customerId)).length;
+    return `${g.name}：${g.list.length} 筆客戶資料，${saleCount} 筆銷貨紀錄`;
+  });
+  if (!confirm(`將合併以下同名客戶，並把銷貨紀錄改到同一個客戶底下：\n\n${lines.join('\n')}\n\n會保留最早建立的那筆客戶資料，確定要合併嗎？`)) return;
+
+  let mergedCustomers = 0;
+  let updatedSales = 0;
+  groups.forEach(g => {
+    const target = g.list[0];
+    const duplicateIds = g.list.slice(1).map(c => c.id);
+    g.list.slice(1).forEach(source => mergeCustomerInto(target, source));
+
+    sales.forEach(s => {
+      if (duplicateIds.includes(s.customerId)) {
+        s.customerId = target.id;
+        updatedSales++;
+      }
+    });
+    recentCustomers = recentCustomers.map(id => duplicateIds.includes(id) ? target.id : id);
+    recentCustomers = [...new Set(recentCustomers)].slice(0, 10);
+    mergedCustomers += duplicateIds.length;
+  });
+
+  const removeIds = new Set(groups.flatMap(g => g.list.slice(1).map(c => c.id)));
+  customers = customers.filter(c => !removeIds.has(c.id));
+
+  DB.save('customers', customers);
+  DB.save('sales', sales);
+  DB.save('recentCustomers', recentCustomers);
+  renderCategories();
+  rebuildRecordFilterSelects();
+  renderContacts();
+  alert(`✅ 已合併 ${mergedCustomers} 筆重複客戶，更新 ${updatedSales} 筆銷貨紀錄`);
+}
+
 function renderContacts() {
   const tbody = document.getElementById('contacts-tbody');
   if (currentContactType === 'supplier') {
@@ -5050,6 +5151,8 @@ function renderContacts() {
     return;
   }
 
+  refreshDuplicateCustomerHint();
+
   // 客戶：套用搜尋與分類篩選
   const search = (document.getElementById('contact-search')?.value || '').toLowerCase().trim();
   const filterCat = document.getElementById('contact-filter-cat')?.value || '';
@@ -5070,6 +5173,7 @@ function renderContacts() {
 
   if (list.length === 0) {
     tbody.innerHTML = '<tr><td colspan="8" class="empty"><div class="icon">👥</div>沒有符合的客戶</td></tr>';
+    refreshDuplicateCustomerHint();
     return;
   }
   tbody.innerHTML = list.map(c => {
