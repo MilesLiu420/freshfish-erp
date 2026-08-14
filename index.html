@@ -3196,7 +3196,7 @@ function updateSaleLineCalc(lineId) {
   }
   // 同步更新單價輸入框（避免類型切換後 UI 不同步）
   const priceInput = document.getElementById('sa-price-' + lineId);
-  if (priceInput && priceInput.value !== String(wholeMoney(line.price))) priceInput.value = wholeMoney(line.price);
+  if (priceInput && document.activeElement !== priceInput && priceInput.value !== String(wholeMoney(line.price))) priceInput.value = wholeMoney(line.price);
 }
 
 function saleLinePacksOut(line) {
@@ -3644,7 +3644,7 @@ function renderSales() {
             <div class="record-edit-field"><label>類型</label><select id="es-type-${s.id}"><option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option><option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option><option value="sample" ${s.type === 'sample' ? 'selected' : ''}>樣品</option></select></div>
             <div class="record-edit-field" style="grid-column:span 2"><label>商品</label><select id="es-product-${s.id}">${prodOpts}</select></div>
             <div class="record-edit-field"><label>數量</label>${unitToggle}<input id="es-qty-${s.id}" type="number" step="0.01" value="${editDispQty}" oninput="updateSaleEditCalc(${s.id})"><input type="hidden" id="es-unitmode-${s.id}" value="${editUnitMode}"></div>
-            <div class="record-edit-field"><label>單價</label><input id="es-price-${s.id}" type="number" step="1" value="${editDispPrice}" oninput="this.value = wholeMoney(this.value); updateSaleEditCalc(${s.id})"></div>
+            <div class="record-edit-field"><label>單價</label><input id="es-price-${s.id}" type="number" step="1" value="${editDispPrice}" oninput="updateSaleEditCalc(${s.id})" onblur="this.value = wholeMoney(this.value); updateSaleEditCalc(${s.id})"></div>
             <div class="record-edit-field"><label>金額</label><strong id="es-amt-display-${s.id}" style="color:#16a34a;min-height:38px;display:flex;align-items:center">$${(editDispQty * editDispPrice).toLocaleString()}</strong></div>
             <div class="record-edit-field"><label>記錄者</label><div style="min-height:38px;display:flex;align-items:center">${recorderBadge(s.recorder)}</div></div>
             <div class="record-edit-actions">
@@ -3728,7 +3728,7 @@ function startSaleEdit(id) {
     <div class="form-group"><label>類型</label><select id="es-type-${s.id}"><option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option><option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option><option value="sample" ${s.type === 'sample' ? 'selected' : ''}>樣品</option></select></div>
     <div class="form-group wide"><label>商品</label><select id="es-product-${s.id}">${prodOpts}</select></div>
     <div class="form-group"><label>數量</label>${unitToggle}<input id="es-qty-${s.id}" type="number" step="0.01" value="${editDispQty}" oninput="updateSaleEditCalc(${s.id})"><input type="hidden" id="es-unitmode-${s.id}" value="${editUnitMode}"></div>
-    <div class="form-group"><label>單價</label><input id="es-price-${s.id}" type="number" step="1" value="${editDispPrice}" oninput="this.value = wholeMoney(this.value); updateSaleEditCalc(${s.id})"></div>
+    <div class="form-group"><label>單價</label><input id="es-price-${s.id}" type="number" step="1" value="${editDispPrice}" oninput="updateSaleEditCalc(${s.id})" onblur="this.value = wholeMoney(this.value); updateSaleEditCalc(${s.id})"></div>
     <div class="form-group"><label>金額</label><div class="record-modal-summary" id="es-amt-display-${s.id}">$${(editDispQty * editDispPrice).toLocaleString()}</div></div>
   </div>
   <div class="record-modal-actions">
