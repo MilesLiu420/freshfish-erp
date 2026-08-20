@@ -3136,7 +3136,7 @@ function updateSaleLine(lineId, field, value) {
   const line = currentSaleLines.find(l => l.lineId === lineId);
   if (!line) return;
   if (['qty', 'price', 'productId'].includes(field)) {
-    line[field] = field === 'productId' ? (parseInt(value) || '') : (field === 'qty' ? (parseInt(value) || 0) : wholeMoney(value));
+    line[field] = field === 'productId' ? (parseInt(value) || '') : (field === 'qty' ? (parseInt(value) || 0) : (parseFloat(value) || 0));
   } else {
     line[field] = value;
   }
@@ -3195,8 +3195,6 @@ function updateSaleLineCalc(lineId) {
       ` ｜ <span class="calc-label">${line.qty || 0} ${unitLabel} × $${line.price || 0}</span>` + extra;
   }
   // 同步更新單價輸入框（避免類型切換後 UI 不同步）
-  const priceInput = document.getElementById('sa-price-' + lineId);
-  if (priceInput && document.activeElement !== priceInput && priceInput.value !== String(wholeMoney(line.price))) priceInput.value = wholeMoney(line.price);
 }
 
 function saleLinePacksOut(line) {
@@ -3272,7 +3270,7 @@ function renderSaleLines() {
           <input type="number" min="0" step="1" value="${l.qty}" oninput="updateSaleLine(${l.lineId}, 'qty', this.value)">
         </div>
         <div class="form-group"><label>單價 ($/${unitLabel})</label>
-          <input id="sa-price-${l.lineId}" type="number" min="0" step="1" value="${wholeMoney(l.price)}" oninput="updateSaleLine(${l.lineId}, 'price', this.value)" onblur="this.value = wholeMoney(this.value)">
+          <input id="sa-price-${l.lineId}" type="number" min="0" step="1" value="${wholeMoney(l.price)}" oninput="updateSaleLine(${l.lineId}, 'price', this.value)">
         </div>
       </div>
       <div class="calc-display" id="sa-calc-${l.lineId}"></div>
