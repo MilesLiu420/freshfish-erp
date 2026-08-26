@@ -105,18 +105,24 @@
   .btn-secondary { background: #e2e8f0; color: #475569; }
   .btn-secondary:hover { background: #cbd5e1; }
   .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-mini { padding: 4px 10px; font-size: 12px; border-radius: 6px; min-height: 26px; }
+  .form-submit-btn { margin-top: 16px; min-width: 132px; }
+  .inline-label-action { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .section-label { margin: 20px 0 12px; font-weight: 700; color: #0a4d68; font-size: 16px; }
   .record-product-cell { min-width: 0; word-break: keep-all; writing-mode: horizontal-tb; }
-  .record-product-name { font-weight: 700; color: #1f2937; white-space: normal; line-height: 1.3; word-break: keep-all; overflow-wrap: normal; }
-  .record-product-spec { margin-top: 3px; color: #64748b; font-size: 12px; line-height: 1.2; white-space: normal; word-break: keep-all; overflow-wrap: normal; }
-  .record-price-cell { line-height: 1.25; white-space: normal; min-width: 0; }
-  .record-price-main { display: block; font-weight: 700; color: #1f2937; white-space: nowrap; }
-  .record-price-sub { display: block; margin-top: 3px; color: #64748b; font-size: 12px; white-space: nowrap; }
-  .record-nowrap { white-space: nowrap; word-break: keep-all; writing-mode: horizontal-tb; }
-  .record-actions { display: flex; flex-direction: column; gap: 5px; align-items: stretch; min-width: 60px; }
-  .record-actions .btn { padding: 6px 8px; font-size: 12px; border-radius: 7px; min-height: 34px; }
+  .record-product-name { font-weight: 700; color: #1f2937; white-space: normal; line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
+  .record-product-spec { margin-top: 3px; color: #64748b; font-size: 12px; line-height: 1.25; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
+  .record-price-cell, .record-qty-cell { line-height: 1.25; white-space: normal; min-width: 0; }
+  .record-price-main, .record-qty-main { display: block; font-weight: 700; color: #1f2937; white-space: nowrap; }
+  .record-price-sub, .record-qty-sub { display: block; margin-top: 3px; color: #64748b; font-size: 12px; white-space: nowrap; }
+  .record-nowrap { white-space: nowrap; word-break: keep-all; writing-mode: horizontal-tb; overflow: hidden; text-overflow: ellipsis; }
+  .record-number, .record-money { text-align: right; font-variant-numeric: tabular-nums; }
+  .record-money strong { font-weight: 800; }
+  .record-actions { display: flex; flex-direction: column; gap: 5px; align-items: stretch; min-width: 56px; }
+  .record-actions .btn { padding: 5px 8px; font-size: 12px; border-radius: 7px; min-height: 30px; line-height: 1.1; }
   .record-table { table-layout: fixed; width: 100%; }
-  .record-table th, .record-table td { padding: 10px 8px; font-size: 13px; vertical-align: middle; }
-  .record-table th { line-height: 1.25; }
+  .record-table th, .record-table td { padding: 9px 7px; font-size: 12.5px; vertical-align: middle; }
+  .record-table th { line-height: 1.2; }
   .record-table .badge, .record-table .badge-warehouse, .record-table .recorder-badge { white-space: nowrap; }
   .record-table tr.record-edit-row { background: #f8fafc !important; }
   .record-table tr.record-edit-row > td { padding: 10px 12px; overflow: visible; border-bottom: 1px solid #cbd5e1; }
@@ -136,29 +142,29 @@
   .record-edit-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; grid-column: span 2; }
   .record-edit-actions .btn { min-width: 76px; min-height: 34px; padding: 6px 12px; }
   .purchase-record-table th:nth-child(1), .purchase-record-table td:nth-child(1),
-  .sale-record-table th:nth-child(1), .sale-record-table td:nth-child(1) { width: 34px; text-align: center; }
+  .sale-record-table th:nth-child(1), .sale-record-table td:nth-child(1) { width: 32px; text-align: center; }
   .purchase-record-table th:nth-child(2), .purchase-record-table td:nth-child(2),
-  .sale-record-table th:nth-child(2), .sale-record-table td:nth-child(2) { width: 92px; }
+  .sale-record-table th:nth-child(2), .sale-record-table td:nth-child(2) { width: 84px; }
   .purchase-record-table th:nth-child(3), .purchase-record-table td:nth-child(3),
-  .sale-record-table th:nth-child(3), .sale-record-table td:nth-child(3) { width: 98px; }
-  .purchase-record-table th:nth-child(4), .purchase-record-table td:nth-child(4) { width: 130px; }
-  .purchase-record-table th:nth-child(5), .purchase-record-table td:nth-child(5) { width: 190px; }
-  .purchase-record-table th:nth-child(6), .purchase-record-table td:nth-child(6) { width: 78px; }
-  .purchase-record-table th:nth-child(7), .purchase-record-table td:nth-child(7) { width: 74px; }
-  .purchase-record-table th:nth-child(8), .purchase-record-table td:nth-child(8) { width: 58px; }
-  .purchase-record-table th:nth-child(9), .purchase-record-table td:nth-child(9) { width: 88px; }
-  .purchase-record-table th:nth-child(10), .purchase-record-table td:nth-child(10) { width: 92px; }
-  .purchase-record-table th:nth-child(11), .purchase-record-table td:nth-child(11) { width: 108px; }
-  .purchase-record-table th:nth-child(12), .purchase-record-table td:nth-child(12) { width: 86px; }
+  .sale-record-table th:nth-child(3), .sale-record-table td:nth-child(3) { width: 88px; }
+  .purchase-record-table th:nth-child(4), .purchase-record-table td:nth-child(4) { width: 108px; }
+  .purchase-record-table th:nth-child(5), .purchase-record-table td:nth-child(5) { width: 218px; }
+  .purchase-record-table th:nth-child(6), .purchase-record-table td:nth-child(6) { width: 66px; }
+  .purchase-record-table th:nth-child(7), .purchase-record-table td:nth-child(7) { width: 58px; }
+  .purchase-record-table th:nth-child(8), .purchase-record-table td:nth-child(8) { width: 48px; }
+  .purchase-record-table th:nth-child(9), .purchase-record-table td:nth-child(9) { width: 74px; }
+  .purchase-record-table th:nth-child(10), .purchase-record-table td:nth-child(10) { width: 82px; }
+  .purchase-record-table th:nth-child(11), .purchase-record-table td:nth-child(11) { width: 92px; }
+  .purchase-record-table th:nth-child(12), .purchase-record-table td:nth-child(12) { width: 70px; }
   .purchase-record-table th:nth-child(13), .purchase-record-table td:nth-child(13),
-  .sale-record-table th:nth-child(11), .sale-record-table td:nth-child(11) { width: 74px; }
-  .sale-record-table th:nth-child(4), .sale-record-table td:nth-child(4) { width: 130px; }
-  .sale-record-table th:nth-child(5), .sale-record-table td:nth-child(5) { width: 66px; }
-  .sale-record-table th:nth-child(6), .sale-record-table td:nth-child(6) { width: 210px; }
-  .sale-record-table th:nth-child(7), .sale-record-table td:nth-child(7) { width: 82px; }
-  .sale-record-table th:nth-child(8), .sale-record-table td:nth-child(8) { width: 96px; }
-  .sale-record-table th:nth-child(9), .sale-record-table td:nth-child(9) { width: 92px; }
-  .sale-record-table th:nth-child(10), .sale-record-table td:nth-child(10) { width: 86px; }
+  .sale-record-table th:nth-child(11), .sale-record-table td:nth-child(11) { width: 62px; }
+  .sale-record-table th:nth-child(4), .sale-record-table td:nth-child(4) { width: 110px; }
+  .sale-record-table th:nth-child(5), .sale-record-table td:nth-child(5) { width: 54px; }
+  .sale-record-table th:nth-child(6), .sale-record-table td:nth-child(6) { width: 230px; }
+  .sale-record-table th:nth-child(7), .sale-record-table td:nth-child(7) { width: 74px; }
+  .sale-record-table th:nth-child(8), .sale-record-table td:nth-child(8) { width: 84px; }
+  .sale-record-table th:nth-child(9), .sale-record-table td:nth-child(9) { width: 82px; }
+  .sale-record-table th:nth-child(10), .sale-record-table td:nth-child(10) { width: 72px; }
 
   /* 表格 */
   table { width: 100%; border-collapse: collapse; }
@@ -918,7 +924,7 @@
           <div class="form-group" style="grid-column: 1 / -1;"><label>整單備註</label><input id="pu-note" placeholder="可選"></div>
         </div>
 
-        <div style="margin: 20px 0 12px; font-weight: 600; color: #0a4d68; font-size: 16px;">📋 進貨明細</div>
+        <div class="section-label">📋 進貨明細</div>
         <div id="pu-lines"></div>
         <button type="button" class="add-line-btn" onclick="addPurchaseLine()">+ 加入下一個品項</button>
 
@@ -933,7 +939,7 @@
           </div>
         </div>
 
-        <button class="btn btn-primary" onclick="submitPurchase()" style="margin-top:16px;">💾 全部送出</button>
+        <button class="btn btn-primary form-submit-btn" onclick="submitPurchase()">💾 全部送出</button>
       </div>
       <div class="card">
         <div class="card-title">最近進貨紀錄</div>
@@ -974,7 +980,7 @@
         <!-- 客戶選擇器 -->
         <div class="form-row">
           <div class="form-group" style="grid-column: 1 / -1;">
-            <label style="display:flex;align-items:center;gap:10px;">👤 選擇客戶 * <button type="button" onclick="openQuickAddCustomer()" style="font-size:12px;padding:3px 10px;background:#088395;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">＋ 新增客戶</button></label>
+            <label class="inline-label-action">👤 選擇客戶 * <button type="button" class="btn btn-primary btn-mini" onclick="openQuickAddCustomer()">＋ 新增客戶</button></label>
             <div class="customer-picker">
               <input id="sa-customer-search" placeholder="🔍 輸入名稱/電話搜尋，或從下方點選" oninput="renderCustomerPicker()" autocomplete="off">
               <input type="hidden" id="sa-customer">
@@ -990,7 +996,7 @@
           <div id="sa-favorite-products"></div>
         </div>
 
-        <div style="margin: 20px 0 12px; font-weight: 600; color: #0a4d68; font-size: 16px;">📋 銷貨明細</div>
+        <div class="section-label">📋 銷貨明細</div>
         <div id="sa-lines"></div>
         <button type="button" class="add-line-btn" onclick="addSaleLine()">+ 加入下一個品項</button>
 
@@ -1023,7 +1029,7 @@
           </div>
         </div>
 
-        <button class="btn btn-success" onclick="submitSale()" style="margin-top:16px;">💾 全部送出</button>
+        <button class="btn btn-success form-submit-btn" onclick="submitSale()">💾 全部送出</button>
       </div>
       <div class="card">
         <div class="card-title">最近銷貨紀錄</div>
@@ -1063,7 +1069,7 @@
           <div class="form-group" style="grid-column: 1 / -1;"><label>整單備註</label><input id="tr-note" placeholder="例如：因應週末訂單需求調撥"></div>
         </div>
 
-        <div style="margin: 20px 0 12px; font-weight: 600; color: #0a4d68; font-size: 16px;">📋 轉倉明細</div>
+        <div class="section-label">📋 轉倉明細</div>
         <div id="tr-lines"></div>
         <button type="button" class="add-line-btn" onclick="addTransferLine()">+ 加入下一個品項</button>
 
@@ -1078,7 +1084,7 @@
           </div>
         </div>
 
-        <button class="btn btn-primary" onclick="submitTransfer()" style="margin-top:16px;">💾 全部送出（立即轉倉）</button>
+        <button class="btn btn-primary form-submit-btn" onclick="submitTransfer()">💾 全部送出（立即轉倉）</button>
       </div>
 
       <div class="card">
@@ -2977,9 +2983,9 @@ function renderPurchases() {
       <td data-label="商品">${purchaseProductCellHTML(product)}</td>
       <td data-label="產地" style="white-space:nowrap">${p.country ? `<span class="badge badge-info">${p.country}</span>` : '-'}</td>
       <td data-label="箱×包" style="white-space:nowrap">${boxInfo}</td>
-      <td data-label="包數">${p.qty}</td>
-      <td data-label="每包成本" style="white-space:nowrap">$${(p.price || 0).toFixed(2)}</td>
-      <td data-label="金額" style="white-space:nowrap"><strong>$${(p.qty * p.price).toLocaleString()}</strong></td>
+      <td data-label="包數" class="record-number">${p.qty}</td>
+      <td data-label="每包成本" class="record-money">$${(p.price || 0).toFixed(2)}</td>
+      <td data-label="金額" class="record-money"><strong>$${(p.qty * p.price).toLocaleString()}</strong></td>
       <td data-label="到期日" style="white-space:nowrap">${p.expiry || '-'}</td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(p.recorder)}</td>
       <td data-label="操作">
@@ -3557,9 +3563,9 @@ function formatSaleQty(s) {
   const ppb = product ? (product.packsPerBox || 1) : 1;
   const unit = product ? product.unit : '包';
   if (s.unitMode === 'box' && s.displayQty != null) {
-    return `<strong>${s.displayQty} 箱</strong> <span style="color:#64748b;font-size:12px">(${s.qty} ${unit})</span>`;
+    return `<div class="record-qty-cell"><span class="record-qty-main">${s.displayQty} 箱</span><span class="record-qty-sub">${s.qty} ${unit}</span></div>`;
   }
-  return `${s.qty} ${unit}`;
+  return `<div class="record-qty-cell"><span class="record-qty-main">${s.qty} ${unit}</span></div>`;
 }
 function formatSalePrice(s) {
   const product = products.find(x => x.id === s.productId);
@@ -3679,9 +3685,9 @@ function renderSales() {
       <td data-label="客戶" class="record-nowrap">${customer ? customer.name : '-'}</td>
       <td data-label="類型"><span class="badge ${s.type === 'wholesale' ? 'badge-info' : s.type === 'sample' ? 'badge-warning' : 'badge-success'}">${s.type === 'wholesale' ? '批發' : s.type === 'sample' ? '樣品' : '零售'}</span></td>
       <td data-label="商品">${saleProductCellHTML(product)}</td>
-      <td data-label="數量" style="white-space:nowrap">${formatSaleQty(s)}</td>
+      <td data-label="數量" class="record-number">${formatSaleQty(s)}</td>
       <td data-label="單價">${formatSalePrice(s)}</td>
-      <td data-label="金額" style="white-space:nowrap"><strong>$${totalAmt.toLocaleString()}</strong></td>
+      <td data-label="金額" class="record-money"><strong>$${totalAmt.toLocaleString()}</strong></td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(s.recorder)}</td>
       <td data-label="操作">
         <div class="record-actions">
