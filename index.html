@@ -114,9 +114,10 @@
   .record-product-meta { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 3px; color: #64748b; font-size: 12px; line-height: 1.25; }
   .record-product-meta span { white-space: nowrap; }
   .record-product-spec { color: #64748b; }
-  .record-price-cell, .record-qty-cell, .record-box-cell { line-height: 1.25; white-space: normal; min-width: 0; }
-  .record-price-main, .record-qty-main, .record-box-main { display: block; font-weight: 700; color: #1f2937; white-space: nowrap; }
-  .record-price-sub, .record-qty-sub, .record-box-sub { display: block; margin-top: 3px; color: #64748b; font-size: 12px; white-space: nowrap; }
+  .record-price-cell, .record-qty-cell { line-height: 1.25; white-space: normal; min-width: 0; }
+  .record-price-main, .record-qty-main { display: block; font-weight: 700; color: #1f2937; white-space: nowrap; }
+  .record-price-sub, .record-qty-sub { display: block; margin-top: 3px; color: #64748b; font-size: 12px; white-space: nowrap; }
+  .record-box-cell { white-space: nowrap; font-weight: 700; color: #1f2937; }
   .record-nowrap { white-space: nowrap; word-break: keep-all; writing-mode: horizontal-tb; overflow: hidden; text-overflow: ellipsis; }
   .record-number, .record-money { text-align: left; font-variant-numeric: tabular-nums; }
   .record-money strong { font-weight: 800; }
@@ -150,9 +151,9 @@
   .purchase-record-table th:nth-child(3), .purchase-record-table td:nth-child(3),
   .sale-record-table th:nth-child(3), .sale-record-table td:nth-child(3) { width: 88px; }
   .purchase-record-table th:nth-child(4), .purchase-record-table td:nth-child(4) { width: 112px; }
-  .purchase-record-table th:nth-child(5), .purchase-record-table td:nth-child(5) { width: 208px; }
+  .purchase-record-table th:nth-child(5), .purchase-record-table td:nth-child(5) { width: 216px; }
   .purchase-record-table th:nth-child(6), .purchase-record-table td:nth-child(6) { width: 70px; }
-  .purchase-record-table th:nth-child(7), .purchase-record-table td:nth-child(7) { width: 70px; }
+  .purchase-record-table th:nth-child(7), .purchase-record-table td:nth-child(7) { width: 58px; }
   .purchase-record-table th:nth-child(8), .purchase-record-table td:nth-child(8) { width: 54px; }
   .purchase-record-table th:nth-child(9), .purchase-record-table td:nth-child(9) { width: 80px; }
   .purchase-record-table th:nth-child(10), .purchase-record-table td:nth-child(10) { width: 84px; }
@@ -2892,7 +2893,7 @@ function saleProductCellHTML(product) {
 
 function formatPurchaseBoxInfo(p) {
   if (!(p.boxes && p.packsPerBox)) return '-';
-  return `<div class="record-box-cell"><span class="record-box-main">${p.boxes} 箱</span><span class="record-box-sub">${p.packsPerBox} 包/箱</span></div>`;
+  return `<span class="record-box-cell">${p.boxes} × ${p.packsPerBox}</span>`;
 }
 
 function renderPurchases() {
