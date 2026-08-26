@@ -108,6 +108,9 @@
   .record-product-cell { min-width: 0; word-break: keep-all; writing-mode: horizontal-tb; }
   .record-product-name { font-weight: 700; color: #1f2937; white-space: normal; line-height: 1.3; word-break: keep-all; overflow-wrap: normal; }
   .record-product-spec { margin-top: 3px; color: #64748b; font-size: 12px; line-height: 1.2; white-space: normal; word-break: keep-all; overflow-wrap: normal; }
+  .record-price-cell { line-height: 1.25; white-space: normal; min-width: 0; }
+  .record-price-main { display: block; font-weight: 700; color: #1f2937; white-space: nowrap; }
+  .record-price-sub { display: block; margin-top: 3px; color: #64748b; font-size: 12px; white-space: nowrap; }
   .record-nowrap { white-space: nowrap; word-break: keep-all; writing-mode: horizontal-tb; }
   .record-actions { display: flex; flex-direction: column; gap: 5px; align-items: stretch; min-width: 60px; }
   .record-actions .btn { padding: 6px 8px; font-size: 12px; border-radius: 7px; min-height: 34px; }
@@ -3562,9 +3565,9 @@ function formatSalePrice(s) {
   const product = products.find(x => x.id === s.productId);
   const unit = product ? product.unit : '包';
   if (s.unitMode === 'box' && s.displayPrice != null) {
-    return `<strong>$${wholeMoney(s.displayPrice).toLocaleString()}</strong>/箱 <span style="color:#64748b;font-size:12px">($${wholeMoney(s.price)}/${unit})</span>`;
+    return `<div class="record-price-cell"><span class="record-price-main">$${wholeMoney(s.displayPrice).toLocaleString()}/箱</span><span class="record-price-sub">$${wholeMoney(s.price).toLocaleString()}/${unit}</span></div>`;
   }
-  return `$${wholeMoney(s.price).toLocaleString()}/${unit}`;
+  return `<div class="record-price-cell"><span class="record-price-main">$${wholeMoney(s.price).toLocaleString()}/${unit}</span></div>`;
 }
 
 function renderSales() {
@@ -3677,7 +3680,7 @@ function renderSales() {
       <td data-label="類型"><span class="badge ${s.type === 'wholesale' ? 'badge-info' : s.type === 'sample' ? 'badge-warning' : 'badge-success'}">${s.type === 'wholesale' ? '批發' : s.type === 'sample' ? '樣品' : '零售'}</span></td>
       <td data-label="商品">${saleProductCellHTML(product)}</td>
       <td data-label="數量" style="white-space:nowrap">${formatSaleQty(s)}</td>
-      <td data-label="單價" style="white-space:nowrap">${formatSalePrice(s)}</td>
+      <td data-label="單價">${formatSalePrice(s)}</td>
       <td data-label="金額" style="white-space:nowrap"><strong>$${totalAmt.toLocaleString()}</strong></td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(s.recorder)}</td>
       <td data-label="操作">
