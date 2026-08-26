@@ -868,6 +868,7 @@
         <div class="form-row">
           <div class="form-group"><label>商品名稱 *</label><input id="p-name" placeholder="例如：白蝦 16/20"></div>
           <div class="form-group"><label>規格</label><input id="p-spec" placeholder="例如：1kg/盒"></div>
+          <div class="form-group"><label>整件重量</label><input id="p-boxweight" placeholder="例如：10kg/箱"></div>
           <div class="form-group"><label>單位（最小單位）</label><input id="p-unit" placeholder="例如：包/盒/kg" value="包"></div>
           <div class="form-group"><label>分類</label>
             <select id="p-category"><option value="">未分類</option></select>
@@ -894,7 +895,7 @@
           </div>
         </div>
         <table>
-          <thead><tr><th>名稱</th><th>分類</th><th>規格</th><th>單位</th><th>1箱=N包</th><th>安全庫存</th><th>操作</th></tr></thead>
+          <thead><tr><th>名稱</th><th>分類</th><th>規格</th><th>整件重量</th><th>單位</th><th>1箱=N包</th><th>安全庫存</th><th>操作</th></tr></thead>
           <tbody id="products-tbody"></tbody>
         </table>
       </div>
@@ -2015,6 +2016,7 @@ function addProduct() {
     id: Date.now(),
     name,
     spec: document.getElementById('p-spec').value,
+    boxWeight: document.getElementById('p-boxweight').value.trim(),
     unit: document.getElementById('p-unit').value || '包',
     categoryId: parseInt(document.getElementById('p-category').value) || null,
     retail: 0,
@@ -2023,7 +2025,7 @@ function addProduct() {
     safestock: parseFloat(document.getElementById('p-safestock').value) || 10
   });
   DB.save('products', products);
-  ['p-name','p-spec'].forEach(id => document.getElementById(id).value = '');
+  ['p-name','p-spec','p-boxweight'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('p-unit').value = '包';
   document.getElementById('p-packsperbox').value = 1;
   document.getElementById('p-safestock').value = 10;
@@ -2043,7 +2045,7 @@ function deleteProduct(id) {
 function renderProducts() {
   const tbody = document.getElementById('products-tbody');
   if (products.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty"><div class="icon">📦</div>還沒有商品，請先新增</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty"><div class="icon">📦</div>還沒有商品，請先新增</td></tr>';
     return;
   }
 
@@ -2051,14 +2053,14 @@ function renderProducts() {
   const search = (document.getElementById('product-search')?.value || '').toLowerCase().trim();
   const filterCat = document.getElementById('product-filter-cat')?.value || '';
   let list = products.filter(p => {
-    if (search && !((p.name + (p.spec||'')).toLowerCase().includes(search))) return false;
+    if (search && !((p.name + (p.spec||'') + (p.boxWeight||'')).toLowerCase().includes(search))) return false;
     if (filterCat === 'none') return !p.categoryId;
     if (filterCat) return p.categoryId === parseInt(filterCat);
     return true;
   });
 
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty">沒有符合的商品</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">沒有符合的商品</td></tr>';
     return;
   }
 
@@ -2072,6 +2074,7 @@ function renderProducts() {
         <td data-label="名稱"><input id="edit-name-${p.id}" value="${p.name}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="分類"><select id="edit-category-${p.id}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px">${catOptions}</select></td>
         <td data-label="規格"><input id="edit-spec-${p.id}" value="${p.spec || ''}" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
+        <td data-label="整件重量"><input id="edit-boxweight-${p.id}" value="${p.boxWeight || ''}" placeholder="例如：10kg/箱" style="width:100%;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="單位"><input id="edit-unit-${p.id}" value="${p.unit}" style="width:80px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="1箱=N包"><input id="edit-ppb-${p.id}" type="number" min="1" step="1" value="${ppb}" style="width:70px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
         <td data-label="安全庫存"><input id="edit-safestock-${p.id}" type="number" value="${p.safestock}" style="width:70px;padding:6px 8px;border:1.5px solid #088395;border-radius:6px"></td>
@@ -2089,6 +2092,7 @@ function renderProducts() {
       <td data-label="名稱"><strong>${p.name}</strong></td>
       <td data-label="分類">${cat ? '<span class="cat-pill">'+cat.name+'</span>' : '-'}</td>
       <td data-label="規格">${p.spec || '-'}</td>
+      <td data-label="整件重量">${p.boxWeight || '-'}</td>
       <td data-label="單位">${p.unit}</td>
       <td data-label="1箱=N包">${ppbDisplay}</td>
       <td data-label="安全庫存">${p.safestock}</td>
@@ -2114,6 +2118,7 @@ function saveProductEdit(id) {
   const name = document.getElementById('edit-name-' + id).value.trim();
   const spec = document.getElementById('edit-spec-' + id).value.trim();
   const unit = document.getElementById('edit-unit-' + id).value.trim();
+  const boxWeight = document.getElementById('edit-boxweight-' + id).value.trim();
   const categoryId = parseInt(document.getElementById('edit-category-' + id).value) || null;
   const ppb = Math.max(1, parseInt(document.getElementById('edit-ppb-' + id).value) || 1);
   const safestock = parseFloat(document.getElementById('edit-safestock-' + id).value);
@@ -2122,7 +2127,7 @@ function saveProductEdit(id) {
 
   const p = products.find(x => x.id === id);
   if (!p) return;
-  p.name = name; p.spec = spec; p.unit = unit || '包';
+  p.name = name; p.spec = spec; p.boxWeight = boxWeight; p.unit = unit || '包';
   p.categoryId = categoryId;
   p.packsPerBox = ppb;
   p.safestock = isNaN(safestock) ? 10 : safestock;
@@ -2439,7 +2444,7 @@ function renderProductPickerList(pickerId) {
   const pickerType = pickerId.split('-')[0];
   const saleWarehouseId = parseInt(document.getElementById('sa-warehouse')?.value) || 'all';
 
-  const matchSearch = (p) => !search || (p.name + (p.spec || '')).toLowerCase().includes(search);
+  const matchSearch = (p) => !search || (p.name + (p.spec || '') + (p.boxWeight || '')).toLowerCase().includes(search);
   const matchCat = (p) => !filterCat || (filterCat === 'none' ? !p.categoryId : p.categoryId === parseInt(filterCat));
 
   let items = products.filter(p => matchSearch(p) && matchCat(p));
@@ -2478,7 +2483,7 @@ function renderProductPickerList(pickerId) {
     html += `<div class="product-item" onclick="selectProduct('${pickerId}', ${p.id})">
       <div>
         <div class="name">${p.name}</div>
-        <div class="meta">${cat ? '🏷️ '+cat.name+' · ' : ''}${p.spec || ''}${p.unit ? ' · '+p.unit : ''}${stockInfo}</div>
+        <div class="meta">${cat ? '🏷️ '+cat.name+' · ' : ''}${p.spec || ''}${p.boxWeight ? ' · 整件重量：'+p.boxWeight : ''}${p.unit ? ' · '+p.unit : ''}${stockInfo}</div>
       </div>
       <div style="color:#088395; font-size:13px">選 →</div>
     </div>`;
@@ -2661,8 +2666,11 @@ function renderPurchaseLines() {
   const wrap = document.getElementById('pu-lines');
   wrap.innerHTML = currentPurchaseLines.map((l, idx) => {
     const prod = products.find(p => p.id === l.productId);
-    const ppbHint = prod && prod.packsPerBox >= 2
-      ? `<div style="font-size:12px;color:#088395;margin-top:4px">📦 此商品設定為 1箱 = ${prod.packsPerBox} ${prod.unit}（已自動帶入，可手改）</div>`
+    const productInfoParts = [];
+    if (prod && prod.packsPerBox >= 2) productInfoParts.push(`1箱 = ${prod.packsPerBox} ${prod.unit}（已自動帶入，可手改）`);
+    if (prod && prod.boxWeight) productInfoParts.push(`整件重量：${prod.boxWeight}`);
+    const ppbHint = productInfoParts.length
+      ? `<div style="font-size:12px;color:#088395;margin-top:4px">📦 ${productInfoParts.join(' ｜ ')}</div>`
       : '';
     return `
     <div class="line-item">
@@ -5450,7 +5458,7 @@ async function importFromRagic() {
     if (!p) {
       p = {
         id: Date.now() + Math.floor(Math.random() * 1000000),
-        name, spec: '', unit: '包',
+        name, spec: '', boxWeight: '', unit: '包',
         categoryId: null,
         retail: 0, wholesale: 0, safestock: 10
       };
