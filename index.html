@@ -144,6 +144,9 @@
   .record-edit-inline input { flex: 1; min-width: 0; }
   .record-edit-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; grid-column: span 2; }
   .record-edit-actions .btn { min-width: 76px; min-height: 34px; padding: 6px 12px; }
+  .record-unit-toggle { display: inline-flex; gap: 0; border: 1.5px solid #088395; border-radius: 6px; overflow: hidden; margin-bottom: 6px; }
+  .record-unit-toggle .es-unit-btn { padding: 5px 12px; border: none; background: white; color: #64748b; cursor: pointer; font-size: 12px; font-weight: 700; }
+  .record-unit-toggle .es-unit-btn.active { background: #088395; color: white; }
   .purchase-record-table th:nth-child(1), .purchase-record-table td:nth-child(1),
   .sale-record-table th:nth-child(1), .sale-record-table td:nth-child(1) { width: 32px; text-align: center; }
   .purchase-record-table th:nth-child(2), .purchase-record-table td:nth-child(2),
@@ -2950,40 +2953,6 @@ function renderPurchases() {
     const product = products.find(x => x.id === p.productId);
     const supplier = suppliers.find(x => x.id === p.supplierId);
 
-    // 編輯模式
-    if (editingPurchaseId === p.id) {
-      const wOpts = warehouses.map(w => `<option value="${w.id}" ${p.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
-      const sOpts = '<option value="">無</option>' + suppliers.map(s => `<option value="${s.id}" ${p.supplierId === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
-      const prodOpts = products.map(x => `<option value="${x.id}" ${p.productId === x.id ? 'selected' : ''}>${x.name}${x.spec ? ' (' + x.spec + ')' : ''}</option>`).join('');
-      const boxes = p.boxes || 1;
-      const packsPerBox = p.packsPerBox || p.qty || 1;
-      const costPerBox = p.costPerBox || ((p.price || 0) * (p.packsPerBox || p.qty || 1));
-      return `<tr class="record-edit-row">
-        <td colspan="13">
-          <div class="record-edit-card">
-            <div class="record-edit-title">編輯進貨紀錄</div>
-            <div class="record-edit-panel">
-            <div class="record-edit-field"><label>日期</label><input id="ep-date-${p.id}" type="date" value="${p.date}"></div>
-            <div class="record-edit-field"><label>倉庫</label><select id="ep-warehouse-${p.id}">${wOpts}</select></div>
-            <div class="record-edit-field"><label>供應商</label><select id="ep-supplier-${p.id}">${sOpts}</select></div>
-            <div class="record-edit-field" style="grid-column:span 2"><label>商品</label><select id="ep-product-${p.id}">${prodOpts}</select></div>
-            <div class="record-edit-field"><label>產地</label><input id="ep-country-${p.id}" type="text" value="${p.country || ''}" placeholder="例如：挪威" list="pu-country-list"></div>
-            <div class="record-edit-field"><label>箱×包</label><div class="record-edit-inline"><input id="ep-boxes-${p.id}" type="number" step="0.01" value="${boxes}" placeholder="箱"><span>×</span><input id="ep-packs-${p.id}" type="number" step="1" value="${packsPerBox}" placeholder="包"></div></div>
-            <div class="record-edit-field"><label>包數</label><span id="ep-qty-display-${p.id}" style="color:#0a4d68;font-weight:700;min-height:38px;display:flex;align-items:center">${(boxes * packsPerBox).toFixed(0)}</span></div>
-            <div class="record-edit-field"><label>每包成本</label><span id="ep-price-display-${p.id}" style="color:#16a34a;font-weight:700;min-height:38px;display:flex;align-items:center">$${(costPerBox / packsPerBox).toFixed(2)}</span></div>
-            <div class="record-edit-field"><label>整箱成本($)</label><input id="ep-costbox-${p.id}" type="number" step="0.01" value="${costPerBox}" oninput="updatePurchaseEditCalc(${p.id})"></div>
-            <div class="record-edit-field"><label>到期日</label><input id="ep-expiry-${p.id}" type="date" value="${p.expiry || ''}"></div>
-            <div class="record-edit-field"><label>記錄者</label><div style="min-height:38px;display:flex;align-items:center">${recorderBadge(p.recorder)}</div></div>
-            <div class="record-edit-actions">
-              <button class="btn btn-success btn-sm" onclick="savePurchaseEdit(${p.id})">💾 儲存</button>
-              <button class="btn btn-secondary btn-sm" onclick="cancelPurchaseEdit()">取消</button>
-            </div>
-            </div>
-          </div>
-        </td>
-      </tr>`;
-    }
-
     const boxInfo = formatPurchaseBoxInfo(p);
     const puChecked = purchaseCheckedIds.has(p.id);
     return `<tr>
@@ -3012,12 +2981,9 @@ function renderPurchases() {
   renderPagination('pu-pagination', sorted.length, recPagination.purchase, 'purchase');
 }
 
-let editingPurchaseId = null;
-
 function startPurchaseEdit(id) {
   const p = purchases.find(x => x.id === id);
   if (!p) return;
-  editingPurchaseId = null;
   const wOpts = warehouses.map(w => `<option value="${w.id}" ${p.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
   const sOpts = '<option value="">無</option>' + suppliers.map(s => `<option value="${s.id}" ${p.supplierId === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
   const prodOpts = products.map(x => `<option value="${x.id}" ${p.productId === x.id ? 'selected' : ''}>${x.name}${x.spec ? ' (' + x.spec + ')' : ''}</option>`).join('');
@@ -3046,7 +3012,6 @@ function startPurchaseEdit(id) {
 }
 
 function cancelPurchaseEdit() {
-  editingPurchaseId = null;
   document.getElementById('purchase-edit-modal')?.classList.remove('show');
 }
 
@@ -3091,7 +3056,6 @@ function savePurchaseEdit(id) {
   p.country = country;
 
   DB.save('purchases', purchases);
-  editingPurchaseId = null;
   document.getElementById('purchase-edit-modal')?.classList.remove('show');
   renderPurchases();
   // 更新庫存頁（如果開著）
@@ -3644,45 +3608,6 @@ function renderSales() {
     const ppb = product ? (product.packsPerBox || 1) : 1;
     const hasBoxOption = ppb >= 2;
 
-    // 編輯模式
-    if (editingSaleId === s.id) {
-      const wOpts = warehouses.map(w => `<option value="${w.id}" ${s.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
-      const cOpts = '<option value="">無</option>' + customers.map(x => `<option value="${x.id}" ${s.customerId === x.id ? 'selected' : ''}>${x.name}</option>`).join('');
-      const prodOpts = products.map(x => `<option value="${x.id}" ${s.productId === x.id ? 'selected' : ''}>${x.name}${x.spec ? ' (' + x.spec + ')' : ''}</option>`).join('');
-      // 編輯時用顯示值；舊資料沒有就用包數
-      const editUnitMode = s.unitMode || 'pack';
-      const editDispQty = (s.displayQty != null) ? s.displayQty : s.qty;
-      const editDispPrice = wholeMoney((s.displayPrice != null) ? s.displayPrice : s.price);
-      const unitToggle = hasBoxOption ? `
-          <div style="display:inline-flex;gap:0;border:1.5px solid #088395;border-radius:6px;overflow:hidden;margin-bottom:4px">
-            <button type="button" class="es-unit-btn ${editUnitMode === 'box' ? 'active' : ''}" data-mode="box" onclick="toggleSaleEditUnit(${s.id}, 'box')" style="padding:4px 10px;border:none;background:${editUnitMode === 'box' ? '#088395' : 'white'};color:${editUnitMode === 'box' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:600">箱</button>
-            <button type="button" class="es-unit-btn ${editUnitMode === 'pack' ? 'active' : ''}" data-mode="pack" onclick="toggleSaleEditUnit(${s.id}, 'pack')" style="padding:4px 10px;border:none;background:${editUnitMode === 'pack' ? '#088395' : 'white'};color:${editUnitMode === 'pack' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:600">${product ? product.unit : '包'}</button>
-          </div>
-      ` : '';
-      return `<tr class="record-edit-row">
-        <td colspan="11">
-          <div class="record-edit-card">
-            <div class="record-edit-title">編輯銷貨紀錄</div>
-            <div class="record-edit-panel">
-            <div class="record-edit-field"><label>日期</label><input id="es-date-${s.id}" type="date" value="${s.date}"></div>
-            <div class="record-edit-field"><label>倉庫</label><select id="es-warehouse-${s.id}">${wOpts}</select></div>
-            <div class="record-edit-field"><label>客戶</label><select id="es-customer-${s.id}">${cOpts}</select></div>
-            <div class="record-edit-field"><label>類型</label><select id="es-type-${s.id}"><option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option><option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option><option value="sample" ${s.type === 'sample' ? 'selected' : ''}>樣品</option></select></div>
-            <div class="record-edit-field" style="grid-column:span 2"><label>商品</label><select id="es-product-${s.id}">${prodOpts}</select></div>
-            <div class="record-edit-field"><label>數量</label>${unitToggle}<input id="es-qty-${s.id}" type="number" step="0.01" value="${editDispQty}" oninput="updateSaleEditCalc(${s.id})"><input type="hidden" id="es-unitmode-${s.id}" value="${editUnitMode}"></div>
-            <div class="record-edit-field"><label>單價</label><input id="es-price-${s.id}" type="number" step="1" value="${editDispPrice}" oninput="updateSaleEditCalc(${s.id})" onblur="this.value = wholeMoney(this.value); updateSaleEditCalc(${s.id})"></div>
-            <div class="record-edit-field"><label>金額</label><strong id="es-amt-display-${s.id}" style="color:#16a34a;min-height:38px;display:flex;align-items:center">$${(editDispQty * editDispPrice).toLocaleString()}</strong></div>
-            <div class="record-edit-field"><label>記錄者</label><div style="min-height:38px;display:flex;align-items:center">${recorderBadge(s.recorder)}</div></div>
-            <div class="record-edit-actions">
-              <button class="btn btn-success btn-sm" onclick="saveSaleEdit(${s.id})">💾 儲存</button>
-              <button class="btn btn-secondary btn-sm" onclick="cancelSaleEdit()">取消</button>
-            </div>
-            </div>
-          </div>
-        </td>
-      </tr>`;
-    }
-
     // 顯示模式：金額用實際輸入計算（如果有 displayQty/displayPrice）
     const displayQty = (s.displayQty != null) ? s.displayQty : s.qty;
     const displayPrice = wholeMoney((s.displayPrice != null) ? s.displayPrice : s.price);
@@ -3721,18 +3646,14 @@ function toggleSaleEditUnit(saleId, mode) {
   document.querySelectorAll(`.es-unit-btn`).forEach(btn => {
     if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`(${saleId},`)) {
       const isActive = btn.dataset.mode === mode;
-      btn.style.background = isActive ? '#088395' : 'white';
-      btn.style.color = isActive ? 'white' : '#64748b';
+      btn.classList.toggle('active', isActive);
     }
   });
 }
 
-let editingSaleId = null;
-
 function startSaleEdit(id) {
   const s = sales.find(x => x.id === id);
   if (!s) return;
-  editingSaleId = null;
   const product = products.find(x => x.id === s.productId);
   const ppb = product ? (product.packsPerBox || 1) : 1;
   const hasBoxOption = ppb >= 2;
@@ -3742,9 +3663,9 @@ function startSaleEdit(id) {
   const editUnitMode = s.unitMode || 'pack';
   const editDispQty = (s.displayQty != null) ? s.displayQty : s.qty;
   const editDispPrice = wholeMoney((s.displayPrice != null) ? s.displayPrice : s.price);
-  const unitToggle = hasBoxOption ? `<div style="display:inline-flex;gap:0;border:1.5px solid #088395;border-radius:6px;overflow:hidden;margin-bottom:6px">
-    <button type="button" class="es-unit-btn ${editUnitMode === 'box' ? 'active' : ''}" data-mode="box" onclick="toggleSaleEditUnit(${s.id}, 'box')" style="padding:5px 12px;border:none;background:${editUnitMode === 'box' ? '#088395' : 'white'};color:${editUnitMode === 'box' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:700">箱</button>
-    <button type="button" class="es-unit-btn ${editUnitMode === 'pack' ? 'active' : ''}" data-mode="pack" onclick="toggleSaleEditUnit(${s.id}, 'pack')" style="padding:5px 12px;border:none;background:${editUnitMode === 'pack' ? '#088395' : 'white'};color:${editUnitMode === 'pack' ? 'white' : '#64748b'};cursor:pointer;font-size:12px;font-weight:700">${product ? product.unit : '包'}</button>
+  const unitToggle = hasBoxOption ? `<div class="record-unit-toggle">
+    <button type="button" class="es-unit-btn ${editUnitMode === 'box' ? 'active' : ''}" data-mode="box" onclick="toggleSaleEditUnit(${s.id}, 'box')">箱</button>
+    <button type="button" class="es-unit-btn ${editUnitMode === 'pack' ? 'active' : ''}" data-mode="pack" onclick="toggleSaleEditUnit(${s.id}, 'pack')">${product ? product.unit : '包'}</button>
   </div>` : '';
   const body = document.getElementById('sale-edit-modal-body');
   body.innerHTML = `<div class="record-modal-grid">
@@ -3765,7 +3686,6 @@ function startSaleEdit(id) {
 }
 
 function cancelSaleEdit() {
-  editingSaleId = null;
   document.getElementById('sale-edit-modal')?.classList.remove('show');
 }
 
@@ -3812,7 +3732,6 @@ function saveSaleEdit(id) {
   s.displayPrice = inputPrice;
 
   DB.save('sales', sales);
-  editingSaleId = null;
   document.getElementById('sale-edit-modal')?.classList.remove('show');
   renderSales();
   if (typeof renderInventory === 'function') renderInventory();
