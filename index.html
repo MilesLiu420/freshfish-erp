@@ -790,6 +790,40 @@
   .record-modal-grid .wide { grid-column: span 2; }
   .record-modal-summary { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 11px 12px; min-height: 42px; display: flex; align-items: center; font-weight: 800; color: #0a4d68; }
   .record-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px solid #e2e8f0; }
+
+
+  @media (max-width: 1024px) {
+    .card table.record-table.purchase-record-table thead,
+    .card table.record-table.sale-record-table thead { display: none; }
+    .card table.record-table.purchase-record-table tr,
+    .card table.record-table.sale-record-table tr {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) 64px;
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      margin-bottom: 12px;
+      background: #f8fafc;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+    .card table.record-table.purchase-record-table td,
+    .card table.record-table.sale-record-table td { display: none; border-bottom: none; padding: 0; }
+    .card table.record-table.purchase-record-table td:nth-child(1),
+    .card table.record-table.sale-record-table td:nth-child(1) {
+      display: flex; justify-content: center; align-items: flex-start; grid-column: 1; padding-top: 4px;
+    }
+    .card table.record-table.purchase-record-table td.mobile-record-summary,
+    .card table.record-table.sale-record-table td.mobile-record-summary {
+      display: block; grid-column: 2; font-size: 14px; min-width: 0;
+    }
+    .card table.record-table.purchase-record-table td[data-label="操作"],
+    .card table.record-table.sale-record-table td[data-label="操作"] {
+      display: block; grid-column: 3;
+    }
+    .card table.record-table.purchase-record-table td::before,
+    .card table.record-table.sale-record-table td::before { display: none; }
+  }
 </style>
 </head>
 <body>
