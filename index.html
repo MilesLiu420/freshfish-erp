@@ -126,6 +126,12 @@
   .record-table { table-layout: fixed; width: 100%; }
   .record-table th, .record-table td { padding: 9px 7px; font-size: 12.5px; vertical-align: middle; }
   .record-table th { line-height: 1.2; }
+  .mobile-record-summary { display: none; }
+  .mobile-record-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .mobile-record-date { font-weight: 700; color: #0a4d68; }
+  .mobile-record-amount { font-weight: 800; color: #0f172a; white-space: nowrap; }
+  .mobile-record-title { font-weight: 800; color: #1f2937; line-height: 1.3; margin-bottom: 4px; }
+  .mobile-record-meta { color: #64748b; font-size: 12px; line-height: 1.45; }
   .record-table .badge, .record-table .badge-warehouse, .record-table .recorder-badge { white-space: nowrap; }
   .record-table tr.record-edit-row { background: #f8fafc !important; }
   .record-table tr.record-edit-row > td { padding: 10px 12px; overflow: visible; border-bottom: 1px solid #cbd5e1; }
@@ -459,6 +465,40 @@
     .recorder-badge { padding: 4px 10px; font-size: 13px; }
     .badge { padding: 4px 10px; font-size: 13px; }
     .badge-warehouse { padding: 4px 10px; font-size: 13px; }
+
+
+    /* 手機版紀錄摘要卡 */
+    .card table.record-table.purchase-record-table tr,
+    .card table.record-table.sale-record-table tr {
+      display: grid;
+      grid-template-columns: 28px 1fr 64px;
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+    }
+    .card table.record-table.purchase-record-table td,
+    .card table.record-table.sale-record-table td { display: none; border-bottom: none; padding: 0; }
+    .card table.record-table.purchase-record-table td:nth-child(1),
+    .card table.record-table.sale-record-table td:nth-child(1) {
+      display: flex; justify-content: center; align-items: flex-start; grid-column: 1; padding-top: 4px;
+    }
+    .card table.record-table.purchase-record-table td.mobile-record-summary,
+    .card table.record-table.sale-record-table td.mobile-record-summary {
+      display: block; grid-column: 2; font-size: 14px; min-width: 0;
+    }
+    .card table.record-table.purchase-record-table td[data-label="操作"],
+    .card table.record-table.sale-record-table td[data-label="操作"] {
+      display: block; grid-column: 3;
+    }
+    .card table.record-table.purchase-record-table td::before,
+    .card table.record-table.sale-record-table td::before { display: none; }
+    .mobile-record-head { margin-bottom: 5px; }
+    .mobile-record-date { font-size: 13px; }
+    .mobile-record-amount { font-size: 15px; }
+    .mobile-record-title { font-size: 15px; }
+    .mobile-record-meta { font-size: 12px; }
+    .record-actions { min-width: 58px; gap: 6px; }
+    .record-actions .btn { min-height: 34px; padding: 6px 8px; font-size: 12px; }
 
     /* 圖表容器 */
     .chart-container { height: 280px; }
@@ -1911,6 +1951,11 @@ function warehouseLogoHTML(warehouseId, size = 'small') {
   return `<img src="${logo}" alt="" class="${cls}" onerror="this.style.display='none'">`;
 }
 
+function warehouseName(warehouseId) {
+  const w = warehouses.find(x => x.id === warehouseId);
+  return w ? w.name : '未指定倉庫';
+}
+
 function warehouseBadgeHTML(warehouseId) {
   const w = warehouses.find(x => x.id === warehouseId);
   if (!w) return '<span class="badge badge-warning">📦 未指定</span>';
@@ -2954,9 +2999,24 @@ function renderPurchases() {
     const supplier = suppliers.find(x => x.id === p.supplierId);
 
     const boxInfo = formatPurchaseBoxInfo(p);
+    const purchaseTotal = Math.round((p.qty || 0) * (p.price || 0));
+    const purchaseProductName = product ? product.name : '已刪除商品';
+    const purchaseMeta = [
+      supplier ? supplier.name : '無供應商',
+      warehouseName(p.warehouseId),
+      p.country || '',
+      `${p.qty || 0} 包`,
+      `$${(p.price || 0).toFixed(2)}/包`,
+      p.expiry ? `到期 ${p.expiry}` : ''
+    ].filter(Boolean).join(' · ');
     const puChecked = purchaseCheckedIds.has(p.id);
     return `<tr>
       <td style="text-align:center"><input type="checkbox" class="pu-row-check" data-id="${p.id}" ${puChecked ? 'checked' : ''} onchange="onPurchaseCheckChange()"></td>
+      <td class="mobile-record-summary" data-label="摘要">
+        <div class="mobile-record-head"><span class="mobile-record-date">${p.date}</span><span class="mobile-record-amount">$${purchaseTotal.toLocaleString()}</span></div>
+        <div class="mobile-record-title">${purchaseProductName}</div>
+        <div class="mobile-record-meta">${purchaseMeta}</div>
+      </td>
       <td data-label="日期" style="white-space:nowrap">${p.date}</td>
       <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(p.warehouseId)}</td>
       <td data-label="供應商" class="record-nowrap">${supplier ? supplier.name : '-'}</td>
@@ -2965,7 +3025,7 @@ function renderPurchases() {
       <td data-label="箱×包">${boxInfo}</td>
       <td data-label="包數" class="record-number">${p.qty}</td>
       <td data-label="每包成本" class="record-money">$${(p.price || 0).toFixed(2)}</td>
-      <td data-label="金額" class="record-money"><strong>$${(p.qty * p.price).toLocaleString()}</strong></td>
+      <td data-label="金額" class="record-money"><strong>$${purchaseTotal.toLocaleString()}</strong></td>
       <td data-label="到期日" style="white-space:nowrap">${p.expiry || '-'}</td>
       <td data-label="記錄者" style="white-space:nowrap">${recorderBadge(p.recorder)}</td>
       <td data-label="操作">
@@ -3613,9 +3673,23 @@ function renderSales() {
     const displayPrice = wholeMoney((s.displayPrice != null) ? s.displayPrice : s.price);
     const totalAmt = displayQty * displayPrice;
 
+    const saleProductName = product ? product.name : '已刪除商品';
+    const saleTypeText = s.type === 'wholesale' ? '批發' : s.type === 'sample' ? '樣品' : '零售';
+    const saleMeta = [
+      customer ? customer.name : '無客戶',
+      warehouseName(s.warehouseId),
+      saleTypeText,
+      `${displayQty} ${s.unitMode === 'box' ? '箱' : (product ? product.unit : '包')}`,
+      `$${displayPrice.toLocaleString()}/${s.unitMode === 'box' ? '箱' : (product ? product.unit : '包')}`
+    ].filter(Boolean).join(' · ');
     const saChecked = saleCheckedIds.has(s.id);
     return `<tr>
       <td style="text-align:center"><input type="checkbox" class="sa-row-check" data-id="${s.id}" ${saChecked ? 'checked' : ''} onchange="onSaleCheckChange()"></td>
+      <td class="mobile-record-summary" data-label="摘要">
+        <div class="mobile-record-head"><span class="mobile-record-date">${s.date}</span><span class="mobile-record-amount">$${totalAmt.toLocaleString()}</span></div>
+        <div class="mobile-record-title">${saleProductName}</div>
+        <div class="mobile-record-meta">${saleMeta}</div>
+      </td>
       <td data-label="日期" style="white-space:nowrap">${s.date}</td>
       <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(s.warehouseId)}</td>
       <td data-label="客戶" class="record-nowrap">${customer ? customer.name : '-'}</td>
