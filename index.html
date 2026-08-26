@@ -127,11 +127,15 @@
   .record-table th, .record-table td { padding: 9px 7px; font-size: 12.5px; vertical-align: middle; }
   .record-table th { line-height: 1.2; }
   .mobile-record-summary { display: none; }
-  .mobile-record-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
-  .mobile-record-date { font-weight: 700; color: #0a4d68; }
-  .mobile-record-amount { font-weight: 800; color: #0f172a; white-space: nowrap; }
-  .mobile-record-title { font-weight: 800; color: #1f2937; line-height: 1.3; margin-bottom: 4px; }
-  .mobile-record-meta { color: #64748b; font-size: 12px; line-height: 1.45; }
+  .mobile-record-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .mobile-record-date { font-weight: 800; color: #0a4d68; letter-spacing: 0; }
+  .mobile-record-date + .mobile-record-amount { margin-left: 14px; }
+  .mobile-record-amount { font-weight: 900; color: #0f172a; white-space: nowrap; letter-spacing: 0; }
+  .mobile-record-title { font-weight: 900; color: #1f2937; line-height: 1.3; margin-bottom: 8px; }
+  .mobile-record-meta { display: flex; flex-wrap: wrap; gap: 6px; color: #64748b; font-size: 12px; line-height: 1.35; }
+  .mobile-record-chip { display: inline-flex; align-items: center; max-width: 100%; padding: 3px 8px; border-radius: 999px; background: #eef6f8; color: #476173; font-weight: 700; white-space: nowrap; }
+  .mobile-record-chip.muted { background: transparent; padding-left: 0; color: #64748b; font-weight: 600; }
+  .mobile-record-recorder { white-space: nowrap; }
   .record-table .badge, .record-table .badge-warehouse, .record-table .recorder-badge { white-space: nowrap; }
   .record-table tr.record-edit-row { background: #f8fafc !important; }
   .record-table tr.record-edit-row > td { padding: 10px 12px; overflow: visible; border-bottom: 1px solid #cbd5e1; }
@@ -471,34 +475,37 @@
     .card table.record-table.purchase-record-table tr,
     .card table.record-table.sale-record-table tr {
       display: grid;
-      grid-template-columns: 28px 1fr 64px;
-      gap: 10px;
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 10px 12px;
       align-items: start;
-      padding: 12px;
+      padding: 14px;
+      background: #f8fafc;
+      border-radius: 14px;
+      border: 1px solid #dbe4ee;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
     }
     .card table.record-table.purchase-record-table td,
     .card table.record-table.sale-record-table td { display: none; border-bottom: none; padding: 0; }
     .card table.record-table.purchase-record-table td:nth-child(1),
     .card table.record-table.sale-record-table td:nth-child(1) {
-      display: flex; justify-content: center; align-items: flex-start; grid-column: 1; padding-top: 4px;
+      display: flex; justify-content: center; align-items: flex-start; grid-column: 1; grid-row: 1; padding-top: 3px;
     }
     .card table.record-table.purchase-record-table td.mobile-record-summary,
     .card table.record-table.sale-record-table td.mobile-record-summary {
-      display: block; grid-column: 2; font-size: 14px; min-width: 0;
+      display: block; grid-column: 2; grid-row: 1; font-size: 14px; min-width: 0;
     }
     .card table.record-table.purchase-record-table td[data-label="操作"],
     .card table.record-table.sale-record-table td[data-label="操作"] {
-      display: block; grid-column: 3;
+      display: block; grid-column: 2; grid-row: 2; margin-top: 10px;
     }
     .card table.record-table.purchase-record-table td::before,
     .card table.record-table.sale-record-table td::before { display: none; }
-    .mobile-record-head { margin-bottom: 5px; }
-    .mobile-record-date { font-size: 13px; }
-    .mobile-record-amount { font-size: 15px; }
-    .mobile-record-title { font-size: 15px; }
+    .mobile-record-date { font-size: 14px; }
+    .mobile-record-amount { font-size: 18px; }
+    .mobile-record-title { font-size: 17px; }
     .mobile-record-meta { font-size: 12px; }
-    .record-actions { min-width: 58px; gap: 6px; }
-    .record-actions .btn { min-height: 34px; padding: 6px 8px; font-size: 12px; }
+    .record-actions { display: grid; grid-template-columns: 1fr 1fr; min-width: 0; gap: 8px; }
+    .record-actions .btn { min-height: 40px; padding: 8px 10px; font-size: 14px; }
 
     /* 圖表容器 */
     .chart-container { height: 280px; }
@@ -798,31 +805,34 @@
     .card table.record-table.purchase-record-table tr,
     .card table.record-table.sale-record-table tr {
       display: grid;
-      grid-template-columns: 28px minmax(0, 1fr) 64px;
-      gap: 10px;
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 10px 12px;
       align-items: start;
-      padding: 12px;
+      padding: 14px;
       margin-bottom: 12px;
       background: #f8fafc;
-      border-radius: 10px;
-      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      border: 1px solid #dbe4ee;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
     }
     .card table.record-table.purchase-record-table td,
     .card table.record-table.sale-record-table td { display: none; border-bottom: none; padding: 0; }
     .card table.record-table.purchase-record-table td:nth-child(1),
     .card table.record-table.sale-record-table td:nth-child(1) {
-      display: flex; justify-content: center; align-items: flex-start; grid-column: 1; padding-top: 4px;
+      display: flex; justify-content: center; align-items: flex-start; grid-column: 1; grid-row: 1; padding-top: 3px;
     }
     .card table.record-table.purchase-record-table td.mobile-record-summary,
     .card table.record-table.sale-record-table td.mobile-record-summary {
-      display: block; grid-column: 2; font-size: 14px; min-width: 0;
+      display: block; grid-column: 2; grid-row: 1; font-size: 14px; min-width: 0;
     }
     .card table.record-table.purchase-record-table td[data-label="操作"],
     .card table.record-table.sale-record-table td[data-label="操作"] {
-      display: block; grid-column: 3;
+      display: block; grid-column: 2; grid-row: 2; margin-top: 10px;
     }
     .card table.record-table.purchase-record-table td::before,
     .card table.record-table.sale-record-table td::before { display: none; }
+    .record-actions { display: grid; grid-template-columns: 1fr 1fr; min-width: 0; gap: 8px; }
+    .record-actions .btn { min-height: 40px; padding: 8px 10px; font-size: 14px; }
   }
 </style>
 </head>
@@ -3042,12 +3052,12 @@ function renderPurchases() {
       `${p.qty || 0} 包`,
       `$${(p.price || 0).toFixed(2)}/包`,
       p.expiry ? `到期 ${p.expiry}` : ''
-    ].filter(Boolean).join(' · ');
+    ].filter(Boolean).map(x => `<span class="mobile-record-chip">${x}</span>`).join('');
     const puChecked = purchaseCheckedIds.has(p.id);
     return `<tr>
       <td style="text-align:center"><input type="checkbox" class="pu-row-check" data-id="${p.id}" ${puChecked ? 'checked' : ''} onchange="onPurchaseCheckChange()"></td>
       <td class="mobile-record-summary" data-label="摘要">
-        <div class="mobile-record-head"><span class="mobile-record-date">${p.date}</span><span class="mobile-record-amount">$${purchaseTotal.toLocaleString()}</span></div>
+        <div class="mobile-record-head"><div><span class="mobile-record-date">${p.date}</span><span class="mobile-record-amount">$${purchaseTotal.toLocaleString()}</span></div><span class="mobile-record-recorder">${recorderBadge(p.recorder)}</span></div>
         <div class="mobile-record-title">${purchaseProductName}</div>
         <div class="mobile-record-meta">${purchaseMeta}</div>
       </td>
@@ -3715,12 +3725,12 @@ function renderSales() {
       saleTypeText,
       `${displayQty} ${s.unitMode === 'box' ? '箱' : (product ? product.unit : '包')}`,
       `$${displayPrice.toLocaleString()}/${s.unitMode === 'box' ? '箱' : (product ? product.unit : '包')}`
-    ].filter(Boolean).join(' · ');
+    ].filter(Boolean).map(x => `<span class="mobile-record-chip">${x}</span>`).join('');
     const saChecked = saleCheckedIds.has(s.id);
     return `<tr>
       <td style="text-align:center"><input type="checkbox" class="sa-row-check" data-id="${s.id}" ${saChecked ? 'checked' : ''} onchange="onSaleCheckChange()"></td>
       <td class="mobile-record-summary" data-label="摘要">
-        <div class="mobile-record-head"><span class="mobile-record-date">${s.date}</span><span class="mobile-record-amount">$${totalAmt.toLocaleString()}</span></div>
+        <div class="mobile-record-head"><div><span class="mobile-record-date">${s.date}</span><span class="mobile-record-amount">$${totalAmt.toLocaleString()}</span></div><span class="mobile-record-recorder">${recorderBadge(s.recorder)}</span></div>
         <div class="mobile-record-title">${saleProductName}</div>
         <div class="mobile-record-meta">${saleMeta}</div>
       </td>
