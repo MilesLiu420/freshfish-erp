@@ -2162,6 +2162,8 @@ function renderProducts() {
     if (filterCat) return p.categoryId === parseInt(filterCat);
     return true;
   });
+  // 新增商品使用 Date.now() 當 id，數字越大代表越新。
+  list.sort((a, b) => (b.id || 0) - (a.id || 0));
 
   if (list.length === 0) {
     tbody.innerHTML = '<tr><td colspan="8" class="empty">沒有符合的商品</td></tr>';
