@@ -4089,6 +4089,14 @@ function renderInventory() {
     return r.statusType === inventoryFilter;
   });
 
+  if (inventoryFilter === 'all') {
+    filtered.sort((a, b) => {
+      const aHasStock = a.stock > 0 ? 1 : 0;
+      const bHasStock = b.stock > 0 ? 1 : 0;
+      return bHasStock - aHasStock || (b.p.id || 0) - (a.p.id || 0);
+    });
+  }
+
   if (filtered.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty">沒有符合條件的商品</td></tr>';
     renderAdjustments();
