@@ -1106,6 +1106,10 @@
           <div id="sa-favorite-products"></div>
         </div>
 
+        <div class="section-label">📋 銷貨明細</div>
+        <div id="sa-lines"></div>
+        <button type="button" class="add-line-btn" onclick="addSaleLine()">+ 加入下一個品項</button>
+
         <div class="chain-import-box">
           <div class="section-label">📋 LINE 接龍匯入</div>
           <textarea id="line-chain-input" placeholder="把 LINE 商品代號與接龍整段貼在這裡，例如：&#10;A: 厚切鮭魚300g $185&#10;B: 鱸魚片150-200g $90&#10;&#10;接龍：&#10;1. 忠彬 Gx1,Ix1 蔥鹽&#10;2. 伯超 Bx1,Fx1"></textarea>
@@ -1116,10 +1120,6 @@
           </div>
           <div id="line-chain-preview"></div>
         </div>
-
-        <div class="section-label">📋 銷貨明細</div>
-        <div id="sa-lines"></div>
-        <button type="button" class="add-line-btn" onclick="addSaleLine()">+ 加入下一個品項</button>
 
         <div class="form-row" style="margin-top:16px">
           <div class="form-group"><label>運費金額</label><input id="sa-shipping" type="number" min="0" step="1" value="0" oninput="updateSaleTotals()" placeholder="0"></div>
@@ -3518,6 +3518,16 @@ function findCustomerByChainName(name) {
 }
 
 function findProductForChainItem(itemName, extraText = '') {
+  const flavor = normalizeMatchText(extraText);
+  if (flavor && /雞腿排/.test(itemName)) {
+    return products.find(p => {
+      const text = normalizeMatchText(p.name + (p.spec || ''));
+      return text.includes('雞腿排') && text.includes(flavor);
+    }) || products.find(p => {
+      const text = normalizeMatchText(p.name + (p.spec || ''));
+      return text.includes(flavor);
+    }) || null;
+  }
   const wanted = normalizeMatchText(itemName + extraText);
   const base = normalizeMatchText(itemName);
   return products.find(p => normalizeMatchText(p.name + (p.spec || '')).includes(wanted)) ||
@@ -3527,6 +3537,10 @@ function findProductForChainItem(itemName, extraText = '') {
       return pName && (pName.includes(base) || base.includes(pName));
     }) ||
     null;
+}
+
+function cleanChainExtra(value) {
+  return String(value || '').replace(/^[\s,，、.。]+|[\s,，、.。]+$/g, '').trim();
 }
 
 function parseLineChainMenu(lines) {
@@ -3573,7 +3587,7 @@ function parseLineChainItems(order, menu) {
       items.push({ code, qty: 0, error: `找不到商品代號 ${code}` });
       return;
     }
-    const extra = (m[3] || '').trim();
+    const extra = cleanChainExtra(m[3]);
     const eachQty = extra.match(/各\s*(\d+)/);
     const qty = parseInt(m[2] || (eachQty ? eachQty[1] : '1'), 10) || 1;
     if (code === 'I' && eachQty && /蔥|蒜|紐/.test(extra)) {
