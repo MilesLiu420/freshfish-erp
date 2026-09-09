@@ -244,6 +244,26 @@
   .unit-btn:hover { background: #f1f5f9; }
   .unit-btn.active { background: #088395; color: white; }
 
+  .chain-import-box {
+    border: 1.5px dashed #088395; background: #f0f9ff; border-radius: 12px;
+    padding: 14px; margin: 14px 0 18px;
+  }
+  .chain-import-box textarea {
+    width: 100%; min-height: 150px; resize: vertical; padding: 12px 14px;
+    border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 15px; line-height: 1.6;
+    background: white;
+  }
+  .chain-import-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .chain-preview { margin-top: 12px; background: white; border: 1px solid #dbeafe; border-radius: 10px; overflow: hidden; }
+  .chain-preview-row {
+    display: grid; grid-template-columns: 120px 1fr 110px 110px; gap: 10px;
+    padding: 10px 12px; border-bottom: 1px solid #e2e8f0; align-items: center; font-size: 14px;
+  }
+  .chain-preview-row:last-child { border-bottom: none; }
+  .chain-preview-row.head { background: #e0f2fe; font-weight: 700; color: #0a4d68; }
+  .chain-warning { color: #d97706; font-weight: 700; }
+  .chain-error { color: #dc2626; font-weight: 700; }
+
   /* ===== 庫存查詢 — 簡潔精緻表格 ===== */
   .inv-summary-card { padding: 18px 20px; }
   .inv-summary-row {
@@ -1084,6 +1104,17 @@
         <div id="sa-favorites-row" style="display:none; margin-bottom:16px">
           <label style="font-size:13px; color:#475569; margin-bottom:8px; display:block">⚡ 此客戶常訂商品（點擊快速加入到明細）</label>
           <div id="sa-favorite-products"></div>
+        </div>
+
+        <div class="chain-import-box">
+          <div class="section-label">📋 LINE 接龍匯入</div>
+          <textarea id="line-chain-input" placeholder="把 LINE 商品代號與接龍整段貼在這裡，例如：&#10;A: 厚切鮭魚300g $185&#10;B: 鱸魚片150-200g $90&#10;&#10;接龍：&#10;1. 忠彬 Gx1,Ix1 蔥鹽&#10;2. 伯超 Bx1,Fx1"></textarea>
+          <div class="chain-import-actions">
+            <button type="button" class="btn btn-primary" onclick="parseLineChain()">🔍 解析接龍</button>
+            <button type="button" class="btn btn-success" onclick="createSalesFromLineChain()">💾 建立銷貨紀錄</button>
+            <button type="button" class="btn btn-secondary" onclick="clearLineChainImport()">清空</button>
+          </div>
+          <div id="line-chain-preview"></div>
         </div>
 
         <div class="section-label">📋 銷貨明細</div>
@@ -3460,6 +3491,227 @@ function submitSale() {
   addSaleLine();
   renderCustomerPicker();
   renderSales();
+}
+
+let parsedLineChainItems = [];
+
+function safeText(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function normalizeMatchText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[（）()【】\[\]，,：:／\/\s・·\-_$]/g, '')
+    .trim();
+}
+
+function findCustomerByChainName(name) {
+  const key = normalizeMatchText(name);
+  return customers.find(c => normalizeMatchText(c.name) === key) ||
+    customers.find(c => {
+      const cKey = normalizeMatchText(c.name);
+      return cKey && (cKey.includes(key) || key.includes(cKey));
+    });
+}
+
+function findProductForChainItem(itemName, extraText = '') {
+  const wanted = normalizeMatchText(itemName + extraText);
+  const base = normalizeMatchText(itemName);
+  return products.find(p => normalizeMatchText(p.name + (p.spec || '')).includes(wanted)) ||
+    products.find(p => wanted.includes(normalizeMatchText(p.name + (p.spec || '')))) ||
+    products.find(p => {
+      const pName = normalizeMatchText(p.name);
+      return pName && (pName.includes(base) || base.includes(pName));
+    }) ||
+    null;
+}
+
+function parseLineChainMenu(lines) {
+  const menu = {};
+  lines.forEach(line => {
+    const m = line.match(/^\s*([A-Z])\s*[:：]\s*(.+)$/i);
+    if (!m) return;
+    const code = m[1].toUpperCase();
+    const text = m[2].trim();
+    const priceMatch = text.match(/\$\s*(\d+)/);
+    const promo = text.match(/(\d+)\s*包\s*\$?\s*(\d+)/);
+    const name = text.replace(/\$\s*\d+(?:\s*\/\s*包)?/g, '').replace(/\d+\s*包\s*\$?\s*\d+/g, '').trim();
+    menu[code] = {
+      code,
+      raw: text,
+      name: name || text,
+      price: priceMatch ? parseInt(priceMatch[1], 10) : 0,
+      promoQty: promo ? parseInt(promo[1], 10) : null,
+      promoTotal: promo ? parseInt(promo[2], 10) : null
+    };
+  });
+  return menu;
+}
+
+function parseLineChainOrderLine(line) {
+  const m = line.trim().match(/^\s*\d+\s*[\.\、]?\s*(.+)$/);
+  if (!m) return null;
+  const body = m[1].trim();
+  const firstCode = body.search(/[A-Z]/i);
+  if (firstCode < 1) return null;
+  return {
+    customerName: body.slice(0, firstCode).trim(),
+    itemsText: body.slice(firstCode).trim()
+  };
+}
+
+function parseLineChainItems(order, menu) {
+  const items = [];
+  const matches = [...order.itemsText.matchAll(/([A-Z])\s*(?:[xX×*]\s*(\d+))?([^A-Z]*)/g)];
+  matches.forEach(m => {
+    const code = m[1].toUpperCase();
+    const menuItem = menu[code];
+    if (!menuItem) {
+      items.push({ code, qty: 0, error: `找不到商品代號 ${code}` });
+      return;
+    }
+    const extra = (m[3] || '').trim();
+    const eachQty = extra.match(/各\s*(\d+)/);
+    const qty = parseInt(m[2] || (eachQty ? eachQty[1] : '1'), 10) || 1;
+    if (code === 'I' && eachQty && /蔥|蒜|紐/.test(extra)) {
+      [
+        ['蔥', '蔥鹽'],
+        ['蒜', '蒜香'],
+        ['紐', '紐奧良']
+      ].forEach(([abbr, flavor]) => {
+        if (!extra.includes(abbr)) return;
+        const product = findProductForChainItem(menuItem.name, flavor);
+        items.push({ code, qty, price: menuItem.price || 0, product, menuItem, extra: flavor });
+      });
+      return;
+    }
+    const product = findProductForChainItem(menuItem.name, extra);
+    let price = menuItem.price || 0;
+    if (menuItem.promoQty && menuItem.promoTotal && qty === menuItem.promoQty) {
+      price = menuItem.promoTotal / menuItem.promoQty;
+    }
+    items.push({ code, qty, price, product, menuItem, extra });
+  });
+  return items;
+}
+
+function parseLineChain() {
+  const input = document.getElementById('line-chain-input');
+  const preview = document.getElementById('line-chain-preview');
+  if (!input || !preview) return;
+  const text = input.value.trim();
+  if (!text) {
+    alert('請先貼上 LINE 接龍文字');
+    return;
+  }
+
+  const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+  const menu = parseLineChainMenu(lines);
+  const orders = lines.map(parseLineChainOrderLine).filter(Boolean);
+  parsedLineChainItems = [];
+
+  orders.forEach(order => {
+    const customer = findCustomerByChainName(order.customerName);
+    parseLineChainItems(order, menu).forEach(item => {
+      parsedLineChainItems.push({
+        customerName: order.customerName,
+        customer,
+        product: item.product,
+        productName: item.menuItem ? item.menuItem.name : item.code,
+        extra: item.extra || '',
+        qty: item.qty,
+        price: item.price,
+        error: item.error || (!customer ? '找不到客戶' : '') || (!item.product ? '找不到商品' : '')
+      });
+    });
+  });
+
+  renderLineChainPreview();
+}
+
+function renderLineChainPreview() {
+  const preview = document.getElementById('line-chain-preview');
+  if (!preview) return;
+  if (parsedLineChainItems.length === 0) {
+    preview.innerHTML = '<div class="chain-preview"><div class="chain-preview-row"><span class="chain-error">沒有解析到接龍訂單，請確認格式像「1. 忠彬 Ax1」。</span></div></div>';
+    return;
+  }
+  const total = parsedLineChainItems.reduce((s, item) => s + (item.error ? 0 : item.qty * item.price), 0);
+  const rows = parsedLineChainItems.map(item => {
+    const status = item.error ? `<span class="chain-error">${safeText(item.error)}</span>` :
+      (item.extra ? `<span class="chain-warning">確認：${safeText(item.extra)}</span>` : '可建立');
+    const productLabel = item.product ? `${item.product.name}${item.product.spec ? ' / ' + item.product.spec : ''}` : item.productName;
+    return `<div class="chain-preview-row">
+      <div>${safeText(item.customerName)}</div>
+      <div>${safeText(productLabel)}${item.extra ? ` <span class="chain-warning">(${safeText(item.extra)})</span>` : ''}</div>
+      <div>${item.qty} ${item.product ? item.product.unit : '包'} × $${Math.round(item.price).toLocaleString()}</div>
+      <div>${status}</div>
+    </div>`;
+  }).join('');
+  preview.innerHTML = `<div class="chain-preview">
+    <div class="chain-preview-row head"><div>客戶</div><div>商品</div><div>數量 / 單價</div><div>狀態</div></div>
+    ${rows}
+    <div class="chain-preview-row head"><div>合計</div><div>${parsedLineChainItems.length} 筆明細</div><div>$${Math.round(total).toLocaleString()}</div><div></div></div>
+  </div>`;
+}
+
+function createSalesFromLineChain() {
+  if (parsedLineChainItems.length === 0) {
+    parseLineChain();
+    if (parsedLineChainItems.length === 0) return;
+  }
+  const errors = parsedLineChainItems.filter(item => item.error);
+  if (errors.length > 0) {
+    alert(`還有 ${errors.length} 筆資料無法建立，請先修正紅字項目。`);
+    return;
+  }
+  const warehouseId = parseInt(document.getElementById('sa-warehouse')?.value);
+  const date = document.getElementById('sa-date')?.value;
+  if (!warehouseId) { alert('請先選擇出貨倉庫'); return; }
+  if (!date) { alert('請先選擇銷貨日期'); return; }
+
+  const insufficient = [];
+  parsedLineChainItems.forEach(item => {
+    const stock = calcStock(item.product.id, warehouseId);
+    if (item.qty > stock) insufficient.push(`${item.product.name}：庫存 ${stock} ${item.product.unit}，要賣 ${item.qty} ${item.product.unit}`);
+  });
+  if (insufficient.length > 0 && !confirm(`以下品項庫存不足：\n\n${insufficient.join('\n')}\n\n仍要建立銷貨紀錄嗎？`)) return;
+
+  const baseId = Date.now();
+  parsedLineChainItems.forEach((item, idx) => {
+    sales.push({
+      id: baseId + idx,
+      date,
+      warehouseId,
+      customerId: item.customer.id,
+      type: 'retail',
+      productId: item.product.id,
+      qty: item.qty,
+      price: item.price,
+      unitMode: 'pack',
+      displayQty: item.qty,
+      displayPrice: Math.round(item.price),
+      shipping: 0,
+      note: `LINE接龍匯入${item.extra ? '：' + item.extra : ''}`,
+      recorder: currentUserName()
+    });
+  });
+  DB.save('sales', sales);
+  alert(`✅ 已建立 ${parsedLineChainItems.length} 筆銷貨明細`);
+  clearLineChainImport();
+  renderSales();
+  if (typeof renderInventory === 'function') renderInventory();
+}
+
+function clearLineChainImport() {
+  const input = document.getElementById('line-chain-input');
+  const preview = document.getElementById('line-chain-preview');
+  if (input) input.value = '';
+  if (preview) preview.innerHTML = '';
+  parsedLineChainItems = [];
 }
 
 // ---- 客戶選擇器 ----
