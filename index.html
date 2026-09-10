@@ -888,6 +888,7 @@
     <div class="nav-item" onclick="showPage('sale', this)"><span class="icon">💰</span><span>銷貨登記</span></div>
     <div class="nav-item" onclick="showPage('transfer', this)"><span class="icon">🔄</span><span>倉庫轉移</span></div>
     <div class="nav-item" onclick="showPage('inventory', this)"><span class="icon">📊</span><span>庫存查詢</span></div>
+    <div class="nav-item" onclick="showPage('settlement', this)"><span class="icon">🧾</span><span>華德結算</span></div>
     <div class="nav-item" onclick="showPage('report', this)"><span class="icon">📈</span><span>月報表</span></div>
     <div class="nav-item" onclick="showPage('contacts', this)"><span class="icon">👥</span><span>客戶供應商</span></div>
     <div class="nav-item" onclick="showPage('settings', this)"><span class="icon">⚙️</span><span>備份設定</span></div>
@@ -1279,6 +1280,41 @@
         <table>
           <thead><tr><th>日期</th><th>倉庫</th><th>商品</th><th>調整前</th><th>調整後</th><th>差額</th><th>原因</th><th>備註</th><th>記錄者</th><th></th></tr></thead>
           <tbody id="adjustments-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 華德結算 -->
+    <div id="page-settlement" class="page">
+      <h2 class="page-title">🧾 華德結算</h2>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group"><label>起始日期</label><input id="settlement-from" type="date" onchange="renderHuadeSettlement()"></div>
+          <div class="form-group"><label>結束日期</label><input id="settlement-to" type="date" onchange="renderHuadeSettlement()"></div>
+          <div class="form-group"><label>結算狀態</label>
+            <select id="settlement-status" onchange="renderHuadeSettlement()">
+              <option value="pending">未結算</option>
+              <option value="settled">已結算</option>
+              <option value="all">全部</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats settlement-stats">
+        <div class="stat-card"><div class="label">銷售筆數</div><div class="value" id="settlement-count">0</div></div>
+        <div class="stat-card"><div class="label">應付華德</div><div class="value" id="settlement-payable">$0</div></div>
+        <div class="stat-card green"><div class="label">銷售金額</div><div class="value" id="settlement-sales">$0</div></div>
+        <div class="stat-card orange"><div class="label">價差</div><div class="value" id="settlement-margin">$0</div></div>
+      </div>
+
+      <div class="card">
+        <div class="record-batch-actions">
+          <button class="btn btn-success" onclick="settleSelectedHuadeSales()">✓ 將勾選項目標記為已結算</button>
+        </div>
+        <table class="record-table settlement-table">
+          <thead><tr><th><input type="checkbox" id="settlement-check-all" onchange="toggleAllHuadeSettlement(this.checked)"></th><th>日期</th><th>客戶</th><th>商品 / 規格</th><th>數量</th><th>成本單價</th><th>應付華德</th><th>銷售金額</th><th>價差</th><th>狀態</th><th>操作</th></tr></thead>
+          <tbody id="settlement-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -1946,6 +1982,7 @@ function showPage(pageId, el) {
   if (pageId === 'sale') { renderSaleSelects(); rebuildRecordFilterSelects(); renderSales(); }
   if (pageId === 'transfer') { renderTransferSelects(); rebuildRecordFilterSelects(); renderTransfers(); }
   if (pageId === 'inventory') { renderWarehouseSelects(); renderInventory(); }
+  if (pageId === 'settlement') { initHuadeSettlementFilters(); renderHuadeSettlement(); }
   if (pageId === 'report') { renderWarehouseSelects(); renderReport(); }
   if (pageId === 'contacts') {
     // 重置為「客戶」分頁並完整初始化（含分類膠囊）
@@ -3460,6 +3497,7 @@ function submitSale() {
       displayQty: l.qty,        // 顯示用：使用者實際輸入的數量
       displayPrice,            // 顯示用：使用者實際輸入的整數單價
       shipping: idx === 0 ? shipping : 0, // 整單運費只記在第一筆，避免重複計算
+      costAtSale: weightedWarehouseCost(l.productId, warehouseId, date),
       note,
       recorder: currentUserName()
     });
@@ -3709,6 +3747,7 @@ function createSalesFromLineChain() {
       displayQty: item.qty,
       displayPrice: Math.round(item.price),
       shipping: 0,
+      costAtSale: weightedWarehouseCost(item.product.id, warehouseId, date),
       note: `LINE接龍匯入${item.extra ? '：' + item.extra : ''}`,
       recorder: currentUserName()
     });
@@ -4116,6 +4155,12 @@ function saveSaleEdit(id) {
   s.unitMode = unitMode;
   s.displayQty = inputQty;
   s.displayPrice = inputPrice;
+  s.costAtSale = weightedWarehouseCost(productId, warehouseId, date);
+  if (s.settlementDate) {
+    delete s.settlementDate;
+    delete s.settlementBatchId;
+    delete s.settlementUnitCost;
+  }
 
   DB.save('sales', sales);
   document.getElementById('sale-edit-modal')?.classList.remove('show');
@@ -4818,6 +4863,160 @@ function setupDashboardDragDrop() {
 }
 
 // ============ 報表計算輔助函式 ============
+function weightedWarehouseCost(productId, warehouseId, beforeDate = null) {
+  const warehousePurchases = purchases.filter(p =>
+    p.productId === productId &&
+    p.warehouseId === warehouseId &&
+    (!beforeDate || p.date <= beforeDate)
+  );
+  const fallbackPurchases = purchases.filter(p =>
+    p.productId === productId && (!beforeDate || p.date <= beforeDate)
+  );
+  const list = warehousePurchases.length ? warehousePurchases : fallbackPurchases;
+  const totalQty = list.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+  if (totalQty <= 0) return 0;
+  return list.reduce((sum, p) => sum + (Number(p.qty) || 0) * (Number(p.price) || 0), 0) / totalQty;
+}
+
+function huadeWarehouseId() {
+  const warehouse = warehouses.find(w => String(w.name || '').replace(/\s/g, '') === '華德');
+  return warehouse ? warehouse.id : null;
+}
+
+function huadeSettlementUnitCost(sale) {
+  if (sale.settlementUnitCost != null && Number.isFinite(Number(sale.settlementUnitCost))) {
+    return Number(sale.settlementUnitCost);
+  }
+  if (sale.costAtSale != null && Number.isFinite(Number(sale.costAtSale))) {
+    return Number(sale.costAtSale);
+  }
+  return weightedWarehouseCost(sale.productId, sale.warehouseId, sale.date);
+}
+
+function initHuadeSettlementFilters() {
+  const from = document.getElementById('settlement-from');
+  const to = document.getElementById('settlement-to');
+  const today = todayLocalDateString();
+  if (from && !from.value) from.value = today.slice(0, 8) + '01';
+  if (to && !to.value) to.value = today;
+}
+
+function filteredHuadeSettlementSales() {
+  const warehouseId = huadeWarehouseId();
+  if (!warehouseId) return [];
+  const from = document.getElementById('settlement-from')?.value || '';
+  const to = document.getElementById('settlement-to')?.value || '';
+  const status = document.getElementById('settlement-status')?.value || 'pending';
+  return sales.filter(s => {
+    if (s.warehouseId !== warehouseId) return false;
+    if (from && s.date < from) return false;
+    if (to && s.date > to) return false;
+    if (status === 'pending' && s.settlementDate) return false;
+    if (status === 'settled' && !s.settlementDate) return false;
+    return true;
+  }).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+}
+
+function huadeSettlementAmounts(sale) {
+  const unitCost = huadeSettlementUnitCost(sale);
+  const payable = Math.round((Number(sale.qty) || 0) * unitCost);
+  const saleAmount = Math.round((Number(sale.qty) || 0) * (Number(sale.price) || 0));
+  return { unitCost, payable, saleAmount, margin: saleAmount - payable };
+}
+
+function renderHuadeSettlement() {
+  const tbody = document.getElementById('settlement-tbody');
+  if (!tbody) return;
+  const warehouseId = huadeWarehouseId();
+  const rows = filteredHuadeSettlementSales();
+  const totals = rows.reduce((sum, sale) => {
+    const amount = huadeSettlementAmounts(sale);
+    sum.payable += amount.payable;
+    sum.sales += amount.saleAmount;
+    sum.margin += amount.margin;
+    return sum;
+  }, { payable: 0, sales: 0, margin: 0 });
+
+  document.getElementById('settlement-count').textContent = rows.length.toLocaleString();
+  document.getElementById('settlement-payable').textContent = '$' + totals.payable.toLocaleString();
+  document.getElementById('settlement-sales').textContent = '$' + totals.sales.toLocaleString();
+  document.getElementById('settlement-margin').textContent = '$' + totals.margin.toLocaleString();
+  const checkAll = document.getElementById('settlement-check-all');
+  if (checkAll) checkAll.checked = false;
+
+  if (!warehouseId) {
+    tbody.innerHTML = '<tr><td colspan="11" class="empty">找不到「華德」倉庫，請先確認倉庫名稱</td></tr>';
+    return;
+  }
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" class="empty">這個期間沒有符合狀態的華德銷貨紀錄</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(s => {
+    const product = products.find(p => p.id === s.productId);
+    const customer = customers.find(c => c.id === s.customerId);
+    const amount = huadeSettlementAmounts(s);
+    const unit = product ? product.unit : '包';
+    const status = s.settlementDate
+      ? `<span class="badge badge-success">已結算 ${s.settlementDate}</span>`
+      : '<span class="badge badge-warning">未結算</span>';
+    const action = s.settlementDate
+      ? `<button class="btn btn-secondary btn-sm" onclick="undoHuadeSettlement(${s.id})">取消結算</button>`
+      : '';
+    return `<tr>
+      <td style="text-align:center">${s.settlementDate ? '' : `<input type="checkbox" class="settlement-row-check" value="${s.id}">`}</td>
+      <td data-label="日期" class="record-nowrap">${s.date}</td>
+      <td data-label="客戶" class="record-nowrap">${customer ? safeText(customer.name) : '-'}</td>
+      <td data-label="商品">${saleProductCellHTML(product)}</td>
+      <td data-label="數量" class="record-number">${Number(s.qty) || 0} ${safeText(unit)}</td>
+      <td data-label="成本單價" class="record-money">$${amount.unitCost.toFixed(2)}/${safeText(unit)}</td>
+      <td data-label="應付華德" class="record-money"><strong>$${amount.payable.toLocaleString()}</strong></td>
+      <td data-label="銷售金額" class="record-money">$${amount.saleAmount.toLocaleString()}</td>
+      <td data-label="價差" class="record-money">$${amount.margin.toLocaleString()}</td>
+      <td data-label="狀態">${status}</td>
+      <td data-label="操作">${action}</td>
+    </tr>`;
+  }).join('');
+  applyTableLabels();
+}
+
+function toggleAllHuadeSettlement(checked) {
+  document.querySelectorAll('.settlement-row-check').forEach(input => { input.checked = checked; });
+}
+
+function settleSelectedHuadeSales() {
+  const selectedIds = [...document.querySelectorAll('.settlement-row-check:checked')].map(input => Number(input.value));
+  if (selectedIds.length === 0) {
+    alert('請先勾選要結算的銷貨紀錄');
+    return;
+  }
+  const selected = sales.filter(s => selectedIds.includes(s.id) && !s.settlementDate);
+  const payable = selected.reduce((sum, sale) => sum + huadeSettlementAmounts(sale).payable, 0);
+  if (!confirm(`共 ${selected.length} 筆，應付華德 $${payable.toLocaleString()}。確定標記為已結算嗎？`)) return;
+  const settlementDate = todayLocalDateString();
+  const settlementBatchId = Date.now();
+  selected.forEach(sale => {
+    sale.settlementUnitCost = huadeSettlementUnitCost(sale);
+    sale.settlementDate = settlementDate;
+    sale.settlementBatchId = settlementBatchId;
+  });
+  DB.save('sales', sales);
+  renderHuadeSettlement();
+  alert(`✅ 已完成 ${selected.length} 筆華德結算，應付 $${payable.toLocaleString()}`);
+}
+
+function undoHuadeSettlement(id) {
+  const sale = sales.find(s => s.id === id);
+  if (!sale || !sale.settlementDate) return;
+  if (!confirm('確定要將這筆改回未結算嗎？')) return;
+  delete sale.settlementDate;
+  delete sale.settlementBatchId;
+  delete sale.settlementUnitCost;
+  DB.save('sales', sales);
+  renderHuadeSettlement();
+}
+
 // 取某商品的「平均進貨成本」（截至某日期前的累計平均，沒有就用 0）
 function avgCost(productId, beforeDate = null) {
   const list = purchases.filter(p => p.productId === productId && (!beforeDate || p.date <= beforeDate));
