@@ -1085,7 +1085,13 @@
         <div class="card-title">登記新銷貨單</div>
         <div class="form-row">
           <div class="form-group"><label>銷貨日期</label><input id="sa-date" type="date" onchange="updateSaleTotals()"></div>
-          <div class="form-group"><label>📦 出貨倉庫 *</label><select id="sa-warehouse" onchange="if(activeProductPicker && activeProductPicker.startsWith('sa-prod-')) renderProductPickerList(activeProductPicker); updateSaleTotals();"></select></div>
+          <div class="form-group"><label>📦 出貨倉庫 *</label><select id="sa-warehouse" onchange="if(activeProductPicker && activeProductPicker.startsWith('sa-prod-')) renderProductPickerList(activeProductPicker); updateSaleOwnerVisibility(); updateSaleTotals();"></select></div>
+          <div class="form-group" id="sa-owner-group" style="display:none"><label>銷售歸屬</label>
+            <select id="sa-sale-owner">
+              <option value="yujianke">漁健客銷售（需要結算）</option>
+              <option value="huade">華德自售（不需結算）</option>
+            </select>
+          </div>
         </div>
 
         <!-- 客戶選擇器 -->
@@ -1295,6 +1301,7 @@
             <select id="settlement-status" onchange="renderHuadeSettlement()">
               <option value="pending">未結算</option>
               <option value="settled">已結算</option>
+              <option value="excluded">華德自售</option>
               <option value="all">全部</option>
             </select>
           </div>
@@ -1311,6 +1318,7 @@
       <div class="card">
         <div class="record-batch-actions">
           <button class="btn btn-success" onclick="settleSelectedHuadeSales()">✓ 將勾選項目標記為已結算</button>
+          <button class="btn btn-secondary" onclick="excludeSelectedHuadeSales()">華德自售（不結算）</button>
         </div>
         <table class="record-table settlement-table">
           <thead><tr><th><input type="checkbox" id="settlement-check-all" onchange="toggleAllHuadeSettlement(this.checked)"></th><th>日期</th><th>客戶</th><th>商品 / 規格</th><th>數量</th><th>成本單價</th><th>應付華德</th><th>銷售金額</th><th>價差</th><th>狀態</th><th>操作</th></tr></thead>
@@ -3251,11 +3259,21 @@ function setSaleDateToday() {
   if (el) el.value = todayLocalDateString();
 }
 
+function updateSaleOwnerVisibility() {
+  const warehouseId = parseInt(document.getElementById('sa-warehouse')?.value);
+  const group = document.getElementById('sa-owner-group');
+  const owner = document.getElementById('sa-sale-owner');
+  const isHuade = warehouseId && warehouseId === huadeWarehouseId();
+  if (group) group.style.display = isHuade ? '' : 'none';
+  if (!isHuade && owner) owner.value = 'yujianke';
+}
+
 function renderSaleSelects() {
   renderWarehouseSelects();
   setSaleDateToday();
   const wEl = document.getElementById('sa-warehouse');
   if (wEl && !wEl.value && warehouses.length > 0) wEl.value = warehouses[0].id;
+  updateSaleOwnerVisibility();
   // 重置客戶選擇
   document.getElementById('sa-customer').value = '';
   document.getElementById('sa-customer-search').value = '';
@@ -3452,6 +3470,9 @@ function submitSale() {
   const date = document.getElementById('sa-date').value;
   const note = document.getElementById('sa-note').value;
   const shipping = parseInt(document.getElementById('sa-shipping')?.value, 10) || 0;
+  const saleOwner = warehouseId === huadeWarehouseId()
+    ? (document.getElementById('sa-sale-owner')?.value || 'yujianke')
+    : 'yujianke';
   if (!warehouseId) { alert('請選擇出貨倉庫'); return; }
   if (!customerId) { alert('請選擇客戶'); return; }
   if (!date) { alert('請填寫銷貨日期'); return; }
@@ -3498,6 +3519,7 @@ function submitSale() {
       displayPrice,            // 顯示用：使用者實際輸入的整數單價
       shipping: idx === 0 ? shipping : 0, // 整單運費只記在第一筆，避免重複計算
       costAtSale: weightedWarehouseCost(l.productId, warehouseId, date),
+      saleOwner,
       note,
       recorder: currentUserName()
     });
@@ -3525,6 +3547,8 @@ function submitSale() {
   document.getElementById('sa-note').value = '';
   const shippingEl = document.getElementById('sa-shipping');
   if (shippingEl) shippingEl.value = 0;
+  const saleOwnerEl = document.getElementById('sa-sale-owner');
+  if (saleOwnerEl) saleOwnerEl.value = 'yujianke';
   setSaleDateToday();
   addSaleLine();
   renderCustomerPicker();
@@ -3724,6 +3748,9 @@ function createSalesFromLineChain() {
   const date = document.getElementById('sa-date')?.value;
   if (!warehouseId) { alert('請先選擇出貨倉庫'); return; }
   if (!date) { alert('請先選擇銷貨日期'); return; }
+  const saleOwner = warehouseId === huadeWarehouseId()
+    ? (document.getElementById('sa-sale-owner')?.value || 'yujianke')
+    : 'yujianke';
 
   const insufficient = [];
   parsedLineChainItems.forEach(item => {
@@ -3748,6 +3775,7 @@ function createSalesFromLineChain() {
       displayPrice: Math.round(item.price),
       shipping: 0,
       costAtSale: weightedWarehouseCost(item.product.id, warehouseId, date),
+      saleOwner,
       note: `LINE接龍匯入${item.extra ? '：' + item.extra : ''}`,
       recorder: currentUserName()
     });
@@ -4098,6 +4126,7 @@ function startSaleEdit(id) {
     <div class="form-group"><label>倉庫</label><select id="es-warehouse-${s.id}">${wOpts}</select></div>
     <div class="form-group"><label>客戶</label><select id="es-customer-${s.id}">${cOpts}</select></div>
     <div class="form-group"><label>類型</label><select id="es-type-${s.id}"><option value="retail" ${s.type === 'retail' ? 'selected' : ''}>零售</option><option value="wholesale" ${s.type === 'wholesale' ? 'selected' : ''}>批發</option><option value="sample" ${s.type === 'sample' ? 'selected' : ''}>樣品</option></select></div>
+    <div class="form-group"><label>銷售歸屬</label><select id="es-owner-${s.id}"><option value="yujianke" ${s.saleOwner !== 'huade' ? 'selected' : ''}>漁健客銷售（需要結算）</option><option value="huade" ${s.saleOwner === 'huade' ? 'selected' : ''}>華德自售（不需結算）</option></select></div>
     <div class="form-group wide"><label>商品</label><select id="es-product-${s.id}">${prodOpts}</select></div>
     <div class="form-group"><label>數量</label>${unitToggle}<input id="es-qty-${s.id}" type="number" step="0.01" value="${editDispQty}" oninput="updateSaleEditCalc(${s.id})"><input type="hidden" id="es-unitmode-${s.id}" value="${editUnitMode}"></div>
     <div class="form-group"><label>單價</label><input id="es-price-${s.id}" type="number" step="1" value="${editDispPrice}" oninput="updateSaleEditCalc(${s.id})" onblur="this.value = wholeMoney(this.value); updateSaleEditCalc(${s.id})"></div>
@@ -4128,6 +4157,7 @@ function saveSaleEdit(id) {
   const warehouseId = parseInt(document.getElementById('es-warehouse-' + id).value);
   const customerId = parseInt(document.getElementById('es-customer-' + id).value) || null;
   const type = document.getElementById('es-type-' + id).value;
+  const selectedOwner = document.getElementById('es-owner-' + id)?.value || 'yujianke';
   const productId = parseInt(document.getElementById('es-product-' + id).value);
   const inputQty = parseFloat(document.getElementById('es-qty-' + id).value) || 0;
   const inputPrice = wholeMoney(document.getElementById('es-price-' + id).value);
@@ -4156,6 +4186,7 @@ function saveSaleEdit(id) {
   s.displayQty = inputQty;
   s.displayPrice = inputPrice;
   s.costAtSale = weightedWarehouseCost(productId, warehouseId, date);
+  s.saleOwner = warehouseId === huadeWarehouseId() ? selectedOwner : 'yujianke';
   if (s.settlementDate) {
     delete s.settlementDate;
     delete s.settlementBatchId;
@@ -4911,8 +4942,9 @@ function filteredHuadeSettlementSales() {
     if (s.warehouseId !== warehouseId) return false;
     if (from && s.date < from) return false;
     if (to && s.date > to) return false;
-    if (status === 'pending' && s.settlementDate) return false;
-    if (status === 'settled' && !s.settlementDate) return false;
+    if (status === 'pending' && (s.settlementDate || s.saleOwner === 'huade')) return false;
+    if (status === 'settled' && (!s.settlementDate || s.saleOwner === 'huade')) return false;
+    if (status === 'excluded' && s.saleOwner !== 'huade') return false;
     return true;
   }).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
 }
@@ -4930,6 +4962,7 @@ function renderHuadeSettlement() {
   const warehouseId = huadeWarehouseId();
   const rows = filteredHuadeSettlementSales();
   const totals = rows.reduce((sum, sale) => {
+    if (sale.saleOwner === 'huade') return sum;
     const amount = huadeSettlementAmounts(sale);
     sum.payable += amount.payable;
     sum.sales += amount.saleAmount;
@@ -4958,22 +4991,27 @@ function renderHuadeSettlement() {
     const customer = customers.find(c => c.id === s.customerId);
     const amount = huadeSettlementAmounts(s);
     const unit = product ? product.unit : '包';
-    const status = s.settlementDate
-      ? `<span class="badge badge-success">已結算 ${s.settlementDate}</span>`
-      : '<span class="badge badge-warning">未結算</span>';
-    const action = s.settlementDate
-      ? `<button class="btn btn-secondary btn-sm" onclick="undoHuadeSettlement(${s.id})">取消結算</button>`
-      : '';
+    const isHuadeSelfSale = s.saleOwner === 'huade';
+    const status = isHuadeSelfSale
+      ? '<span class="badge badge-info">華德自售</span>'
+      : s.settlementDate
+        ? `<span class="badge badge-success">已結算 ${s.settlementDate}</span>`
+        : '<span class="badge badge-warning">未結算</span>';
+    const action = isHuadeSelfSale
+      ? `<button class="btn btn-secondary btn-sm" onclick="restoreHuadeSettlement(${s.id})">改回需結算</button>`
+      : s.settlementDate
+        ? `<button class="btn btn-secondary btn-sm" onclick="undoHuadeSettlement(${s.id})">取消結算</button>`
+        : `<button class="btn btn-secondary btn-sm" onclick="markHuadeSelfSale(${s.id})">華德自售</button>`;
     return `<tr>
-      <td style="text-align:center">${s.settlementDate ? '' : `<input type="checkbox" class="settlement-row-check" value="${s.id}">`}</td>
+      <td style="text-align:center">${s.settlementDate || isHuadeSelfSale ? '' : `<input type="checkbox" class="settlement-row-check" value="${s.id}">`}</td>
       <td data-label="日期" class="record-nowrap">${s.date}</td>
       <td data-label="客戶" class="record-nowrap">${customer ? safeText(customer.name) : '-'}</td>
       <td data-label="商品">${saleProductCellHTML(product)}</td>
       <td data-label="數量" class="record-number">${Number(s.qty) || 0} ${safeText(unit)}</td>
       <td data-label="成本單價" class="record-money">$${amount.unitCost.toFixed(2)}/${safeText(unit)}</td>
-      <td data-label="應付華德" class="record-money"><strong>$${amount.payable.toLocaleString()}</strong></td>
+      <td data-label="應付華德" class="record-money"><strong>${isHuadeSelfSale ? '—' : '$' + amount.payable.toLocaleString()}</strong></td>
       <td data-label="銷售金額" class="record-money">$${amount.saleAmount.toLocaleString()}</td>
-      <td data-label="價差" class="record-money">$${amount.margin.toLocaleString()}</td>
+      <td data-label="價差" class="record-money">${isHuadeSelfSale ? '—' : '$' + amount.margin.toLocaleString()}</td>
       <td data-label="狀態">${status}</td>
       <td data-label="操作">${action}</td>
     </tr>`;
@@ -5004,6 +5042,43 @@ function settleSelectedHuadeSales() {
   DB.save('sales', sales);
   renderHuadeSettlement();
   alert(`✅ 已完成 ${selected.length} 筆華德結算，應付 $${payable.toLocaleString()}`);
+}
+
+function excludeSelectedHuadeSales() {
+  const selectedIds = [...document.querySelectorAll('.settlement-row-check:checked')].map(input => Number(input.value));
+  if (selectedIds.length === 0) {
+    alert('請先勾選華德自己銷售的紀錄');
+    return;
+  }
+  if (!confirm(`確定將這 ${selectedIds.length} 筆標記為「華德自售」嗎？這些紀錄會保留，但不會納入結算。`)) return;
+  sales.filter(s => selectedIds.includes(s.id)).forEach(sale => {
+    sale.saleOwner = 'huade';
+    delete sale.settlementDate;
+    delete sale.settlementBatchId;
+    delete sale.settlementUnitCost;
+  });
+  DB.save('sales', sales);
+  renderHuadeSettlement();
+}
+
+function markHuadeSelfSale(id) {
+  const sale = sales.find(s => s.id === id);
+  if (!sale) return;
+  if (!confirm('確定這筆是華德自己銷售、不需要跟華德結算嗎？')) return;
+  sale.saleOwner = 'huade';
+  delete sale.settlementDate;
+  delete sale.settlementBatchId;
+  delete sale.settlementUnitCost;
+  DB.save('sales', sales);
+  renderHuadeSettlement();
+}
+
+function restoreHuadeSettlement(id) {
+  const sale = sales.find(s => s.id === id);
+  if (!sale) return;
+  sale.saleOwner = 'yujianke';
+  DB.save('sales', sales);
+  renderHuadeSettlement();
 }
 
 function undoHuadeSettlement(id) {
