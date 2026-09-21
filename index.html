@@ -117,7 +117,9 @@
   .record-price-cell, .record-qty-cell { line-height: 1.25; white-space: normal; min-width: 0; }
   .record-price-main, .record-qty-main { display: block; font-weight: 700; color: #1f2937; white-space: nowrap; }
   .record-price-sub, .record-qty-sub { display: block; margin-top: 3px; color: #64748b; font-size: 12px; white-space: nowrap; }
-  .record-box-cell { white-space: nowrap; font-weight: 700; color: #1f2937; }
+  .record-box-cell { display: inline-block; min-width: 48px; white-space: nowrap; font-weight: 700; color: #1f2937; text-align: center; }
+  .record-country-cell { min-width: 0; overflow: hidden; }
+  .record-country-cell .badge { display: inline-block; max-width: 100%; white-space: normal; overflow-wrap: anywhere; line-height: 1.25; text-align: center; }
   .record-nowrap { white-space: nowrap; word-break: keep-all; writing-mode: horizontal-tb; overflow: hidden; text-overflow: ellipsis; }
   .record-number, .record-money { text-align: left; font-variant-numeric: tabular-nums; }
   .record-money strong { font-weight: 800; }
@@ -163,10 +165,10 @@
   .sale-record-table th:nth-child(2), .sale-record-table td:nth-child(2) { width: 84px; }
   .purchase-record-table th:nth-child(3), .purchase-record-table td:nth-child(3),
   .sale-record-table th:nth-child(3), .sale-record-table td:nth-child(3) { width: 88px; }
-  .purchase-record-table th:nth-child(4), .purchase-record-table td:nth-child(4) { width: 112px; }
-  .purchase-record-table th:nth-child(5), .purchase-record-table td:nth-child(5) { width: 216px; }
-  .purchase-record-table th:nth-child(6), .purchase-record-table td:nth-child(6) { width: 70px; }
-  .purchase-record-table th:nth-child(7), .purchase-record-table td:nth-child(7) { width: 58px; }
+  .purchase-record-table th:nth-child(4), .purchase-record-table td:nth-child(4) { width: 100px; }
+  .purchase-record-table th:nth-child(5), .purchase-record-table td:nth-child(5) { width: 190px; }
+  .purchase-record-table th:nth-child(6), .purchase-record-table td:nth-child(6) { width: 112px; }
+  .purchase-record-table th:nth-child(7), .purchase-record-table td:nth-child(7) { width: 68px; text-align: center; }
   .purchase-record-table th:nth-child(8), .purchase-record-table td:nth-child(8) { width: 54px; }
   .purchase-record-table th:nth-child(9), .purchase-record-table td:nth-child(9) { width: 80px; }
   .purchase-record-table th:nth-child(10), .purchase-record-table td:nth-child(10) { width: 84px; }
@@ -3143,7 +3145,7 @@ function renderPurchases() {
       <td data-label="倉庫" style="white-space:nowrap">${warehouseBadgeHTML(p.warehouseId)}</td>
       <td data-label="供應商" class="record-nowrap">${supplier ? supplier.name : '-'}</td>
       <td data-label="商品">${purchaseProductCellHTML(product)}</td>
-      <td data-label="產地" style="white-space:nowrap">${p.country ? `<span class="badge badge-info">${p.country}</span>` : '-'}</td>
+      <td data-label="產地" class="record-country-cell">${p.country ? `<span class="badge badge-info" title="${safeText(p.country)}">${safeText(p.country)}</span>` : '-'}</td>
       <td data-label="箱×包">${boxInfo}</td>
       <td data-label="包數" class="record-number">${p.qty}</td>
       <td data-label="每包成本" class="record-money">$${(p.price || 0).toFixed(2)}</td>
