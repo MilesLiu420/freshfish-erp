@@ -114,6 +114,8 @@
   .bundle-builder-row select, .bundle-builder-row input { width: 100%; }
   .bundle-components { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
   .bundle-component-chip { display: inline-flex; padding: 3px 7px; border-radius: 999px; background: #ecfeff; color: #0e7490; font-size: 11px; font-weight: 700; }
+  .sale-bundle-editor { margin: 12px 0; padding: 14px; border: 1px solid #bae6fd; border-radius: 8px; background: #f0f9ff; }
+  .sale-bundle-editor-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; color: #0a4d68; font-weight: 700; }
   @media (max-width: 768px) {
     .bundle-builder-row { grid-template-columns: minmax(0, 1fr) 78px 42px; }
   }
@@ -3472,13 +3474,17 @@ function addSaleLine(productId = '') {
       price = wholeMoney(customer.customPrices[productId]);
     }
   }
+  const selectedProduct = products.find(p => p.id === productId);
   currentSaleLines.push({
     lineId: lineIdCounter++,
     productId: productId || '',
     type,
     qty: 1,            // 顯示用：使用者輸入的數量
     unitMode: 'pack',  // 'box' 或 'pack' — 使用者選的單位
-    price              // 對應「unitMode」單位的價錢（若 box，就是每箱價）
+    price,             // 對應「unitMode」單位的價錢（若 box，就是每箱價）
+    bundleItems: isBundleProduct(selectedProduct)
+      ? selectedProduct.bundleItems.map(item => ({ productId: item.productId, qty: item.qty }))
+      : null
   });
   renderSaleLines();
 }
@@ -3502,6 +3508,9 @@ function updateSaleLine(lineId, field, value) {
     const customerId = parseInt(document.getElementById('sa-customer').value);
     const customer = customers.find(c => c.id === customerId);
     const product = products.find(p => p.id === line.productId);
+    line.bundleItems = isBundleProduct(product)
+      ? product.bundleItems.map(item => ({ productId: item.productId, qty: item.qty }))
+      : null;
     // 商品改變時重設單位：若該商品 packsPerBox >= 2，預設用「箱」（你比較常整箱賣）
     if (isBundleProduct(product)) {
       line.unitMode = 'pack';
@@ -3535,6 +3544,63 @@ function updateSaleLine(lineId, field, value) {
   updateSaleTotals();
 }
 
+function saleLineBundleItems(line, product = null) {
+  const selectedProduct = product || products.find(p => p.id === line.productId);
+  if (!isBundleProduct(selectedProduct)) return [];
+  return Array.isArray(line.bundleItems) ? line.bundleItems : selectedProduct.bundleItems;
+}
+
+function updateSaleBundleItem(lineId, index, field, value) {
+  const line = currentSaleLines.find(l => l.lineId === lineId);
+  if (!line || !Array.isArray(line.bundleItems) || !line.bundleItems[index]) return;
+  line.bundleItems[index][field] = field === 'productId'
+    ? (parseInt(value) || '')
+    : Math.max(1, parseInt(value) || 1);
+  renderSaleLines();
+}
+
+function addSaleBundleItem(lineId) {
+  const line = currentSaleLines.find(l => l.lineId === lineId);
+  if (!line) return;
+  if (!Array.isArray(line.bundleItems)) line.bundleItems = [];
+  line.bundleItems.push({ productId: '', qty: 1 });
+  renderSaleLines();
+}
+
+function removeSaleBundleItem(lineId, index) {
+  const line = currentSaleLines.find(l => l.lineId === lineId);
+  if (!line || !Array.isArray(line.bundleItems)) return;
+  if (line.bundleItems.length <= 1) { alert('套組至少要保留一個商品'); return; }
+  line.bundleItems.splice(index, 1);
+  renderSaleLines();
+}
+
+function resetSaleBundleItems(lineId) {
+  const line = currentSaleLines.find(l => l.lineId === lineId);
+  const product = line && products.find(p => p.id === line.productId);
+  if (!line || !isBundleProduct(product)) return;
+  line.bundleItems = product.bundleItems.map(item => ({ productId: item.productId, qty: item.qty }));
+  renderSaleLines();
+}
+
+function renderSaleBundleEditor(line, product) {
+  if (!isBundleProduct(product)) return '';
+  const items = saleLineBundleItems(line, product);
+  return `<div class="sale-bundle-editor">
+    <div class="sale-bundle-editor-title">
+      <span>本次套組內容</span>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="resetSaleBundleItems(${line.lineId})">恢復預設</button>
+    </div>
+    <div class="bundle-builder">${items.map((item, index) => `<div class="bundle-builder-row">
+      <select onchange="updateSaleBundleItem(${line.lineId}, ${index}, 'productId', this.value)">${bundleProductOptions(item.productId)}</select>
+      <input type="number" min="1" step="1" value="${item.qty}" aria-label="套組商品數量" onchange="updateSaleBundleItem(${line.lineId}, ${index}, 'qty', this.value)">
+      <button type="button" class="btn btn-danger btn-sm" title="移除" onclick="removeSaleBundleItem(${line.lineId}, ${index})">×</button>
+    </div>`).join('')}</div>
+    <button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addSaleBundleItem(${line.lineId})">＋ 加入商品</button>
+    <div style="margin-top:8px;color:#64748b;font-size:12px">只調整這一筆銷貨，不會更改商品管理中的原始套組。</div>
+  </div>`;
+}
+
 function updateSaleLineCalc(lineId) {
   const line = currentSaleLines.find(l => l.lineId === lineId);
   if (!line) return;
@@ -3551,7 +3617,7 @@ function updateSaleLineCalc(lineId) {
       extra = ` ｜ <span class="calc-label">出貨：${packsOut} ${product ? product.unit : '包'}</span>`;
     }
     if (isBundleProduct(product)) {
-      const content = product.bundleItems.map(item => {
+      const content = saleLineBundleItems(line, product).map(item => {
         const component = products.find(p => p.id === item.productId);
         return `${component ? component.name : '已刪除商品'} ${item.qty * (line.qty || 0)} ${component ? component.unit : ''}`;
       }).join('、');
@@ -3573,12 +3639,18 @@ function saleLinePacksOut(line) {
 function estimateSaleLineCost(line) {
   if (!line.productId) return 0;
   const saleDate = document.getElementById('sa-date')?.value || todayLocalDateString();
+  const product = products.find(p => p.id === line.productId);
+  if (isBundleProduct(product)) {
+    const unitCost = saleLineBundleItems(line, product).reduce((total, item) => total + avgCost(item.productId, saleDate) * item.qty, 0);
+    return (line.qty || 0) * unitCost;
+  }
   return saleLinePacksOut(line) * avgCost(line.productId, saleDate);
 }
 
-function bundleSnapshot(product) {
+function bundleSnapshot(product, line = null) {
   if (!isBundleProduct(product)) return null;
-  return product.bundleItems.map(item => {
+  const items = line ? saleLineBundleItems(line, product) : product.bundleItems;
+  return items.filter(item => item.productId && item.qty > 0).map(item => {
     const component = products.find(p => p.id === item.productId);
     return {
       productId: item.productId,
@@ -3594,7 +3666,8 @@ function saleStockRequirements(lines) {
   lines.forEach(line => {
     const product = products.find(p => p.id === line.productId);
     if (isBundleProduct(product)) {
-      product.bundleItems.forEach(item => {
+      saleLineBundleItems(line, product).forEach(item => {
+        if (!item.productId || item.qty <= 0) return;
         requirements.set(item.productId, (requirements.get(item.productId) || 0) + (line.qty || 0) * item.qty);
       });
     } else if (product) {
@@ -3653,6 +3726,7 @@ function renderSaleLines() {
         </div>
       </div>
       ${unitToggle}
+      ${renderSaleBundleEditor(l, product)}
       <div class="form-row">
         <div class="form-group"><label>銷售類型</label>
           <select onchange="updateSaleLine(${l.lineId}, 'type', this.value)">
@@ -3664,8 +3738,8 @@ function renderSaleLines() {
         <div class="form-group"><label>數量（${unitLabel}）</label>
           <input type="number" min="0" step="1" value="${l.qty}" oninput="updateSaleLine(${l.lineId}, 'qty', this.value)">
         </div>
-        <div class="form-group"><label>單價 ($/${unitLabel})</label>
-          <input id="sa-price-${l.lineId}" type="number" min="0" step="1" value="${wholeMoney(l.price)}" oninput="updateSaleLine(${l.lineId}, 'price', this.value)">
+        <div class="form-group"><label>${isBundleProduct(product) ? '套組售價' : '單價'} ($/${unitLabel})</label>
+          <input id="sa-price-${l.lineId}" type="number" min="0" step="1" value="${wholeMoney(l.price)}" onfocus="this.select()" oninput="updateSaleLine(${l.lineId}, 'price', this.value)" onblur="this.value = wholeMoney(this.value); updateSaleLine(${l.lineId}, 'price', this.value)">
         </div>
       </div>
       <div class="calc-display" id="sa-calc-${l.lineId}"></div>
@@ -3692,6 +3766,14 @@ function submitSale() {
   if (validLines.length === 0) { alert('請至少完整填寫一筆明細'); return; }
   if (validLines.length !== currentSaleLines.length) {
     if (!confirm(`有 ${currentSaleLines.length - validLines.length} 筆明細未完整填寫，將自動跳過。要繼續送出嗎？`)) return;
+  }
+  const invalidBundles = validLines.filter(line => {
+    const product = products.find(p => p.id === line.productId);
+    return isBundleProduct(product) && saleLineBundleItems(line, product).some(item => !item.productId || item.qty <= 0);
+  });
+  if (invalidBundles.length > 0) {
+    alert('套組內容還有未選擇商品的項目，請先完成後再送出。');
+    return;
   }
 
   // 檢查實際扣除的單品庫存；套組會展開成所有組成商品。
@@ -3727,8 +3809,10 @@ function submitSale() {
       displayQty: l.qty,        // 顯示用：使用者實際輸入的數量
       displayPrice,            // 顯示用：使用者實際輸入的整數單價
       shipping: idx === 0 ? shipping : 0, // 整單運費只記在第一筆，避免重複計算
-      costAtSale: weightedWarehouseCost(l.productId, warehouseId, date),
-      bundleComponents: bundleSnapshot(product),
+      costAtSale: isBundleProduct(product)
+        ? saleLineBundleItems(l, product).reduce((total, item) => total + weightedWarehouseCost(item.productId, warehouseId, date) * item.qty, 0)
+        : weightedWarehouseCost(l.productId, warehouseId, date),
+      bundleComponents: bundleSnapshot(product, l),
       saleOwner,
       note,
       recorder: currentUserName()
@@ -4366,6 +4450,7 @@ function updateSaleEditCalc(id) {
 function saveSaleEdit(id) {
   const s = sales.find(x => x.id === id);
   if (!s) return;
+  const previousProductId = s.productId;
   const date = document.getElementById('es-date-' + id).value;
   const warehouseId = parseInt(document.getElementById('es-warehouse-' + id).value);
   const customerId = parseInt(document.getElementById('es-customer-' + id).value) || null;
@@ -4399,8 +4484,16 @@ function saveSaleEdit(id) {
   s.unitMode = unitMode;
   s.displayQty = inputQty;
   s.displayPrice = inputPrice;
-  s.costAtSale = weightedWarehouseCost(productId, warehouseId, date);
-  s.bundleComponents = bundleSnapshot(product);
+  if (isBundleProduct(product)) {
+    const components = previousProductId === productId && Array.isArray(s.bundleComponents)
+      ? s.bundleComponents
+      : bundleSnapshot(product);
+    s.bundleComponents = components;
+    s.costAtSale = components.reduce((total, item) => total + weightedWarehouseCost(item.productId, warehouseId, date) * item.qty, 0);
+  } else {
+    s.costAtSale = weightedWarehouseCost(productId, warehouseId, date);
+    s.bundleComponents = null;
+  }
   s.saleOwner = warehouseId === huadeWarehouseId() ? selectedOwner : 'yujianke';
   if (s.settlementDate) {
     delete s.settlementDate;
