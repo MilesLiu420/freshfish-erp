@@ -116,8 +116,11 @@
   .bundle-component-chip { display: inline-flex; padding: 3px 7px; border-radius: 999px; background: #ecfeff; color: #0e7490; font-size: 11px; font-weight: 700; }
   .sale-bundle-editor { margin: 12px 0; padding: 14px; border: 1px solid #bae6fd; border-radius: 8px; background: #f0f9ff; }
   .sale-bundle-editor-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; color: #0a4d68; font-weight: 700; }
+  .sale-bundle-editor .bundle-builder-row { grid-template-columns: minmax(220px, 1fr) 150px 90px 42px; }
   @media (max-width: 768px) {
     .bundle-builder-row { grid-template-columns: minmax(0, 1fr) 78px 42px; }
+    .sale-bundle-editor .bundle-builder-row { grid-template-columns: minmax(0, 1fr) 72px 42px; }
+    .sale-bundle-editor .bundle-builder-row > select:first-child { grid-column: 1 / -1; }
   }
   .record-product-cell { min-width: 0; word-break: keep-all; writing-mode: horizontal-tb; }
   .record-product-name { font-weight: 700; color: #1f2937; white-space: normal; line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
@@ -3231,7 +3234,8 @@ function saleProductCellHTML(product, sale = null) {
   if (!components || components.length === 0) return base;
   const chips = components.map(item => {
     const component = products.find(p => p.id === item.productId);
-    return `<span class="bundle-component-chip">${safeText(item.name || (component ? component.name : '已刪除商品'))} × ${item.qty}</span>`;
+    const source = sale && item.warehouseId ? ` · ${warehouseName(Number(item.warehouseId))}` : '';
+    return `<span class="bundle-component-chip">${safeText(item.name || (component ? component.name : '已刪除商品'))} × ${item.qty}${safeText(source)}</span>`;
   }).join('');
   return `${base}<div class="bundle-components">${chips}</div>`;
 }
@@ -3464,6 +3468,24 @@ function wholeMoney(value) {
   return Math.round(parseFloat(value) || 0);
 }
 
+function preferredBundleWarehouse(productId, preferredWarehouseId = null) {
+  const preferred = Number(preferredWarehouseId) || null;
+  if (preferred && calcStock(productId, preferred) > 0) return preferred;
+  const ranked = warehouses.map(w => ({ id: w.id, stock: calcStock(productId, w.id) }))
+    .sort((a, b) => b.stock - a.stock);
+  return (ranked.find(item => item.stock > 0) || ranked[0] || {}).id || preferred || '';
+}
+
+function defaultSaleBundleItems(product) {
+  const preferredWarehouseId = parseInt(document.getElementById('sa-warehouse')?.value) || null;
+  if (!isBundleProduct(product)) return null;
+  return product.bundleItems.map(item => ({
+    productId: item.productId,
+    qty: item.qty,
+    warehouseId: preferredBundleWarehouse(item.productId, preferredWarehouseId)
+  }));
+}
+
 function addSaleLine(productId = '') {
   const customerId = parseInt(document.getElementById('sa-customer').value);
   const customer = customers.find(c => c.id === customerId);
@@ -3482,9 +3504,7 @@ function addSaleLine(productId = '') {
     qty: 1,            // 顯示用：使用者輸入的數量
     unitMode: 'pack',  // 'box' 或 'pack' — 使用者選的單位
     price,             // 對應「unitMode」單位的價錢（若 box，就是每箱價）
-    bundleItems: isBundleProduct(selectedProduct)
-      ? selectedProduct.bundleItems.map(item => ({ productId: item.productId, qty: item.qty }))
-      : null
+    bundleItems: defaultSaleBundleItems(selectedProduct)
   });
   renderSaleLines();
 }
@@ -3508,9 +3528,7 @@ function updateSaleLine(lineId, field, value) {
     const customerId = parseInt(document.getElementById('sa-customer').value);
     const customer = customers.find(c => c.id === customerId);
     const product = products.find(p => p.id === line.productId);
-    line.bundleItems = isBundleProduct(product)
-      ? product.bundleItems.map(item => ({ productId: item.productId, qty: item.qty }))
-      : null;
+    line.bundleItems = defaultSaleBundleItems(product);
     // 商品改變時重設單位：若該商品 packsPerBox >= 2，預設用「箱」（你比較常整箱賣）
     if (isBundleProduct(product)) {
       line.unitMode = 'pack';
@@ -3553,9 +3571,17 @@ function saleLineBundleItems(line, product = null) {
 function updateSaleBundleItem(lineId, index, field, value) {
   const line = currentSaleLines.find(l => l.lineId === lineId);
   if (!line || !Array.isArray(line.bundleItems) || !line.bundleItems[index]) return;
-  line.bundleItems[index][field] = field === 'productId'
-    ? (parseInt(value) || '')
-    : Math.max(1, parseInt(value) || 1);
+  if (field === 'productId') {
+    line.bundleItems[index].productId = parseInt(value) || '';
+    line.bundleItems[index].warehouseId = preferredBundleWarehouse(
+      line.bundleItems[index].productId,
+      parseInt(document.getElementById('sa-warehouse')?.value) || null
+    );
+  } else if (field === 'warehouseId') {
+    line.bundleItems[index].warehouseId = parseInt(value) || '';
+  } else {
+    line.bundleItems[index].qty = Math.max(1, parseInt(value) || 1);
+  }
   renderSaleLines();
 }
 
@@ -3563,7 +3589,7 @@ function addSaleBundleItem(lineId) {
   const line = currentSaleLines.find(l => l.lineId === lineId);
   if (!line) return;
   if (!Array.isArray(line.bundleItems)) line.bundleItems = [];
-  line.bundleItems.push({ productId: '', qty: 1 });
+  line.bundleItems.push({ productId: '', qty: 1, warehouseId: parseInt(document.getElementById('sa-warehouse')?.value) || '' });
   renderSaleLines();
 }
 
@@ -3579,13 +3605,14 @@ function resetSaleBundleItems(lineId) {
   const line = currentSaleLines.find(l => l.lineId === lineId);
   const product = line && products.find(p => p.id === line.productId);
   if (!line || !isBundleProduct(product)) return;
-  line.bundleItems = product.bundleItems.map(item => ({ productId: item.productId, qty: item.qty }));
+  line.bundleItems = defaultSaleBundleItems(product);
   renderSaleLines();
 }
 
 function renderSaleBundleEditor(line, product) {
   if (!isBundleProduct(product)) return '';
   const items = saleLineBundleItems(line, product);
+  const defaultWarehouseId = parseInt(document.getElementById('sa-warehouse')?.value) || '';
   return `<div class="sale-bundle-editor">
     <div class="sale-bundle-editor-title">
       <span>本次套組內容</span>
@@ -3593,11 +3620,12 @@ function renderSaleBundleEditor(line, product) {
     </div>
     <div class="bundle-builder">${items.map((item, index) => `<div class="bundle-builder-row">
       <select onchange="updateSaleBundleItem(${line.lineId}, ${index}, 'productId', this.value)">${bundleProductOptions(item.productId)}</select>
+      <select aria-label="來源倉庫" onchange="updateSaleBundleItem(${line.lineId}, ${index}, 'warehouseId', this.value)">${warehouses.map(w => `<option value="${w.id}" ${Number(item.warehouseId || defaultWarehouseId) === w.id ? 'selected' : ''}>${safeText(w.name)}（${item.productId ? calcStock(item.productId, w.id) : 0}）</option>`).join('')}</select>
       <input type="number" min="1" step="1" value="${item.qty}" aria-label="套組商品數量" onchange="updateSaleBundleItem(${line.lineId}, ${index}, 'qty', this.value)">
       <button type="button" class="btn btn-danger btn-sm" title="移除" onclick="removeSaleBundleItem(${line.lineId}, ${index})">×</button>
     </div>`).join('')}</div>
     <button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addSaleBundleItem(${line.lineId})">＋ 加入商品</button>
-    <div style="margin-top:8px;color:#64748b;font-size:12px">只調整這一筆銷貨，不會更改商品管理中的原始套組。</div>
+    <div style="margin-top:8px;color:#64748b;font-size:12px">括號內為目前庫存；每項可選不同來源倉庫，只調整這一筆銷貨。</div>
   </div>`;
 }
 
@@ -3619,7 +3647,8 @@ function updateSaleLineCalc(lineId) {
     if (isBundleProduct(product)) {
       const content = saleLineBundleItems(line, product).map(item => {
         const component = products.find(p => p.id === item.productId);
-        return `${component ? component.name : '已刪除商品'} ${item.qty * (line.qty || 0)} ${component ? component.unit : ''}`;
+        const sourceWarehouseId = Number(item.warehouseId) || parseInt(document.getElementById('sa-warehouse')?.value);
+        return `${component ? component.name : '已刪除商品'} ${item.qty * (line.qty || 0)} ${component ? component.unit : ''}（${warehouseName(sourceWarehouseId)}）`;
       }).join('、');
       extra = ` ｜ <span class="calc-label">扣庫存：${safeText(content)}</span>`;
     }
@@ -3641,7 +3670,11 @@ function estimateSaleLineCost(line) {
   const saleDate = document.getElementById('sa-date')?.value || todayLocalDateString();
   const product = products.find(p => p.id === line.productId);
   if (isBundleProduct(product)) {
-    const unitCost = saleLineBundleItems(line, product).reduce((total, item) => total + avgCost(item.productId, saleDate) * item.qty, 0);
+    const defaultWarehouseId = parseInt(document.getElementById('sa-warehouse')?.value);
+    const unitCost = saleLineBundleItems(line, product).reduce((total, item) => {
+      const sourceWarehouseId = Number(item.warehouseId) || defaultWarehouseId;
+      return total + weightedWarehouseCost(item.productId, sourceWarehouseId, saleDate) * item.qty;
+    }, 0);
     return (line.qty || 0) * unitCost;
   }
   return saleLinePacksOut(line) * avgCost(line.productId, saleDate);
@@ -3655,6 +3688,7 @@ function bundleSnapshot(product, line = null) {
     return {
       productId: item.productId,
       qty: item.qty,
+      warehouseId: Number(item.warehouseId) || null,
       name: component ? component.name : '已刪除商品',
       unit: component ? component.unit : '包'
     };
@@ -3663,15 +3697,22 @@ function bundleSnapshot(product, line = null) {
 
 function saleStockRequirements(lines) {
   const requirements = new Map();
+  const defaultWarehouseId = parseInt(document.getElementById('sa-warehouse')?.value) || null;
+  const addRequirement = (productId, warehouseId, qty) => {
+    const key = `${warehouseId}|${productId}`;
+    const current = requirements.get(key) || { productId, warehouseId, qty: 0 };
+    current.qty += qty;
+    requirements.set(key, current);
+  };
   lines.forEach(line => {
     const product = products.find(p => p.id === line.productId);
     if (isBundleProduct(product)) {
       saleLineBundleItems(line, product).forEach(item => {
         if (!item.productId || item.qty <= 0) return;
-        requirements.set(item.productId, (requirements.get(item.productId) || 0) + (line.qty || 0) * item.qty);
+        addRequirement(item.productId, Number(item.warehouseId) || defaultWarehouseId, (line.qty || 0) * item.qty);
       });
     } else if (product) {
-      requirements.set(product.id, (requirements.get(product.id) || 0) + saleLinePacksOut(line));
+      addRequirement(product.id, defaultWarehouseId, saleLinePacksOut(line));
     }
   });
   return requirements;
@@ -3778,16 +3819,16 @@ function submitSale() {
 
   // 檢查實際扣除的單品庫存；套組會展開成所有組成商品。
   const insufficientItems = [];
-  saleStockRequirements(validLines).forEach((qty, productId) => {
+  saleStockRequirements(validLines).forEach(requirement => {
+    const { qty, productId, warehouseId: sourceWarehouseId } = requirement;
     const product = products.find(x => x.id === productId);
-    const stock = calcStock(productId, warehouseId);
+    const stock = calcStock(productId, sourceWarehouseId);
     if (qty > stock) {
-      insufficientItems.push(`${product ? product.name : '?'}：庫存 ${stock} ${product ? product.unit : ''}，需要 ${qty} ${product ? product.unit : ''}`);
+      insufficientItems.push(`${warehouseName(sourceWarehouseId)}｜${product ? product.name : '?'}：庫存 ${stock} ${product ? product.unit : ''}，需要 ${qty} ${product ? product.unit : ''}`);
     }
   });
   if (insufficientItems.length > 0) {
-    const wName = (warehouses.find(w => w.id === warehouseId) || {}).name || '';
-    if (!confirm(`「${wName}」以下品項庫存不足：\n\n${insufficientItems.join('\n')}\n\n要繼續送出嗎？（會出現負庫存）`)) return;
+    if (!confirm(`以下來源倉庫的品項庫存不足：\n\n${insufficientItems.join('\n')}\n\n要繼續送出嗎？（會出現負庫存）`)) return;
   }
 
   // 寫入 sales — 底層永遠存「包數」與「每包價」，但保留原始輸入方便顯示
@@ -3810,7 +3851,7 @@ function submitSale() {
       displayPrice,            // 顯示用：使用者實際輸入的整數單價
       shipping: idx === 0 ? shipping : 0, // 整單運費只記在第一筆，避免重複計算
       costAtSale: isBundleProduct(product)
-        ? saleLineBundleItems(l, product).reduce((total, item) => total + weightedWarehouseCost(item.productId, warehouseId, date) * item.qty, 0)
+        ? saleLineBundleItems(l, product).reduce((total, item) => total + weightedWarehouseCost(item.productId, Number(item.warehouseId) || warehouseId, date) * item.qty, 0)
         : weightedWarehouseCost(l.productId, warehouseId, date),
       bundleComponents: bundleSnapshot(product, l),
       saleOwner,
@@ -4047,16 +4088,23 @@ function createSalesFromLineChain() {
     : 'yujianke';
 
   const insufficient = [];
-  const requirementLines = parsedLineChainItems.map(item => ({ productId: item.product.id, qty: item.qty, unitMode: 'pack' }));
-  saleStockRequirements(requirementLines).forEach((qty, productId) => {
+  const requirementLines = parsedLineChainItems.map(item => ({
+    productId: item.product.id,
+    qty: item.qty,
+    unitMode: 'pack',
+    bundleItems: defaultSaleBundleItems(item.product)
+  }));
+  saleStockRequirements(requirementLines).forEach(requirement => {
+    const { qty, productId, warehouseId: sourceWarehouseId } = requirement;
     const product = products.find(p => p.id === productId);
-    const stock = calcStock(productId, warehouseId);
-    if (qty > stock) insufficient.push(`${product ? product.name : '?'}：庫存 ${stock} ${product ? product.unit : ''}，需要 ${qty} ${product ? product.unit : ''}`);
+    const stock = calcStock(productId, sourceWarehouseId);
+    if (qty > stock) insufficient.push(`${warehouseName(sourceWarehouseId)}｜${product ? product.name : '?'}：庫存 ${stock} ${product ? product.unit : ''}，需要 ${qty} ${product ? product.unit : ''}`);
   });
   if (insufficient.length > 0 && !confirm(`以下品項庫存不足：\n\n${insufficient.join('\n')}\n\n仍要建立銷貨紀錄嗎？`)) return;
 
   const baseId = Date.now();
   parsedLineChainItems.forEach((item, idx) => {
+    const bundleItems = defaultSaleBundleItems(item.product);
     sales.push({
       id: baseId + idx,
       date,
@@ -4070,8 +4118,10 @@ function createSalesFromLineChain() {
       displayQty: item.qty,
       displayPrice: Math.round(item.price),
       shipping: 0,
-      costAtSale: weightedWarehouseCost(item.product.id, warehouseId, date),
-      bundleComponents: bundleSnapshot(item.product),
+      costAtSale: isBundleProduct(item.product)
+        ? bundleItems.reduce((total, component) => total + weightedWarehouseCost(component.productId, Number(component.warehouseId) || warehouseId, date) * component.qty, 0)
+        : weightedWarehouseCost(item.product.id, warehouseId, date),
+      bundleComponents: bundleSnapshot(item.product, { productId: item.product.id, bundleItems }),
       saleOwner,
       note: `LINE接龍匯入${item.extra ? '：' + item.extra : ''}`,
       recorder: currentUserName()
@@ -4631,14 +4681,17 @@ function calcStock(productId, warehouseId = null) {
 }
 
 function bundleComponentSold(productId, warehouseId = null) {
-  const filterW = (rec) => !warehouseId || warehouseId === 'all' || rec.warehouseId === warehouseId;
-  return sales.filter(filterW).reduce((total, sale) => {
+  return sales.reduce((total, sale) => {
     const soldProduct = products.find(p => p.id === sale.productId);
     const components = Array.isArray(sale.bundleComponents)
       ? sale.bundleComponents
       : (isBundleProduct(soldProduct) ? soldProduct.bundleItems : []);
-    const component = components.find(item => item.productId === productId);
-    return total + (component ? (Number(sale.qty) || 0) * (Number(component.qty) || 0) : 0);
+    return total + components.reduce((componentTotal, component) => {
+      if (component.productId !== productId) return componentTotal;
+      const sourceWarehouseId = Number(component.warehouseId) || sale.warehouseId;
+      if (warehouseId && warehouseId !== 'all' && sourceWarehouseId !== warehouseId) return componentTotal;
+      return componentTotal + (Number(sale.qty) || 0) * (Number(component.qty) || 0);
+    }, 0);
   }, 0);
 }
 
@@ -5255,6 +5308,13 @@ function huadeSettlementUnitCost(sale) {
   if (sale.settlementUnitCost != null && Number.isFinite(Number(sale.settlementUnitCost))) {
     return Number(sale.settlementUnitCost);
   }
+  const huadeId = huadeWarehouseId();
+  const huadeComponents = Array.isArray(sale.bundleComponents)
+    ? sale.bundleComponents.filter(item => (Number(item.warehouseId) || sale.warehouseId) === huadeId)
+    : [];
+  if (huadeComponents.length > 0) {
+    return huadeComponents.reduce((total, item) => total + weightedWarehouseCost(item.productId, huadeId, sale.date) * (Number(item.qty) || 0), 0);
+  }
   if (sale.costAtSale != null && Number.isFinite(Number(sale.costAtSale))) {
     return Number(sale.costAtSale);
   }
@@ -5276,7 +5336,8 @@ function filteredHuadeSettlementSales() {
   const to = document.getElementById('settlement-to')?.value || '';
   const status = document.getElementById('settlement-status')?.value || 'pending';
   return sales.filter(s => {
-    if (s.warehouseId !== warehouseId) return false;
+    const hasHuadeComponent = Array.isArray(s.bundleComponents) && s.bundleComponents.some(item => (Number(item.warehouseId) || s.warehouseId) === warehouseId);
+    if (s.warehouseId !== warehouseId && !hasHuadeComponent) return false;
     if (from && s.date < from) return false;
     if (to && s.date > to) return false;
     if (status === 'pending' && (s.settlementDate || s.saleOwner === 'huade')) return false;
