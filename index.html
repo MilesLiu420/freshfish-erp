@@ -1032,7 +1032,10 @@
         <button type="button" class="btn btn-primary" style="margin-left:8px" onclick="addBundleProduct()">新增套組</button>
       </div>
       <div class="card">
-        <div class="card-title">商品列表</div>
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <span>商品列表</span>
+          <button type="button" class="btn btn-success" onclick="exportProductPurchasePrices()">📥 匯出全部產品進貨價</button>
+        </div>
         <div class="form-row">
           <div class="form-group"><label>🔍 搜尋</label><input id="product-search" placeholder="輸入商品名稱、規格" oninput="renderProducts()"></div>
           <div class="form-group"><label>分類篩選</label>
@@ -2432,6 +2435,61 @@ function renderProducts() {
       </td>
     </tr>`;
   }).join('');
+}
+
+function productPriceCsvCell(value) {
+  const text = value == null ? '' : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportProductPurchasePrices() {
+  const headers = [
+    '商品名稱', '分類', '規格', '單位', '最新進貨日期', '最新進貨價（每單位）',
+    '最近供應商', '最近入庫倉庫', '加權平均進貨價', '歷史最低進貨價',
+    '歷史最高進貨價', '進貨次數', '累計進貨數量'
+  ];
+
+  const rows = products.map(product => {
+    const history = purchases
+      .filter(purchase => purchase.productId === product.id)
+      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (Number(b.id) || 0) - (Number(a.id) || 0));
+    const latest = history[0];
+    const totalQty = history.reduce((sum, purchase) => sum + (Number(purchase.qty) || 0), 0);
+    const totalCost = history.reduce((sum, purchase) => sum + (Number(purchase.qty) || 0) * (Number(purchase.price) || 0), 0);
+    const prices = history.map(purchase => Number(purchase.price)).filter(Number.isFinite);
+    const category = productCategories.find(item => item.id === product.categoryId);
+    const supplier = latest ? suppliers.find(item => item.id === latest.supplierId) : null;
+    const warehouse = latest ? warehouses.find(item => item.id === latest.warehouseId) : null;
+
+    return [
+      product.name,
+      category ? category.name : '未分類',
+      product.spec || '',
+      product.unit || '',
+      latest ? latest.date : '',
+      latest ? Number(latest.price || 0).toFixed(2) : '',
+      supplier ? supplier.name : '',
+      warehouse ? warehouse.name : '',
+      totalQty > 0 ? (totalCost / totalQty).toFixed(2) : '',
+      prices.length ? Math.min(...prices).toFixed(2) : '',
+      prices.length ? Math.max(...prices).toFixed(2) : '',
+      history.length,
+      totalQty
+    ];
+  });
+
+  const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(productPriceCsvCell).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const fileUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const fileName = `產品進貨價_${todayLocalDateString()}.csv`;
+  link.href = fileUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+  alert(`✅ 已匯出 ${products.length} 項產品進貨價\n檔名：${fileName}`);
 }
 
 function startProductEdit(id) {
